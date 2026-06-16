@@ -1,7 +1,7 @@
 # ⚽ World Cup 2026 AI Stats Dashboard
 
 ![Project Status](https://img.shields.io/badge/status-active%20development-blue)
-![Version](https://img.shields.io/badge/version-v0.1.0-orange)
+![Version](https://img.shields.io/badge/version-v0.2.0-orange)
 ![Python](https://img.shields.io/badge/python-3.12-blue)
 ![FastAPI](https://img.shields.io/badge/backend-FastAPI-green)
 ![Streamlit](https://img.shields.io/badge/dashboard-Streamlit-red)
@@ -16,24 +16,34 @@ A self-hosted, containerized, AI-assisted World Cup 2026 match tracking platform
 ## 📌 Current Version
 
 ```text
-v0.1.0 — Project Foundation
+v0.2.0 — Football API Integration Foundation
 ```
 
-This version establishes the base foundation of the project.
+This version establishes the football data foundation of the project.
 
 At this stage, the project includes:
 
 * FastAPI backend service
-* Streamlit dashboard placeholder
+* Streamlit dashboard
 * PostgreSQL database container
 * Docker Compose setup
 * Environment variable template
 * Backend health check endpoint
-* Pytest test coverage
+* SQLAlchemy database layer
+* PostgreSQL-backed fixture model
+* Sample World Cup fixture data
+* Manual sample fixture sync endpoint
+* Fixture listing endpoint
+* Fixture detail endpoint
+* Streamlit fixture table
+* SQLite-based test database
+* Fixture endpoint test coverage
 * GitHub Actions CI workflow
 * Semantic versioning from the first milestone
 
-Football API integration, finished-match detection, Telegram alerts, player statistics, and local LLM summaries will be added progressively in later versions.
+The project now includes a working fixture database foundation using sample World Cup data.
+
+Real football API integration, finished-match detection, Telegram alerts, player statistics, and local LLM summaries will be added progressively in later versions.
 
 ---
 
@@ -90,7 +100,7 @@ The final goal is to create a self-hosted system that can:
 
 ## 🧱 Current Architecture
 
-Current `v0.1.0` architecture:
+Current `v0.2.0` architecture:
 
 ```text
 User Browser
@@ -98,6 +108,8 @@ User Browser
 Streamlit Dashboard
     ↓
 FastAPI Backend
+    ↓
+SQLAlchemy
     ↓
 PostgreSQL Database
 ```
@@ -108,6 +120,26 @@ Current services:
 worldcup-dashboard
 worldcup-backend
 worldcup-postgres
+```
+
+Current data flow:
+
+```text
+User clicks "Sync Sample Fixtures"
+    ↓
+Streamlit sends POST request
+    ↓
+FastAPI receives /fixtures/sync/sample
+    ↓
+Sample fixture data is loaded
+    ↓
+SQLAlchemy inserts or updates records
+    ↓
+PostgreSQL stores fixture data
+    ↓
+Dashboard fetches /fixtures
+    ↓
+Fixture table is displayed
 ```
 
 ---
@@ -149,19 +181,21 @@ cloudflared
 
 ## 🛠️ Tech Stack
 
-| Layer                | Technology             |
-| -------------------- | ---------------------- |
-| Backend API          | FastAPI                |
-| Dashboard            | Streamlit              |
-| Database             | PostgreSQL             |
-| Containerization     | Docker, Docker Compose |
-| Testing              | Pytest                 |
-| CI/CD                | GitHub Actions         |
-| Configuration        | Environment variables  |
-| Future AI Layer      | Ollama + Llama 1B      |
-| Future Notifications | Telegram Bot API       |
-| Future Public Access | Cloudflare Tunnel      |
-| Future Monitoring    | Prometheus + Grafana   |
+| Layer | Technology |
+|---|---|
+| Backend API | FastAPI |
+| Dashboard | Streamlit |
+| Database | PostgreSQL |
+| ORM / Database Layer | SQLAlchemy |
+| Test Database | SQLite |
+| Containerization | Docker, Docker Compose |
+| Testing | Pytest |
+| CI/CD | GitHub Actions |
+| Configuration | Environment variables |
+| Future AI Layer | Ollama + Llama 1B |
+| Future Notifications | Telegram Bot API |
+| Future Public Access | Cloudflare Tunnel |
+| Future Monitoring | Prometheus + Grafana |
 
 ---
 
@@ -174,10 +208,25 @@ worldcup-2026-ai-stats/
 │   ├── app/
 │   │   ├── __init__.py
 │   │   ├── config.py
-│   │   └── main.py
+│   │   ├── database.py
+│   │   ├── main.py
+│   │   │
+│   │   ├── models/
+│   │   │   ├── __init__.py
+│   │   │   └── fixture.py
+│   │   │
+│   │   ├── routes/
+│   │   │   ├── __init__.py
+│   │   │   └── fixtures.py
+│   │   │
+│   │   └── services/
+│   │       ├── __init__.py
+│   │       └── sample_data.py
 │   │
 │   ├── tests/
 │   │   ├── __init__.py
+│   │   ├── conftest.py
+│   │   ├── test_fixtures.py
 │   │   └── test_health.py
 │   │
 │   ├── Dockerfile
@@ -312,7 +361,48 @@ Expected backend health response:
 {
   "status": "healthy",
   "service": "backend",
-  "version": "0.1.0"
+  "version": "0.2.0"
+}
+```
+
+---
+
+## 📊 Fixture Endpoints
+
+### List Fixtures
+
+```text
+GET /fixtures
+```
+
+Returns all stored fixtures ordered by kickoff time.
+
+### Get Fixture by ID
+
+```text
+GET /fixtures/{fixture_id}
+```
+
+Returns one fixture by internal database ID.
+
+### Sync Sample Fixtures
+
+```text
+POST /fixtures/sync/sample
+```
+
+Loads sample World Cup fixture data into the database.
+
+The sync is idempotent. Running it multiple times updates existing records instead of creating duplicates.
+
+Example response:
+
+```json
+{
+  "message": "Sample fixtures synced successfully",
+  "created": 0,
+  "updated": 4,
+  "total_sample_fixtures": 4
 }
 ```
 
@@ -343,8 +433,10 @@ pytest
 Expected result:
 
 ```text
-1 passed
+7 passed
 ```
+
+The test suite uses an in-memory SQLite database, so tests do not require Docker or PostgreSQL to be running.
 
 ---
 
@@ -370,6 +462,16 @@ The workflow installs Python dependencies and runs:
 pytest
 ```
 
+Current test coverage includes:
+
+* Backend health check
+* Empty fixture list before sync
+* Sample fixture sync
+* Fixture list after sync
+* Single fixture retrieval
+* Missing fixture 404 response
+* Idempotent fixture sync behavior
+
 ---
 
 ## 🧾 Environment Variables
@@ -380,13 +482,13 @@ Current `.env.example`:
 # App
 APP_NAME=World Cup 2026 AI Stats
 APP_ENV=development
-APP_VERSION=0.1.0
+APP_VERSION=0.2.0
 
 # Database
 POSTGRES_USER=worldcup
 POSTGRES_PASSWORD=worldcup
 POSTGRES_DB=worldcup
-DATABASE_URL=postgresql://worldcup:worldcup@postgres:5432/worldcup
+DATABASE_URL=postgresql+psycopg://worldcup:worldcup@postgres:5432/worldcup
 
 # Dashboard
 DASHBOARD_PORT=8501
@@ -453,18 +555,45 @@ Status: Completed
 * Version file
 * Initial documentation
 
-### v0.2.0 — Football API Integration
+### v0.1.1 — README and Documentation Polish
+
+Status: Completed
+
+* Capstone-style README
+* Personal project story
+* Project goals
+* Tech stack section
+* Roadmap section
+* Security notes
+* Development setup notes
+
+### v0.2.0 — Football API Integration Foundation
+
+Status: Completed
+
+* SQLAlchemy database layer
+* PostgreSQL-backed fixture model
+* Sample World Cup fixture data
+* Manual sample fixture sync endpoint
+* Fixture listing endpoint
+* Fixture detail endpoint
+* Streamlit fixture table
+* SQLite-based test database
+* Fixture endpoint test coverage
+
+### v0.3.0 — Real Football API Provider Integration
 
 Status: Planned
 
 * Select football data API provider
-* Add API client service
-* Fetch World Cup fixtures
-* Store match data in PostgreSQL
-* Add fixture-related backend routes
-* Add tests for API parsing and validation
+* Add provider client service
+* Fetch real World Cup fixtures
+* Normalize provider responses into the internal fixture model
+* Keep sample data as a fallback/demo mode
+* Add tests with mocked provider responses
+* Update dashboard to show provider/source status
 
-### v0.3.0 — Match Completion Detector
+### v0.4.0 — Match Completion Detector
 
 Status: Planned
 
@@ -474,7 +603,7 @@ Status: Planned
 * Prevent duplicate match processing
 * Store final match records
 
-### v0.4.0 — Telegram Notifications
+### v0.5.0 — Telegram Notifications
 
 Status: Planned
 
@@ -483,7 +612,7 @@ Status: Planned
 * Include dashboard link in message
 * Add notification status tracking
 
-### v0.5.0 — Interactive Dashboard
+### v0.6.0 — Interactive Dashboard
 
 Status: Planned
 
@@ -493,7 +622,7 @@ Status: Planned
 * Mobile-friendly layout
 * Match timeline display
 
-### v0.6.0 — Local Llama Summary Agent
+### v0.7.0 — Local Llama Summary Agent
 
 Status: Planned
 
@@ -503,7 +632,7 @@ Status: Planned
 * Add fallback when LLM is unavailable
 * Store generated summaries in database
 
-### v0.7.0 — Player-Level Statistics
+### v0.8.0 — Player-Level Statistics
 
 Status: Planned
 
@@ -513,7 +642,7 @@ Status: Planned
 * Top performers section
 * Player comparison view
 
-### v0.8.0 — Monitoring and Observability
+### v0.9.0 — Monitoring and Observability
 
 Status: Planned
 
@@ -540,17 +669,19 @@ Status: Planned
 
 ## 📊 Version History
 
-| Version | Description                                                                    | Status    |
-| ------- | ------------------------------------------------------------------------------ | --------- |
-| v0.1.0  | Project foundation with Docker, FastAPI, Streamlit, PostgreSQL, pytest, and CI | Completed |
-| v0.2.0  | Football API integration                                                       | Planned   |
-| v0.3.0  | Finished-match detection                                                       | Planned   |
-| v0.4.0  | Telegram notifications                                                         | Planned   |
-| v0.5.0  | Interactive dashboard                                                          | Planned   |
-| v0.6.0  | Local Llama summary agent                                                      | Planned   |
-| v0.7.0  | Player-level stats                                                             | Planned   |
-| v0.8.0  | Monitoring and observability                                                   | Planned   |
-| v1.0.0  | Stable portfolio release                                                       | Planned   |
+| Version | Description | Status |
+|---|---|---|
+| v0.1.0 | Project foundation with Docker, FastAPI, Streamlit, PostgreSQL, pytest, and CI | Completed |
+| v0.1.1 | Documentation polish and capstone-style README | Completed |
+| v0.2.0 | Football API integration foundation with fixture database, sample sync, dashboard table, and endpoint tests | Completed |
+| v0.3.0 | Real football API provider integration | Planned |
+| v0.4.0 | Finished-match detection | Planned |
+| v0.5.0 | Telegram notifications | Planned |
+| v0.6.0 | Interactive dashboard | Planned |
+| v0.7.0 | Local Llama summary agent | Planned |
+| v0.8.0 | Player-level stats | Planned |
+| v0.9.0 | Monitoring and observability | Planned |
+| v1.0.0 | Stable portfolio release | Planned |
 
 ---
 
@@ -568,7 +699,7 @@ Example response:
 {
   "status": "healthy",
   "service": "backend",
-  "version": "0.1.0"
+  "version": "0.2.0"
 }
 ```
 
@@ -722,13 +853,13 @@ This project is currently in active development.
 Current release:
 
 ```text
-v0.1.0 — Project Foundation
+v0.2.0 — Football API Integration Foundation
 ```
 
 Next planned milestone:
 
 ```text
-v0.2.0 — Football API Integration
+v0.3.0 — Real Football API Provider Integration
 ```
 
-The foundation is now working. The next step is to connect real World Cup match data and start turning this from a working skeleton into a useful live dashboard.
+The foundation is now able to store and display sample World Cup fixtures. The next step is to connect a real football data provider while keeping sample data available as a fallback for local development and public GitHub users.
