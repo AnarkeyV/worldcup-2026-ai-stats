@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     api_football_world_cup_league_id: int = 1
     api_football_season: int = 2026
 
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_file=(".env", "../.env"), extra="ignore")
 
 
 settings = Settings()
