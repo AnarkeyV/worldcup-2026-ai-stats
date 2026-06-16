@@ -5,7 +5,7 @@
 ![Streamlit](https://img.shields.io/badge/dashboard-Streamlit-red)
 ![Docker](https://img.shields.io/badge/container-Docker-blue)
 ![Python](https://img.shields.io/badge/python-3.14-yellow)
-![Version](https://img.shields.io/badge/version-v0.3.0-purple)
+![Version](https://img.shields.io/badge/version-v0.4.0-purple)
 
 A self-hosted, containerized, AI-assisted World Cup 2026 match tracking platform built with **FastAPI**, **PostgreSQL**, **Streamlit**, **Docker Compose**, and future integrations for **Telegram notifications**, **local Llama/Ollama summaries**, and football analytics.
 
@@ -15,9 +15,11 @@ The project is intentionally being built in public, milestone by milestone, to s
 
 ## 📌 Current Version
 
-**v0.3.0 — Real Football API Provider Integration**
+**v0.4.0 — Match Completion Detector**
 
-The backend now includes a real football data provider layer using an API-Football provider client, while still keeping sample fixture sync available for local development and testing.
+The backend now detects fixtures that have newly changed into a completed match status during sync.
+
+This milestone builds directly on the real football provider foundation from `v0.3.0`. The sync service can now identify newly completed matches from both sample fixture sync and future provider fixture sync. This creates the foundation for future Telegram notifications and AI match summaries.
 
 ### Current Backend Capabilities
 
@@ -29,7 +31,10 @@ The backend now includes a real football data provider layer using an API-Footba
 * API-Football provider client
 * Provider abstraction layer
 * Fixture sync service with create/update logic
+* Newly completed fixture detection
+* Sync responses that expose newly completed fixture IDs
 * Mocked provider tests
+* Service tests for match completion detection
 * Route tests for fixture sync behavior
 * Streamlit dashboard foundation
 * Docker Compose local environment
@@ -42,6 +47,7 @@ The application can now support both:
 
 * sample fixture data for development and demo use
 * real provider fixture data through the provider sync endpoint
+* match completion detection during fixture sync
 
 Live real-data syncing requires a valid API-Football / API-Sports key to be added locally in `.env`.
 
@@ -59,6 +65,7 @@ The idea is to build something that feels realistic instead of only following tu
 * database modeling
 * external provider integration
 * idempotent data sync
+* change detection during sync
 * Docker-based local development
 * CI testing
 * environment variable handling
@@ -105,6 +112,9 @@ FastAPI Backend
     v
 Fixture Sync Service
     |
+    +--> Create/update fixture records
+    +--> Detect newly completed fixtures
+    |
     +--> Sample Fixtures
     |
     +--> API-Football Provider Client
@@ -126,6 +136,10 @@ SAMPLE_FIXTURES
     v
 sync_fixtures()
     |
+    +--> create new fixtures
+    +--> update existing fixtures
+    +--> detect newly completed fixtures
+    |
     v
 PostgreSQL fixtures table
 
@@ -146,11 +160,76 @@ Normalized fixture dictionaries
     v
 sync_fixtures()
     |
+    +--> create new fixtures
+    +--> update existing fixtures
+    +--> detect newly completed fixtures
+    |
     v
 PostgreSQL fixtures table
 ```
 
 The provider sync flow is ready in code, but requires a valid local API key to fetch live provider data.
+
+---
+
+## 🔔 Match Completion Detection
+
+The sync service now detects newly completed matches.
+
+A fixture is considered newly completed when:
+
+```text
+previous status was not completed
+AND
+new synced status is completed
+```
+
+Completed statuses currently supported:
+
+```text
+complete
+FT
+AET
+PEN
+```
+
+This supports:
+
+* local sample fixture status: `complete`
+* common football provider full-time status: `FT`
+* extra-time completed status: `AET`
+* penalty completed status: `PEN`
+
+Example sync response:
+
+```json
+{
+  "message": "Sample fixtures synced successfully",
+  "created": 4,
+  "updated": 0,
+  "total_sample_fixtures": 4,
+  "newly_completed_count": 2,
+  "newly_completed": [
+    "sample-mex-rsa-2026-06-11",
+    "sample-usa-par-2026-06-12"
+  ]
+}
+```
+
+Running the same sync again will not duplicate completion detection:
+
+```json
+{
+  "message": "Sample fixtures synced successfully",
+  "created": 0,
+  "updated": 4,
+  "total_sample_fixtures": 4,
+  "newly_completed_count": 0,
+  "newly_completed": []
+}
+```
+
+This is important because future notification logic should only alert once when a match newly becomes completed.
 
 ---
 
@@ -182,7 +261,6 @@ User
 
 Future services may include:
 
-* match completion detector
 * Telegram notification service
 * Ollama / local Llama summary generation
 * player-level statistics ingestion
@@ -368,7 +446,7 @@ Example response:
 {
   "status": "healthy",
   "service": "backend",
-  "version": "0.3.0"
+  "version": "0.4.0"
 }
 ```
 
@@ -426,7 +504,12 @@ Example response:
   "message": "Sample fixtures synced successfully",
   "created": 4,
   "updated": 0,
-  "total_sample_fixtures": 4
+  "total_sample_fixtures": 4,
+  "newly_completed_count": 2,
+  "newly_completed": [
+    "sample-mex-rsa-2026-06-11",
+    "sample-usa-par-2026-06-12"
+  ]
 }
 ```
 
@@ -468,7 +551,9 @@ Expected successful response when a valid provider key is configured:
   "provider": "api_football",
   "created": 72,
   "updated": 0,
-  "total_provider_fixtures": 72
+  "total_provider_fixtures": 72,
+  "newly_completed_count": 0,
+  "newly_completed": []
 }
 ```
 
@@ -488,7 +573,7 @@ pytest -v
 Current expected result:
 
 ```text
-11 passed
+13 passed
 ```
 
 Warnings may appear depending on the local Python and package versions. Current warnings are not blocking the test suite.
@@ -509,6 +594,9 @@ Current tests cover:
 * API-Football provider normalization using a mocked response
 * fixture sync service create behavior
 * fixture sync service update behavior
+* newly completed existing fixture detection
+* already completed fixture non-duplication
+* sample sync response completion fields
 * provider sync endpoint behavior when API key is missing
 
 ---
@@ -541,7 +629,7 @@ Current `.env.example`:
 # App
 APP_NAME=World Cup 2026 AI Stats
 APP_ENV=development
-APP_VERSION=0.3.0
+APP_VERSION=0.4.0
 
 # Database
 POSTGRES_USER=worldcup
@@ -629,8 +717,6 @@ Completed:
 
 ### v0.3.0 — Real Football API Provider Integration
 
-Current status: backend implementation completed, live provider sync requires a valid local API key.
-
 Completed:
 
 * Provider abstraction layer
@@ -657,12 +743,26 @@ Still pending / future improvement:
 
 ### v0.4.0 — Match Completion Detector
 
-Planned:
+Current status: backend implementation in progress.
 
-* Detect newly completed matches
-* Track previous match status
-* Avoid duplicate notifications
-* Prepare completed match payloads for downstream services
+Completed:
+
+* Detect newly completed fixtures during sync
+* Support completed statuses: `complete`, `FT`, `AET`, `PEN`
+* Avoid duplicate newly completed detection for already completed fixtures
+* Expose newly completed fixture IDs in sample sync response
+* Expose newly completed fixture IDs in provider sync response
+* Service-level tests for completion detection
+* Route-level tests for sync response fields
+* Full backend test suite passing
+
+Still pending:
+
+* Update app version from `0.3.0` to `0.4.0`
+* Update `VERSION`
+* Update `.env.example`
+* Confirm `/health` returns `0.4.0`
+* Merge v0.4.0 into `main`
 
 ---
 
@@ -673,6 +773,7 @@ Planned:
 * Telegram bot integration
 * Send completed match notifications
 * Include scoreline and match metadata
+* Use newly completed fixtures as notification trigger
 * Add local notification test mode
 
 ---
@@ -696,6 +797,7 @@ Planned:
 * Ollama integration
 * Generate short match summaries
 * Generate daily World Cup summaries
+* Use completed match trigger as summary input
 * Keep local-first AI processing option
 
 ---
@@ -743,8 +845,8 @@ Planned:
 | v0.1.0 | Project foundation with Docker, FastAPI, Streamlit, PostgreSQL, pytest, and CI | Completed |
 | v0.1.1 | README and documentation polish | Completed |
 | v0.2.0 | Football API integration foundation with fixture database, sample sync, dashboard table, and endpoint tests | Completed |
-| v0.3.0 | Real football API provider layer, provider client, fixture sync service, provider sync endpoint, and mocked tests | In Progress |
-| v0.4.0 | Match completion detector | Planned |
+| v0.3.0 | Real football API provider layer, provider client, fixture sync service, provider sync endpoint, and mocked tests | Completed |
+| v0.4.0 | Match completion detection during fixture sync with response fields and tests | In Progress |
 | v0.5.0 | Telegram notifications | Planned |
 | v0.6.0 | Interactive dashboard improvements | Planned |
 | v0.7.0 | Local Llama summary agent | Planned |
@@ -762,13 +864,13 @@ Run:
 curl http://localhost:8000/health
 ```
 
-Expected response:
+Expected response after version update:
 
 ```json
 {
   "status": "healthy",
   "service": "backend",
-  "version": "0.3.0"
+  "version": "0.4.0"
 }
 ```
 
@@ -848,6 +950,7 @@ Screenshots can be added later for:
 * fixture list endpoint
 * Streamlit dashboard
 * provider sync response
+* newly completed sync response
 * GitHub Actions passing run
 
 Suggested folder:
@@ -879,6 +982,9 @@ Structured provider data
     |
     v
 Backend validation and storage
+    |
+    v
+Completion detector
     |
     v
 Controlled prompt/template
@@ -913,6 +1019,7 @@ Planned documentation:
 * architecture notes
 * API design notes
 * provider integration notes
+* match completion detector notes
 * environment setup guide
 * dashboard usage guide
 * future AI summary design
@@ -961,15 +1068,15 @@ https://github.com/AnarkeyV
 Current status:
 
 ```text
-v0.3.0 — Real Football API Provider Integration
+v0.4.0 — Match Completion Detector
 ```
 
-The backend now includes a provider abstraction, API-Football client, fixture sync service, and provider sync endpoint.
+The backend now detects newly completed fixtures during sync and exposes them in the sample and provider sync responses.
 
 Sample fixtures remain available as a safe fallback for local development, public GitHub users, and testing without an API key.
 
 Next recommended step:
 
 ```text
-Obtain a valid API-Football / API-Sports key and perform a live provider smoke test.
+Update project version values to 0.4.0 and confirm the health check/test suite.
 ```
