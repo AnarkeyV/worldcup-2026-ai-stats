@@ -7,6 +7,7 @@ from app.models.fixture import Fixture
 from app.providers.api_football import ApiFootballProvider
 from app.services.fixture_sync_service import sync_fixtures
 from app.services.sample_data import SAMPLE_FIXTURES
+from app.services.telegram_notifier import send_completed_fixture_notifications
 
 router = APIRouter(
     prefix="/fixtures",
@@ -34,6 +35,40 @@ def serialize_fixture(fixture: Fixture) -> dict:
         "updated_at": fixture.updated_at,
     }
 
+
+def notify_newly_completed_fixtures(
+    db: Session,
+    newly_completed_external_ids: list[str],
+) -> dict:
+    if not newly_completed_external_ids:
+        return {
+            "status": "skipped",
+            "reason": "No newly completed fixtures",
+            "sent": 0,
+        }
+
+    fixtures = (
+        db.query(Fixture)
+        .filter(Fixture.external_id.in_(newly_completed_external_ids))
+        .all()
+    )
+
+    serialized_fixtures = [serialize_fixture(fixture) for fixture in fixtures]
+
+    try:
+        result = send_completed_fixture_notifications(serialized_fixtures)
+
+        return {
+            "status": "sent",
+            "sent": result["sent"],
+        }
+
+    except ValueError as error:
+        return {
+            "status": "skipped",
+            "reason": str(error),
+            "sent": 0,
+        }
 
 @router.get("")
 def list_fixtures(db: Session = Depends(get_db)):
@@ -80,6 +115,10 @@ def get_fixture(fixture_id: int, db: Session = Depends(get_db)):
 def sync_sample_fixtures(db: Session = Depends(get_db)):
     try:
         result = sync_fixtures(db, SAMPLE_FIXTURES)
+        notification_result = notify_newly_completed_fixtures(
+            db,
+            result["newly_completed"],
+        )
 
         return {
             "message": "Sample fixtures synced successfully",
@@ -88,6 +127,7 @@ def sync_sample_fixtures(db: Session = Depends(get_db)):
             "total_sample_fixtures": result["total_fixtures"],
             "newly_completed_count": result["newly_completed_count"],
             "newly_completed": result["newly_completed"],
+            "notifications": notification_result,
         }
 
     except SQLAlchemyError as error:
@@ -104,6 +144,10 @@ def sync_provider_fixtures(db: Session = Depends(get_db)):
         provider = ApiFootballProvider()
         fixtures = provider.get_world_cup_fixtures()
         result = sync_fixtures(db, fixtures)
+        notification_result = notify_newly_completed_fixtures(
+            db,
+            result["newly_completed"],
+        )
 
         return {
             "message": "Provider fixtures synced successfully",
@@ -113,6 +157,7 @@ def sync_provider_fixtures(db: Session = Depends(get_db)):
             "total_provider_fixtures": result["total_fixtures"],
             "newly_completed_count": result["newly_completed_count"],
             "newly_completed": result["newly_completed"],
+            "notifications": notification_result,
         }
 
     except ValueError as error:
