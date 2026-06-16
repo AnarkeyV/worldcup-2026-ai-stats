@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 
 from app.config import settings
+from app.routes.fixtures import router as fixtures_router
 
 app = FastAPI(
     title=settings.app_name,
@@ -24,3 +25,6 @@ def health_check():
         "service": "backend",
         "version": settings.app_version,
     }
+
+
+app.include_router(fixtures_router)
