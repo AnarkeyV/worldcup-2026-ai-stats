@@ -9,6 +9,6 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://worldcup:worldcup@postgres:5432/worldcup"
 
     model_config = SettingsConfigDict(env_file=".env")
-
+    
 
 settings = Settings()

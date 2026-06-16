@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.database import create_db_and_tables, get_db
+from app.database import get_db
 from app.models.fixture import Fixture
 from app.services.sample_data import SAMPLE_FIXTURES
 
@@ -36,8 +36,6 @@ def serialize_fixture(fixture: Fixture) -> dict:
 @router.get("")
 def list_fixtures(db: Session = Depends(get_db)):
     try:
-        create_db_and_tables()
-
         fixtures = (
             db.query(Fixture)
             .order_by(Fixture.kickoff_time.asc())
@@ -59,8 +57,6 @@ def list_fixtures(db: Session = Depends(get_db)):
 @router.get("/{fixture_id}")
 def get_fixture(fixture_id: int, db: Session = Depends(get_db)):
     try:
-        create_db_and_tables()
-
         fixture = db.query(Fixture).filter(Fixture.id == fixture_id).first()
 
         if fixture is None:
@@ -81,8 +77,6 @@ def get_fixture(fixture_id: int, db: Session = Depends(get_db)):
 @router.post("/sync/sample")
 def sync_sample_fixtures(db: Session = Depends(get_db)):
     try:
-        create_db_and_tables()
-
         created = 0
         updated = 0
 
