@@ -12,6 +12,8 @@ def test_dashboard_page_loads():
     assert response.status_code == 200
     assert "World Cup 2026 AI Stats" in response.text
     assert "Interactive Dashboard" in response.text
+    assert "AI Fixture Summary" in response.text
+    assert "Generate AI Summary" in response.text
 
 
 def test_static_dashboard_css_loads():
@@ -19,6 +21,7 @@ def test_static_dashboard_css_loads():
 
     assert response.status_code == 200
     assert "dashboard-layout" in response.text
+    assert "ai-summary-panel" in response.text
 
 
 def test_static_dashboard_js_loads():
@@ -26,10 +29,13 @@ def test_static_dashboard_js_loads():
 
     assert response.status_code == 200
     assert "initializeDashboard" in response.text
+    assert "generateAiSummary" in response.text
+    assert "/ai/fixtures/summary" in response.text
 
 
-def test_root_includes_dashboard_link():
+def test_root_includes_dashboard_and_ai_summary_links():
     response = client.get("/")
 
     assert response.status_code == 200
     assert response.json()["dashboard"] == "/dashboard"
+    assert response.json()["ai_summary"] == "/ai/fixtures/summary"

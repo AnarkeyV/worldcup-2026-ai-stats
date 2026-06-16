@@ -1,13 +1,19 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.database import create_db_and_tables
+from app.routes.ai import router as ai_router
 from app.routes.dashboard import router as dashboard_router
 from app.routes.fixtures import router as fixtures_router
 from app.routes.notifications import router as notifications_router
+
+
+BASE_DIR = Path(__file__).resolve().parent
+STATIC_DIR = BASE_DIR / "static"
 
 
 @asynccontextmanager
@@ -25,7 +31,7 @@ app = FastAPI(
 )
 
 
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
 @app.get("/")
@@ -35,6 +41,7 @@ def root():
         "status": "running",
         "version": settings.app_version,
         "dashboard": "/dashboard",
+        "ai_summary": "/ai/fixtures/summary",
     }
 
 
@@ -47,6 +54,7 @@ def health_check():
     }
 
 
+app.include_router(ai_router)
 app.include_router(dashboard_router)
 app.include_router(fixtures_router)
 app.include_router(notifications_router)
