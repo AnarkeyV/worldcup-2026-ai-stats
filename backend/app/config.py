@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     app_name: str = "World Cup 2026 AI Stats"
     app_env: str = "development"
-    app_version: str = "0.4.0"
+    app_version: str = "0.5.0"
 
     database_url: str = "postgresql+psycopg://worldcup:worldcup@postgres:5432/worldcup"
 
@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     api_football_key: str = ""
     api_football_world_cup_league_id: int = 1
     api_football_season: int = 2026
+
+    telegram_bot_token: str = ""
+    telegram_chat_id: str = ""
 
     model_config = SettingsConfigDict(env_file=(".env", "../.env"), extra="ignore")
 

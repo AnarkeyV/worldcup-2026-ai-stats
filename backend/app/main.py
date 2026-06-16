@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from app.config import settings
 from app.database import create_db_and_tables
 from app.routes.fixtures import router as fixtures_router
+from app.routes.notifications import router as notifications_router
 
 
 @asynccontextmanager
@@ -41,3 +42,4 @@ def health_check():
 
 
 app.include_router(fixtures_router)
+app.include_router(notifications_router)

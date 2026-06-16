@@ -25,6 +25,9 @@ def test_sync_sample_fixtures(client):
         "sample-mex-rsa-2026-06-11",
         "sample-usa-par-2026-06-12",
     ]
+    assert data["notifications"]["status"] == "skipped"
+    assert data["notifications"]["reason"] == "TELEGRAM_BOT_TOKEN is not configured."
+    assert data["notifications"]["sent"] == 0
 
 
 def test_list_fixtures_after_sync(client):
@@ -89,6 +92,9 @@ def test_sync_sample_fixtures_is_idempotent(client):
     assert data["total_sample_fixtures"] == 4
     assert data["newly_completed_count"] == 0
     assert data["newly_completed"] == []
+    assert data["notifications"]["status"] == "skipped"
+    assert data["notifications"]["reason"] == "No newly completed fixtures"
+    assert data["notifications"]["sent"] == 0
 
     list_response = client.get("/fixtures")
     assert list_response.status_code == 200
