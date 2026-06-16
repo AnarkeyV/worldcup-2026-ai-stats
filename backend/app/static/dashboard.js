@@ -1,10 +1,12 @@
 const state = {
-    fixtures: [],
+    allFixtures: [],
+    visibleFixtures: [],
     filters: {
         team: "",
         group: "",
         status: "",
     },
+    debounceTimer: null,
 };
 
 const elements = {
@@ -20,10 +22,12 @@ const elements = {
     fixturesContainer: document.querySelector("#fixtures-container"),
 };
 
-async function fetchFixtures() {
+async function fetchFixtures(filters = {}) {
+    const queryString = buildFixtureQueryString(filters);
+
     const possibleEndpoints = [
-        "/api/fixtures",
-        "/fixtures",
+        `/api/fixtures${queryString}`,
+        `/fixtures${queryString}`,
     ];
 
     for (const endpoint of possibleEndpoints) {
@@ -44,6 +48,26 @@ async function fetchFixtures() {
     throw new Error("Unable to load fixtures from available API endpoints.");
 }
 
+function buildFixtureQueryString(filters) {
+    const params = new URLSearchParams();
+
+    if (filters.group) {
+        params.set("group_name", filters.group);
+    }
+
+    if (filters.status) {
+        params.set("status", filters.status);
+    }
+
+    if (filters.team && filters.team.trim()) {
+        params.set("team", filters.team.trim());
+    }
+
+    const queryString = params.toString();
+
+    return queryString ? `?${queryString}` : "";
+}
+
 function normalizeFixturesResponse(data) {
     if (Array.isArray(data)) {
         return data;
@@ -61,6 +85,9 @@ function normalizeFixturesResponse(data) {
 }
 
 function populateFilters(fixtures) {
+    resetSelectOptions(elements.groupFilter, "All groups");
+    resetSelectOptions(elements.statusFilter, "All statuses");
+
     const groups = [...new Set(
         fixtures
             .map((fixture) => fixture.group_name)
@@ -88,45 +115,47 @@ function populateFilters(fixtures) {
     });
 }
 
-function updateSummary(fixtures, visibleFixtures) {
-    const completed = fixtures.filter((fixture) => fixture.status === "complete").length;
-    const scheduled = fixtures.filter((fixture) => fixture.status === "scheduled").length;
+function resetSelectOptions(selectElement, defaultLabel) {
+    selectElement.innerHTML = "";
 
-    elements.totalFixtures.textContent = fixtures.length;
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = defaultLabel;
+
+    selectElement.appendChild(option);
+}
+
+function updateSummary(allFixtures, visibleFixtures) {
+    const completed = allFixtures.filter((fixture) => fixture.status === "complete").length;
+    const scheduled = allFixtures.filter((fixture) => fixture.status === "scheduled").length;
+
+    elements.totalFixtures.textContent = allFixtures.length;
     elements.completedFixtures.textContent = completed;
     elements.scheduledFixtures.textContent = scheduled;
     elements.visibleFixtures.textContent = visibleFixtures.length;
 }
 
-function applyFilters() {
-    const teamQuery = state.filters.team.toLowerCase().trim();
+async function applyFilters() {
+    setLoadingState();
 
-    const visibleFixtures = state.fixtures.filter((fixture) => {
-        const homeTeam = fixture.home_team?.toLowerCase() || "";
-        const awayTeam = fixture.away_team?.toLowerCase() || "";
-        const homeCode = fixture.home_team_code?.toLowerCase() || "";
-        const awayCode = fixture.away_team_code?.toLowerCase() || "";
+    try {
+        state.visibleFixtures = await fetchFixtures(state.filters);
 
-        const matchesTeam =
-            !teamQuery ||
-            homeTeam.includes(teamQuery) ||
-            awayTeam.includes(teamQuery) ||
-            homeCode.includes(teamQuery) ||
-            awayCode.includes(teamQuery);
+        updateSummary(state.allFixtures, state.visibleFixtures);
+        renderFixtures(state.visibleFixtures);
+    } catch (error) {
+        console.error(error);
+        elements.dashboardMessage.textContent = "Unable to apply filters.";
+        elements.fixturesContainer.innerHTML = `
+            <div class="empty-state">
+                The dashboard could not load filtered fixture data. Please check that the fixtures API is running.
+            </div>
+        `;
+    }
+}
 
-        const matchesGroup =
-            !state.filters.group ||
-            fixture.group_name === state.filters.group;
-
-        const matchesStatus =
-            !state.filters.status ||
-            fixture.status === state.filters.status;
-
-        return matchesTeam && matchesGroup && matchesStatus;
-    });
-
-    updateSummary(state.fixtures, visibleFixtures);
-    renderFixtures(visibleFixtures);
+function setLoadingState() {
+    elements.dashboardMessage.textContent = "Loading fixtures...";
 }
 
 function renderFixtures(fixtures) {
@@ -242,10 +271,18 @@ function escapeHtml(value) {
         .replaceAll("'", "&#039;");
 }
 
+function scheduleFilterApply() {
+    window.clearTimeout(state.debounceTimer);
+
+    state.debounceTimer = window.setTimeout(() => {
+        applyFilters();
+    }, 250);
+}
+
 function bindEvents() {
     elements.teamSearch.addEventListener("input", (event) => {
         state.filters.team = event.target.value;
-        applyFilters();
+        scheduleFilterApply();
     });
 
     elements.groupFilter.addEventListener("change", (event) => {
@@ -275,10 +312,12 @@ async function initializeDashboard() {
     try {
         bindEvents();
 
-        state.fixtures = await fetchFixtures();
+        state.allFixtures = await fetchFixtures();
+        state.visibleFixtures = state.allFixtures;
 
-        populateFilters(state.fixtures);
-        applyFilters();
+        populateFilters(state.allFixtures);
+        updateSummary(state.allFixtures, state.visibleFixtures);
+        renderFixtures(state.visibleFixtures);
     } catch (error) {
         console.error(error);
         elements.dashboardMessage.textContent = "Unable to load fixtures.";

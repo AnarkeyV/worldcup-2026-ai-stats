@@ -6,6 +6,11 @@ def test_list_fixtures_empty_before_sync(client):
     data = response.json()
 
     assert data["count"] == 0
+    assert data["filters"] == {
+        "group_name": None,
+        "status": None,
+        "team": None,
+    }
     assert data["fixtures"] == []
 
 
@@ -41,6 +46,11 @@ def test_list_fixtures_after_sync(client):
     data = response.json()
 
     assert data["count"] == 4
+    assert data["filters"] == {
+        "group_name": None,
+        "status": None,
+        "team": None,
+    }
     assert len(data["fixtures"]) == 4
 
     first_fixture = data["fixtures"][0]
@@ -49,6 +59,119 @@ def test_list_fixtures_after_sync(client):
     assert "home_team" in first_fixture
     assert "away_team" in first_fixture
     assert "status" in first_fixture
+
+
+def test_list_fixtures_filters_by_group_name(client):
+    sync_response = client.post("/fixtures/sync/sample")
+    assert sync_response.status_code == 200
+
+    response = client.get("/fixtures?group_name=Group A")
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["count"] == 1
+    assert data["filters"]["group_name"] == "Group A"
+    assert data["filters"]["status"] is None
+    assert data["filters"]["team"] is None
+
+    for fixture in data["fixtures"]:
+        assert fixture["group_name"] == "Group A"
+
+
+def test_list_fixtures_filters_by_status(client):
+    sync_response = client.post("/fixtures/sync/sample")
+    assert sync_response.status_code == 200
+
+    response = client.get("/fixtures?status=complete")
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["count"] == 2
+    assert data["filters"]["group_name"] is None
+    assert data["filters"]["status"] == "complete"
+    assert data["filters"]["team"] is None
+
+    for fixture in data["fixtures"]:
+        assert fixture["status"] == "complete"
+
+
+def test_list_fixtures_filters_by_team_name(client):
+    sync_response = client.post("/fixtures/sync/sample")
+    assert sync_response.status_code == 200
+
+    response = client.get("/fixtures?team=Mexico")
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["count"] == 1
+    assert data["filters"]["team"] == "Mexico"
+
+    fixture = data["fixtures"][0]
+
+    assert fixture["home_team"] == "Mexico"
+    assert fixture["away_team"] == "South Africa"
+
+
+def test_list_fixtures_filters_by_team_code(client):
+    sync_response = client.post("/fixtures/sync/sample")
+    assert sync_response.status_code == 200
+
+    response = client.get("/fixtures?team=USA")
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["count"] == 1
+    assert data["filters"]["team"] == "USA"
+
+    fixture = data["fixtures"][0]
+
+    assert fixture["home_team"] == "United States"
+    assert fixture["home_team_code"] == "USA"
+
+
+def test_list_fixtures_filters_by_group_and_status(client):
+    sync_response = client.post("/fixtures/sync/sample")
+    assert sync_response.status_code == 200
+
+    response = client.get("/fixtures?group_name=Group A&status=complete")
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["count"] == 1
+    assert data["filters"]["group_name"] == "Group A"
+    assert data["filters"]["status"] == "complete"
+    assert data["filters"]["team"] is None
+
+    fixture = data["fixtures"][0]
+
+    assert fixture["group_name"] == "Group A"
+    assert fixture["status"] == "complete"
+    assert fixture["home_team"] == "Mexico"
+
+
+def test_list_fixtures_returns_empty_for_no_filter_matches(client):
+    sync_response = client.post("/fixtures/sync/sample")
+    assert sync_response.status_code == 200
+
+    response = client.get("/fixtures?team=Brazil")
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["count"] == 0
+    assert data["filters"]["team"] == "Brazil"
+    assert data["fixtures"] == []
 
 
 def test_get_fixture_by_id(client):
