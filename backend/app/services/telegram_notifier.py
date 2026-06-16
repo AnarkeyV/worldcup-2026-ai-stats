@@ -56,3 +56,29 @@ def send_telegram_message(message: str) -> dict:
     response.raise_for_status()
 
     return response.json()
+
+
+def send_completed_fixture_notifications(fixtures: list[dict]) -> dict:
+    """
+    Send Telegram notifications for completed fixtures.
+
+    Args:
+        fixtures (list[dict]): Serialized completed fixture data.
+
+    Returns:
+        dict: Summary of sent notifications.
+    """
+    sent = 0
+    messages = []
+
+    for fixture in fixtures:
+        message = build_completed_fixture_message(fixture)
+        send_telegram_message(message)
+
+        sent += 1
+        messages.append(message)
+
+    return {
+        "sent": sent,
+        "messages": messages,
+    }

@@ -2,6 +2,7 @@ import pytest
 
 from app.services.telegram_notifier import (
     build_completed_fixture_message,
+    send_completed_fixture_notifications,
     send_telegram_message,
 )
 
@@ -52,3 +53,45 @@ def test_send_telegram_message_without_chat_id(monkeypatch):
 
     with pytest.raises(ValueError, match="TELEGRAM_CHAT_ID is not configured."):
         send_telegram_message("Test message")
+
+
+def test_send_completed_fixture_notifications(monkeypatch):
+    sent_messages = []
+
+    def fake_send_telegram_message(message: str):
+        sent_messages.append(message)
+        return {"ok": True}
+
+    monkeypatch.setattr(
+        "app.services.telegram_notifier.send_telegram_message",
+        fake_send_telegram_message,
+    )
+
+    fixtures = [
+        {
+            "competition": "FIFA World Cup 2026",
+            "stage": "Group Stage",
+            "home_team": "Mexico",
+            "away_team": "South Africa",
+            "home_score": 2,
+            "away_score": 0,
+            "venue": "Estadio Azteca",
+        },
+        {
+            "competition": "FIFA World Cup 2026",
+            "stage": "Group Stage",
+            "home_team": "United States",
+            "away_team": "Paraguay",
+            "home_score": 4,
+            "away_score": 1,
+            "venue": "SoFi Stadium",
+        },
+    ]
+
+    result = send_completed_fixture_notifications(fixtures)
+
+    assert result["sent"] == 2
+    assert len(result["messages"]) == 2
+    assert len(sent_messages) == 2
+    assert "Mexico 2 - 0 South Africa" in sent_messages[0]
+    assert "United States 4 - 1 Paraguay" in sent_messages[1]
