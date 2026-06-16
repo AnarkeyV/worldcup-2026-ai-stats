@@ -1,0 +1,42 @@
+services:
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: worldcup-backend
+    env_file:
+      - ../.env
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+  dashboard:
+    build:
+      context: ../dashboard
+      dockerfile: Dockerfile
+    container_name: worldcup-dashboard
+    env_file:
+      - ../.env
+    ports:
+      - "8501:8501"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: worldcup-postgres
+    environment:
+      POSTGRES_USER: worldcup
+      POSTGRES_PASSWORD: worldcup
+      POSTGRES_DB: worldcup
+    ports:
+      - "5432:5432"
+    volumes:
+      - worldcup_postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  worldcup_postgres_data:
