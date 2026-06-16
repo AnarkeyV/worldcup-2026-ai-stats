@@ -1,9 +1,11 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.database import create_db_and_tables
+from app.routes.dashboard import router as dashboard_router
 from app.routes.fixtures import router as fixtures_router
 from app.routes.notifications import router as notifications_router
 
@@ -23,12 +25,16 @@ app = FastAPI(
 )
 
 
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
+
 @app.get("/")
 def root():
     return {
         "message": "World Cup 2026 AI Stats API",
         "status": "running",
         "version": settings.app_version,
+        "dashboard": "/dashboard",
     }
 
 
@@ -41,5 +47,6 @@ def health_check():
     }
 
 
+app.include_router(dashboard_router)
 app.include_router(fixtures_router)
 app.include_router(notifications_router)

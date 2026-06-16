@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>World Cup 2026 AI Stats Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" href="/static/dashboard.css">
+</head>
+<body>
+    <header class="app-header">
+        <div>
+            <p class="eyebrow">World Cup 2026 AI Stats</p>
+            <h1>Interactive Dashboard</h1>
+            <p class="subtitle">
+                Browse fixtures, filter matches, and track tournament data from the API.
+            </p>
+        </div>
+
+        <a class="api-link" href="/docs" target="_blank" rel="noopener noreferrer">
+            Open API Docs
+        </a>
+    </header>
+
+    <main class="dashboard-layout">
+        <section class="summary-grid" aria-label="Dashboard summary">
+            <article class="summary-card">
+                <span class="summary-label">Total Fixtures</span>
+                <strong id="total-fixtures">-</strong>
+            </article>
+
+            <article class="summary-card">
+                <span class="summary-label">Completed</span>
+                <strong id="completed-fixtures">-</strong>
+            </article>
+
+            <article class="summary-card">
+                <span class="summary-label">Scheduled</span>
+                <strong id="scheduled-fixtures">-</strong>
+            </article>
+
+            <article class="summary-card">
+                <span class="summary-label">Visible Results</span>
+                <strong id="visible-fixtures">-</strong>
+            </article>
+        </section>
+
+        <section class="controls-panel" aria-label="Dashboard filters">
+            <div class="control-group">
+                <label for="team-search">Search team</label>
+                <input
+                    id="team-search"
+                    type="search"
+                    placeholder="Example: Mexico, South Africa, USA"
+                >
+            </div>
+
+            <div class="control-group">
+                <label for="group-filter">Group</label>
+                <select id="group-filter">
+                    <option value="">All groups</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="status-filter">Status</label>
+                <select id="status-filter">
+                    <option value="">All statuses</option>
+                </select>
+            </div>
+
+            <button id="reset-filters" type="button">
+                Reset Filters
+            </button>
+        </section>
+
+        <section class="fixtures-section">
+            <div class="section-heading">
+                <div>
+                    <h2>Fixtures</h2>
+                    <p id="dashboard-message">Loading fixtures...</p>
+                </div>
+            </div>
+
+            <div id="fixtures-container" class="fixtures-grid" aria-live="polite"></div>
+        </section>
+    </main>
+
+    <footer class="app-footer">
+        <p>
+            v0.6.0 Interactive Dashboard · Powered by FastAPI
+        </p>
+    </footer>
+
+    <script src="/static/dashboard.js"></script>
+</body>
+</html>
