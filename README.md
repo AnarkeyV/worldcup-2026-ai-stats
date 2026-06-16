@@ -5,7 +5,7 @@
 ![Streamlit](https://img.shields.io/badge/dashboard-Streamlit-red)
 ![Docker](https://img.shields.io/badge/container-Docker-blue)
 ![Python](https://img.shields.io/badge/python-3.14-yellow)
-![Version](https://img.shields.io/badge/version-v0.6.0-purple)
+![Version](https://img.shields.io/badge/version-v0.7.0-purple)
 
 A self-hosted, containerized, AI-assisted World Cup 2026 match tracking platform built with **FastAPI**, **PostgreSQL**, **Streamlit**, **Docker Compose**, and future integrations for **Telegram notifications**, **local Llama/Ollama summaries**, and football analytics.
 
@@ -15,7 +15,7 @@ The project is intentionally being built in public, milestone by milestone, to s
 
 ## 📌 Current Version
 
-**v0.6.0 — Interactive Dashboard**
+**v0.7.0 — API Filters + Dashboard Polish**
 
 The backend now includes Telegram notification support for completed World Cup fixtures.
 
@@ -292,7 +292,7 @@ Example response:
 {
   "status": "healthy",
   "service": "backend",
-  "version": "0.6.0"
+  "version": "0.7.0"
 }
 ```
 
@@ -550,7 +550,7 @@ Current `.env.example`:
 # App
 APP_NAME=World Cup 2026 AI Stats
 APP_ENV=development
-APP_VERSION=0.6.0
+APP_VERSION=0.7.0
 
 # Database
 POSTGRES_USER=worldcup
@@ -819,7 +819,7 @@ Planned:
 
 ---
 
-### v0.7.0 — Local Llama Summary Agent
+### v0.8.0 — Local Llama Summary Agent
 
 Planned:
 
@@ -877,9 +877,10 @@ Planned:
 | v0.2.0 | Football API integration foundation with fixture database, sample sync, dashboard table, and endpoint tests | Completed |
 | v0.3.0 | Real football API provider layer, provider client, fixture sync service, provider sync endpoint, and mocked tests | Completed |
 | v0.4.0 | Match completion detection during fixture sync with response fields and tests | Completed |
-| v0.6.0 | Interactive dashboard with fixture cards, summary stats, static assets, dashboard route, filtering UI, and tests | In Progress |
+| v0.7.0 | API-level fixture filters, dashboard query integration, team search, group/status filters, and expanded tests | In Progress |
+| v0.6.0 | Interactive dashboard with fixture cards, summary stats, static assets, dashboard route, filtering UI, and tests | Completed |
 | v0.5.0 | Telegram notification service, test endpoint, completed fixture notification helper, and sync wiring | Completed |
-| v0.7.0 | Local Llama summary agent | Planned |
+| v0.8.0 | Local Llama summary agent | Planned |
 | v0.8.0 | Player-level statistics | Planned |
 | v0.9.0 | Monitoring and observability | Planned |
 | v1.0.0 | Portfolio-ready release | Planned |

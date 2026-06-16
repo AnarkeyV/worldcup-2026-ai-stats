@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import or_
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -70,17 +71,52 @@ def notify_newly_completed_fixtures(
             "sent": 0,
         }
 
+
 @router.get("")
-def list_fixtures(db: Session = Depends(get_db)):
+def list_fixtures(
+    group_name: str | None = Query(
+        default=None,
+        description="Filter fixtures by group name, for example: Group A",
+    ),
+    status: str | None = Query(
+        default=None,
+        description="Filter fixtures by status, for example: scheduled, complete, or live",
+    ),
+    team: str | None = Query(
+        default=None,
+        description="Search fixtures by team name or team code",
+    ),
+    db: Session = Depends(get_db),
+):
     try:
-        fixtures = (
-            db.query(Fixture)
-            .order_by(Fixture.kickoff_time.asc())
-            .all()
-        )
+        query = db.query(Fixture)
+
+        if group_name:
+            query = query.filter(Fixture.group_name == group_name)
+
+        if status:
+            query = query.filter(Fixture.status == status)
+
+        if team:
+            team_search = f"%{team}%"
+            query = query.filter(
+                or_(
+                    Fixture.home_team.ilike(team_search),
+                    Fixture.away_team.ilike(team_search),
+                    Fixture.home_team_code.ilike(team_search),
+                    Fixture.away_team_code.ilike(team_search),
+                )
+            )
+
+        fixtures = query.order_by(Fixture.kickoff_time.asc()).all()
 
         return {
             "count": len(fixtures),
+            "filters": {
+                "group_name": group_name,
+                "status": status,
+                "team": team,
+            },
             "fixtures": [serialize_fixture(fixture) for fixture in fixtures],
         }
 
@@ -137,7 +173,8 @@ def sync_sample_fixtures(db: Session = Depends(get_db)):
             status_code=503,
             detail=f"Database error while syncing sample fixtures: {error}",
         ) from error
-    
+
+
 @router.post("/sync/provider")
 def sync_provider_fixtures(db: Session = Depends(get_db)):
     try:
