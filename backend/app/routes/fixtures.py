@@ -86,6 +86,8 @@ def sync_sample_fixtures(db: Session = Depends(get_db)):
             "created": result["created"],
             "updated": result["updated"],
             "total_sample_fixtures": result["total_fixtures"],
+            "newly_completed_count": result["newly_completed_count"],
+            "newly_completed": result["newly_completed"],
         }
 
     except SQLAlchemyError as error:
@@ -109,6 +111,8 @@ def sync_provider_fixtures(db: Session = Depends(get_db)):
             "created": result["created"],
             "updated": result["updated"],
             "total_provider_fixtures": result["total_fixtures"],
+            "newly_completed_count": result["newly_completed_count"],
+            "newly_completed": result["newly_completed"],
         }
 
     except ValueError as error:
