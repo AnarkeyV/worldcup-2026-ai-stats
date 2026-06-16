@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.fixture import Fixture
+from app.providers.api_football import ApiFootballProvider
 from app.services.fixture_sync_service import sync_fixtures
 from app.services.sample_data import SAMPLE_FIXTURES
 
@@ -93,4 +94,33 @@ def sync_sample_fixtures(db: Session = Depends(get_db)):
         raise HTTPException(
             status_code=503,
             detail=f"Database error while syncing sample fixtures: {error}",
+        ) from error
+    
+@router.post("/sync/provider")
+def sync_provider_fixtures(db: Session = Depends(get_db)):
+    try:
+        provider = ApiFootballProvider()
+        fixtures = provider.get_world_cup_fixtures()
+        result = sync_fixtures(db, fixtures)
+
+        return {
+            "message": "Provider fixtures synced successfully",
+            "provider": "api_football",
+            "created": result["created"],
+            "updated": result["updated"],
+            "total_provider_fixtures": result["total_fixtures"],
+        }
+
+    except ValueError as error:
+        raise HTTPException(
+            status_code=400,
+            detail=str(error),
+        ) from error
+
+    except SQLAlchemyError as error:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=503,
+            detail=f"Database error while syncing provider fixtures: {error}",
         ) from error

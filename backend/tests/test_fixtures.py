@@ -89,3 +89,9 @@ def test_sync_sample_fixtures_is_idempotent(client):
     fixtures_data = list_response.json()
 
     assert fixtures_data["count"] == 4
+
+def test_sync_provider_fixtures_without_api_key(client):
+    response = client.post("/fixtures/sync/provider")
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "API_FOOTBALL_KEY is not configured."
