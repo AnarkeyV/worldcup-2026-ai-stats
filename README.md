@@ -2,32 +2,48 @@
 
 ![FastAPI](https://img.shields.io/badge/backend-FastAPI-green)
 ![PostgreSQL](https://img.shields.io/badge/database-PostgreSQL-blue)
-![Streamlit](https://img.shields.io/badge/dashboard-Streamlit-red)
+![Dashboard](https://img.shields.io/badge/dashboard-FastAPI%20Static%20Dashboard-skyblue)
 ![Docker](https://img.shields.io/badge/container-Docker-blue)
 ![Python](https://img.shields.io/badge/python-3.14-yellow)
-![Version](https://img.shields.io/badge/version-v0.7.0-purple)
+![Version](https://img.shields.io/badge/version-v0.8.0-purple)
+![Tests](https://img.shields.io/badge/tests-37%20passed-brightgreen)
 
-A self-hosted, containerized, AI-assisted World Cup 2026 match tracking platform built with **FastAPI**, **PostgreSQL**, **Streamlit**, **Docker Compose**, and future integrations for **Telegram notifications**, **local Llama/Ollama summaries**, and football analytics.
+A self-hosted, containerized, AI-assisted World Cup 2026 match tracking platform built with **FastAPI**, **PostgreSQL**, **Docker Compose**, and a **local Llama/Ollama summary agent**.
 
-The project is intentionally being built in public, milestone by milestone, to show backend development, API integration, database design, testing, DevOps fundamentals, and future AI-assisted match analysis.
+This project is intentionally being built in public, milestone by milestone, to demonstrate backend development, API integration, database design, testing, DevOps fundamentals, notification workflows, dashboard development, and local-first AI integration.
 
 ---
 
 ## 📌 Current Version
 
-**v0.7.0 — API Filters + Dashboard Polish**
+**v0.8.0 — Local Llama Summary Agent**
 
-The backend now includes Telegram notification support for completed World Cup fixtures.
+This milestone adds a working local AI summary layer to the World Cup 2026 dashboard.
 
-This milestone builds directly on the `v0.4.0` match completion detector. When fixture sync detects newly completed matches, the backend can prepare Telegram messages and attempt to send them using configured Telegram credentials.
+The FastAPI backend can now call a local **Ollama/Llama model** to generate short fixture summaries. In my current local setup, the FastAPI application runs on my MacBook, while Ollama runs on my Windows laptop. The MacBook reaches Ollama through an SSH tunnel.
 
-The implementation is safe by default:
+Current local AI flow:
 
-* if no newly completed fixtures are detected, notifications are skipped
-* if Telegram credentials are missing, sync still succeeds
-* missing Telegram credentials return a clear skipped notification result
-* test notification endpoint is available for manual testing
-* no real Telegram bot token or chat ID is committed
+```text
+MacBook FastAPI backend
+    |
+    v
+http://127.0.0.1:11434
+    |
+    v
+SSH tunnel
+    |
+    v
+Windows laptop Ollama
+    |
+    v
+llama3.2:1b
+    |
+    v
+AI summary returned to FastAPI and dashboard
+```
+
+This milestone also adds an **AI Fixture Summary** panel to the dashboard with a button that calls the backend AI summary endpoint.
 
 ---
 
@@ -47,11 +63,26 @@ The implementation is safe by default:
 * Telegram completed-fixture notification helper
 * Safe Telegram test notification endpoint
 * Sync responses that expose notification status
+* API-level fixture filters:
+  * group filter
+  * status filter
+  * team/team-code search
+* Static FastAPI dashboard at `/dashboard`
+* Dashboard fixture cards
+* Dashboard summary stats
+* Dashboard group/status/team filters
+* Dashboard AI summary panel
+* Local Llama/Ollama client
+* AI health endpoint
+* AI fixture summary endpoint
+* AI single-fixture summary endpoint
 * Mocked provider tests
 * Service tests for match completion detection
 * Telegram notifier tests
 * Route tests for fixture sync and notification behavior
-* Streamlit dashboard foundation
+* Dashboard tests
+* Local Llama client tests
+* AI route tests
 * Docker Compose local environment
 * GitHub Actions CI
 * Local pytest test suite
@@ -73,9 +104,10 @@ The idea is to build something realistic instead of only following tutorials. A 
 * safe secret handling
 * Docker-based local development
 * CI testing
-* future AI-assisted summaries
+* local-first AI integration
+* dashboard integration with backend APIs
 
-The World Cup is also a good use case because match data changes over time. Fixtures start as scheduled, later become live or completed, and eventually trigger downstream events such as notifications, summaries, and analysis.
+The World Cup is also a good use case because match data changes over time. Fixtures start as scheduled, later become live or completed, and can then trigger downstream events such as notifications, summaries, and analysis.
 
 ---
 
@@ -86,11 +118,12 @@ The goal is to build a self-hosted World Cup 2026 statistics platform that can:
 1. Store World Cup fixture data.
 2. Sync fixture data from sample data or a real football API provider.
 3. Display fixtures in a dashboard.
-4. Detect completed matches.
-5. Send match notifications.
-6. Generate AI-assisted match summaries.
-7. Expand into player-level and team-level analytics.
-8. Demonstrate practical DevOps, backend, database, notification, and AI integration skills.
+4. Filter fixtures through API query parameters and dashboard controls.
+5. Detect completed matches.
+6. Send match notifications.
+7. Generate AI-assisted match summaries using a local Llama model.
+8. Expand into player-level and team-level analytics.
+9. Demonstrate practical DevOps, backend, database, notification, dashboard, and AI integration skills.
 
 ---
 
@@ -100,7 +133,11 @@ The goal is to build a self-hosted World Cup 2026 statistics platform that can:
 User / Browser
     |
     v
-Streamlit Dashboard
+FastAPI Static Dashboard
+    |
+    +--> /dashboard
+    +--> /static/dashboard.css
+    +--> /static/dashboard.js
     |
     v
 FastAPI Backend
@@ -111,6 +148,9 @@ FastAPI Backend
     +--> /fixtures/sync/sample
     +--> /fixtures/sync/provider
     +--> /notifications/telegram/test
+    +--> /ai/health
+    +--> /ai/fixtures/summary
+    +--> /ai/fixtures/{fixture_id}/summary
     |
     v
 Fixture Sync Service
@@ -129,6 +169,17 @@ Fixture Sync Service
     |
     v
 PostgreSQL Database
+
+Local AI Summary Flow
+    |
+    v
+FastAPI Local Llama Client
+    |
+    v
+Ollama API
+    |
+    v
+llama3.2:1b
 ```
 
 ---
@@ -189,7 +240,31 @@ notify_newly_completed_fixtures()
 API response with sync + notification summary
 ```
 
-The provider sync flow requires a valid local API-Football / API-Sports key to fetch live provider data.
+The provider sync flow requires a valid local API-Football / API-Sports key to fetch provider data.
+
+### Local Llama Summary Flow
+
+```text
+GET /ai/fixtures/summary
+    |
+    v
+Read fixtures from database
+    |
+    v
+Build controlled fixture context
+    |
+    v
+Build summary prompt
+    |
+    v
+POST /api/generate to Ollama
+    |
+    v
+Receive Llama response
+    |
+    v
+Return summary to API client or dashboard
+```
 
 ---
 
@@ -278,6 +353,47 @@ Venue: Estadio Azteca
 
 ---
 
+## 🤖 Local Llama Summary Agent
+
+The local Llama summary agent is handled through:
+
+```text
+backend/app/services/local_llama_client.py
+```
+
+The current implementation uses Python standard library HTTP calls to communicate with Ollama.
+
+Default settings:
+
+```text
+LLAMA_BASE_URL=http://127.0.0.1:11434
+LLAMA_MODEL=llama3.2:1b
+LLAMA_TIMEOUT_SECONDS=60
+```
+
+In my local setup:
+
+* MacBook runs the FastAPI backend.
+* Windows laptop runs Ollama.
+* SSH tunnel forwards MacBook `127.0.0.1:11434` to Windows `127.0.0.1:11434`.
+* FastAPI calls the local Ollama API as if it were running locally.
+
+Example SSH tunnel:
+
+```bash
+ssh -L 11434:127.0.0.1:11434 <windows-user>@<windows-ip>
+```
+
+Example Ollama model used:
+
+```text
+llama3.2:1b
+```
+
+The AI layer is designed to summarize structured fixture data. It should not replace official football data or invent match events.
+
+---
+
 ## 📊 Fixture Endpoints
 
 ### Health Check
@@ -292,7 +408,7 @@ Example response:
 {
   "status": "healthy",
   "service": "backend",
-  "version": "0.7.0"
+  "version": "0.8.0"
 }
 ```
 
@@ -304,7 +420,30 @@ Example response:
 GET /fixtures
 ```
 
-Returns all stored fixtures ordered by kickoff time.
+Returns stored fixtures ordered by kickoff time.
+
+Supports optional filters:
+
+```http
+GET /fixtures?group_name=Group A
+GET /fixtures?status=complete
+GET /fixtures?team=Mexico
+GET /fixtures?group_name=Group A&status=complete
+```
+
+Example response shape:
+
+```json
+{
+  "count": 1,
+  "filters": {
+    "group_name": "Group A",
+    "status": "complete",
+    "team": null
+  },
+  "fixtures": []
+}
+```
 
 ---
 
@@ -420,6 +559,74 @@ The exact fixture count depends on the provider response.
 
 ---
 
+## 🤖 AI Endpoints
+
+### AI Health Check
+
+```http
+GET /ai/health
+```
+
+Checks whether the configured local Llama/Ollama endpoint is reachable.
+
+Example response:
+
+```json
+{
+  "available": true,
+  "provider": "local_llama",
+  "base_url": "http://127.0.0.1:11434",
+  "configured_model": "llama3.2:1b",
+  "models": [
+    "llama3.2:1b"
+  ]
+}
+```
+
+---
+
+### Generate Fixture Summary
+
+```http
+GET /ai/fixtures/summary
+```
+
+Generates a short AI summary for stored fixtures.
+
+Example response:
+
+```json
+{
+  "fixture_count": 4,
+  "provider": "local_llama",
+  "model": "llama3.2:1b",
+  "summary": "Mexico beat South Africa 2-0, while the United States defeated Paraguay 4-1. France vs Senegal and Argentina vs Algeria are upcoming scheduled matches."
+}
+```
+
+---
+
+### Generate Single Fixture Summary
+
+```http
+GET /ai/fixtures/{fixture_id}/summary
+```
+
+Generates a short AI summary for a single stored fixture.
+
+Example response:
+
+```json
+{
+  "fixture_id": 1,
+  "provider": "local_llama",
+  "model": "llama3.2:1b",
+  "summary": "Mexico completed a 2-0 win over South Africa at Estadio Azteca."
+}
+```
+
+---
+
 ## 🛠️ Tech Stack
 
 | Area | Technology |
@@ -427,14 +634,14 @@ The exact fixture count depends on the provider response.
 | Backend API | FastAPI |
 | Database | PostgreSQL |
 | ORM | SQLAlchemy |
-| Dashboard | Streamlit |
+| Dashboard | FastAPI static HTML/CSS/JS |
 | Containerization | Docker Compose |
 | Testing | pytest |
-| HTTP Client | httpx |
+| HTTP Client | httpx, urllib standard library |
 | Settings | pydantic-settings |
 | CI | GitHub Actions |
 | Notifications | Telegram Bot API |
-| Future Local AI | Ollama / Llama |
+| Local AI | Ollama / Llama |
 | Future Monitoring | Prometheus / Grafana |
 
 ---
@@ -457,13 +664,20 @@ worldcup-2026-ai-stats/
 │   │   │   └── base.py
 │   │   ├── routes/
 │   │   │   ├── __init__.py
+│   │   │   ├── ai.py
+│   │   │   ├── dashboard.py
 │   │   │   ├── fixtures.py
 │   │   │   └── notifications.py
 │   │   ├── services/
 │   │   │   ├── __init__.py
 │   │   │   ├── fixture_sync_service.py
+│   │   │   ├── local_llama_client.py
 │   │   │   ├── sample_data.py
 │   │   │   └── telegram_notifier.py
+│   │   ├── static/
+│   │   │   ├── dashboard.css
+│   │   │   ├── dashboard.html
+│   │   │   └── dashboard.js
 │   │   ├── __init__.py
 │   │   ├── config.py
 │   │   ├── database.py
@@ -471,10 +685,13 @@ worldcup-2026-ai-stats/
 │   ├── tests/
 │   │   ├── __init__.py
 │   │   ├── conftest.py
+│   │   ├── test_ai_routes.py
 │   │   ├── test_api_football_provider.py
+│   │   ├── test_dashboard.py
 │   │   ├── test_fixture_sync_service.py
 │   │   ├── test_fixtures.py
 │   │   ├── test_health.py
+│   │   ├── test_local_llama_client.py
 │   │   ├── test_notifications.py
 │   │   └── test_telegram_notifier.py
 │   ├── pytest.ini
@@ -507,6 +724,7 @@ Optional:
 
 * API-Football / API-Sports account for real provider syncing
 * Telegram bot token and chat ID for real Telegram notification testing
+* Ollama for local AI summary generation
 * Postman or curl for endpoint testing
 
 ---
@@ -550,7 +768,7 @@ Current `.env.example`:
 # App
 APP_NAME=World Cup 2026 AI Stats
 APP_ENV=development
-APP_VERSION=0.7.0
+APP_VERSION=0.8.0
 
 # Database
 POSTGRES_USER=worldcup
@@ -573,12 +791,13 @@ API_FOOTBALL_SEASON=2026
 TELEGRAM_BOT_TOKEN=replace_me
 TELEGRAM_CHAT_ID=replace_me
 
-# LLM
-OLLAMA_BASE_URL=http://ollama:11434
-OLLAMA_MODEL=llama3.2:1b
+# Local Llama / Ollama
+LLAMA_BASE_URL=http://127.0.0.1:11434
+LLAMA_MODEL=llama3.2:1b
+LLAMA_TIMEOUT_SECONDS=60
 
 # Public URL
-PUBLIC_DASHBOARD_URL=http://localhost:8501
+PUBLIC_DASHBOARD_URL=http://localhost:8000/dashboard
 ```
 
 ---
@@ -620,7 +839,8 @@ Use `docker compose down -v` carefully because it removes the database volume.
 | Backend API | http://localhost:8000 |
 | Backend Health Check | http://localhost:8000/health |
 | API Docs | http://localhost:8000/docs |
-| Dashboard | http://localhost:8501 |
+| FastAPI Dashboard | http://localhost:8000/dashboard |
+| Legacy Streamlit Dashboard | http://localhost:8501 |
 
 ---
 
@@ -636,7 +856,7 @@ pytest -v
 Current expected result:
 
 ```text
-18 passed
+37 passed
 ```
 
 Warnings may appear depending on the local Python and package versions. Current warnings are not blocking the test suite.
@@ -651,6 +871,7 @@ Current tests cover:
 * empty fixture list before sync
 * sample fixture sync
 * fixture list after sync
+* fixture filters by group/status/team/team code
 * single fixture retrieval
 * missing fixture 404 response
 * idempotent sample fixture sync behavior
@@ -665,6 +886,14 @@ Current tests cover:
 * Telegram missing credential handling
 * completed fixture notification helper
 * safe Telegram test notification endpoint
+* dashboard page loading
+* dashboard static CSS loading
+* dashboard static JS loading
+* dashboard AI summary UI references
+* local Llama client behavior
+* AI health route
+* AI fixture summary route
+* AI single-fixture summary route
 
 ---
 
@@ -692,12 +921,13 @@ The CI pipeline is intended to catch backend regressions before merging changes 
 
 * `.env` is ignored by Git.
 * `.env.example` contains placeholders only.
-* API keys and Telegram secrets must be stored locally or in secure deployment secrets.
+* API keys, Telegram secrets, and deployment secrets must be stored locally or in secure deployment secrets.
 * Never commit real provider keys.
 * Never commit real Telegram bot tokens or chat IDs.
 * Never paste real secrets into screenshots, README files, commits, or public issues.
 * The provider sync endpoint handles missing API keys with a clear error response.
 * Telegram notification sending handles missing credentials safely.
+* The local Llama integration should run on trusted local infrastructure.
 * Future deployment should use platform secrets instead of plain `.env` files.
 
 ---
@@ -779,8 +1009,6 @@ Completed:
 
 ### v0.5.0 — Telegram Notifications
 
-Current status: backend implementation in progress.
-
 Completed:
 
 * Telegram settings added
@@ -796,42 +1024,61 @@ Completed:
 * Route-level notification tests
 * Full backend test suite passing
 
-Still pending:
-
-* Update app version from `0.4.0` to `0.5.0`
-* Update `VERSION`
-* Update `.env.example`
-* Confirm `/health` returns `0.5.0`
-* Merge v0.5.0 into `main`
-
 ---
 
 ### v0.6.0 — Interactive Dashboard
 
-Planned:
+Completed:
 
-* Fixture filtering
-* Group filtering
-* Status filtering
-* Match detail view
-* Provider/source status display
-* Notification status display
+* Static dashboard route
+* Dashboard HTML/CSS/JS
+* Fixture summary cards
+* Fixture card grid
+* Dashboard static asset serving
+* Dashboard route tests
+* Full backend test suite passing
+
+---
+
+### v0.7.0 — API Filters + Dashboard Polish
+
+Completed:
+
+* API-level fixture filters
+* Group filter query parameter
+* Status filter query parameter
+* Team/team-code search query parameter
+* Dashboard query integration
+* Team search input
+* Group/status dropdown filters
+* Visible results count
+* Filter reset behavior
+* Expanded route tests
+* Full backend test suite passing
 
 ---
 
 ### v0.8.0 — Local Llama Summary Agent
 
-Planned:
+Completed:
 
-* Ollama integration
-* Generate short match summaries
-* Generate daily World Cup summaries
-* Use completed match trigger as summary input
-* Keep local-first AI processing option
+* Local Llama/Ollama settings
+* Local Llama client service
+* AI health endpoint
+* AI fixture summary endpoint
+* AI single-fixture summary endpoint
+* Controlled prompt template for fixture summaries
+* Dashboard AI summary panel
+* Generate AI Summary button
+* Loading and error states in dashboard
+* Tests for Local Llama client
+* Tests for AI routes
+* Dashboard tests updated
+* Full backend test suite passing: `37 passed`
 
 ---
 
-### v0.8.0 — Player-Level Statistics
+### v0.9.0 — Player-Level Statistics
 
 Planned:
 
@@ -842,7 +1089,7 @@ Planned:
 
 ---
 
-### v0.9.0 — Monitoring and Observability
+### v0.10.0 — Monitoring and Observability
 
 Planned:
 
@@ -877,19 +1124,19 @@ Planned:
 | v0.2.0 | Football API integration foundation with fixture database, sample sync, dashboard table, and endpoint tests | Completed |
 | v0.3.0 | Real football API provider layer, provider client, fixture sync service, provider sync endpoint, and mocked tests | Completed |
 | v0.4.0 | Match completion detection during fixture sync with response fields and tests | Completed |
-| v0.7.0 | API-level fixture filters, dashboard query integration, team search, group/status filters, and expanded tests | In Progress |
-| v0.6.0 | Interactive dashboard with fixture cards, summary stats, static assets, dashboard route, filtering UI, and tests | Completed |
 | v0.5.0 | Telegram notification service, test endpoint, completed fixture notification helper, and sync wiring | Completed |
-| v0.8.0 | Local Llama summary agent | Planned |
-| v0.8.0 | Player-level statistics | Planned |
-| v0.9.0 | Monitoring and observability | Planned |
+| v0.6.0 | Interactive dashboard with fixture cards, summary stats, static assets, dashboard route, filtering UI, and tests | Completed |
+| v0.7.0 | API-level fixture filters, dashboard query integration, team search, group/status filters, and expanded tests | Completed |
+| v0.8.0 | Local Llama/Ollama summary agent with AI endpoints and dashboard summary button | Completed |
+| v0.9.0 | Player-level statistics | Planned |
+| v0.10.0 | Monitoring and observability | Planned |
 | v1.0.0 | Portfolio-ready release | Planned |
 
 ---
 
 ## 🧪 Manual API Testing
 
-After starting Docker Compose, try:
+After starting the backend, try:
 
 ### Health Check
 
@@ -903,10 +1150,36 @@ curl http://localhost:8000/health
 curl http://localhost:8000/fixtures
 ```
 
+### List Fixtures with Filters
+
+```bash
+curl "http://localhost:8000/fixtures?team=Mexico"
+curl "http://localhost:8000/fixtures?group_name=Group%20A"
+curl "http://localhost:8000/fixtures?status=complete"
+```
+
 ### Sync Sample Fixtures
 
 ```bash
 curl -X POST http://localhost:8000/fixtures/sync/sample
+```
+
+### AI Health Check
+
+```bash
+curl http://localhost:8000/ai/health
+```
+
+### AI Fixture Summary
+
+```bash
+curl http://localhost:8000/ai/fixtures/summary
+```
+
+### AI Single Fixture Summary
+
+```bash
+curl http://localhost:8000/ai/fixtures/1/summary
 ```
 
 ### Test Telegram Notification
@@ -965,6 +1238,44 @@ pytest -v
 
 ---
 
+## 🧠 Local Llama Development Notes
+
+For a local Ollama model on the same machine:
+
+```bash
+ollama pull llama3.2:1b
+ollama list
+```
+
+For MacBook development with Ollama running on a Windows laptop:
+
+```bash
+ssh -L 11434:127.0.0.1:11434 <windows-user>@<windows-ip>
+```
+
+Then test from the MacBook:
+
+```bash
+curl http://127.0.0.1:11434/api/tags
+```
+
+Start the FastAPI backend locally:
+
+```bash
+cd backend
+source .venv/bin/activate
+APP_ENV=test uvicorn app.main:app --reload --app-dir . --port 8001
+```
+
+Test the AI endpoints:
+
+```bash
+curl http://127.0.0.1:8001/ai/health
+curl http://127.0.0.1:8001/ai/fixtures/summary
+```
+
+---
+
 ## 📸 Screenshots
 
 Screenshots can be added later for:
@@ -973,7 +1284,9 @@ Screenshots can be added later for:
 * API docs
 * sample fixture sync
 * fixture list endpoint
-* Streamlit dashboard
+* filtered fixture list endpoint
+* dashboard fixture cards
+* dashboard AI summary panel
 * provider sync response
 * newly completed sync response
 * Telegram test endpoint response
@@ -989,11 +1302,17 @@ docs/images/
 
 ## 🧠 AI Usage Plan
 
-This project is designed to eventually use AI in a controlled and explainable way.
+This project now includes a working local AI summary path.
 
-Planned AI usage:
+Current AI usage:
 
-* summarize completed matches
+* summarize stored fixture data
+* summarize completed and scheduled matches
+* display generated summary in the FastAPI dashboard
+
+Future AI usage:
+
+* summarize completed matches automatically
 * create daily World Cup recap messages
 * explain key match events
 * generate short dashboard insights
@@ -1010,19 +1329,13 @@ Structured provider data
 Backend validation and storage
     |
     v
-Completion detector
-    |
-    v
-Telegram notification trigger
-    |
-    v
 Controlled prompt/template
     |
     v
-Local or external LLM summary
+Local Llama/Ollama summary
     |
     v
-Dashboard or notification output
+Dashboard output
 ```
 
 ---
@@ -1052,7 +1365,8 @@ Planned documentation:
 * Telegram notification notes
 * environment setup guide
 * dashboard usage guide
-* future AI summary design
+* local Llama summary design
+* future monitoring design
 
 ---
 
@@ -1097,15 +1411,9 @@ https://github.com/AnarkeyV
 Current status:
 
 ```text
-v0.5.0 — Telegram Notifications
+v0.8.0 — Local Llama Summary Agent
 ```
 
-The backend now supports safe Telegram notification behavior for newly completed fixtures.
+The backend now supports AI-generated fixture summaries through a local Llama/Ollama model, and the FastAPI dashboard includes an AI Summary panel.
 
-Sample fixtures remain available as a safe fallback for local development, public GitHub users, and testing without provider or Telegram credentials.
-
-Next recommended step:
-
-```text
-Update project version values to 0.5.0 and confirm the health check/test suite.
-```
+Sample fixtures remain available as a safe fallback for local development, public GitHub users, and testing without provider, Telegram, or external AI credentials.

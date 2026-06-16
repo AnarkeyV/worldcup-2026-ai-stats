@@ -13,7 +13,7 @@
             <p class="eyebrow">World Cup 2026 AI Stats</p>
             <h1>Interactive Dashboard</h1>
             <p class="subtitle">
-                Browse fixtures, filter matches, and track tournament data from the API.
+                Browse fixtures, filter matches, and generate local AI summaries powered by your Windows laptop Llama model.
             </p>
         </div>
 
@@ -43,6 +43,23 @@
                 <span class="summary-label">Visible Results</span>
                 <strong id="visible-fixtures">-</strong>
             </article>
+        </section>
+
+        <section class="ai-summary-panel" aria-label="AI fixture summary">
+            <div class="ai-summary-content">
+                <p class="eyebrow">Local Llama Agent</p>
+                <h2>AI Fixture Summary</h2>
+                <p id="ai-summary-message">
+                    Generate a short tournament summary using the local Llama model running on your Windows laptop.
+                </p>
+                <div id="ai-summary-output" class="ai-summary-output">
+                    No AI summary generated yet.
+                </div>
+            </div>
+
+            <button id="generate-ai-summary" type="button">
+                Generate AI Summary
+            </button>
         </section>
 
         <section class="controls-panel" aria-label="Dashboard filters">
@@ -88,7 +105,7 @@
 
     <footer class="app-footer">
         <p>
-            v0.6.0 Interactive Dashboard · Powered by FastAPI
+            v0.8.0 Local Llama Summary Agent · Powered by FastAPI
         </p>
     </footer>
 

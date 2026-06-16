@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     app_name: str = "World Cup 2026 AI Stats"
     app_env: str = "development"
-    app_version: str = "0.7.0"
+    app_version: str = "0.8.0"
 
     database_url: str = "postgresql+psycopg://worldcup:worldcup@postgres:5432/worldcup"
 
@@ -16,6 +16,10 @@ class Settings(BaseSettings):
 
     telegram_bot_token: str = ""
     telegram_chat_id: str = ""
+
+    llama_base_url: str = "http://127.0.0.1:11434"
+    llama_model: str = "llama3.2:1b"
+    llama_timeout_seconds: int = 60
 
     model_config = SettingsConfigDict(env_file=(".env", "../.env"), extra="ignore")
 
