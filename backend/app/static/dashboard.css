@@ -78,13 +78,20 @@ button {
     cursor: pointer;
     transition:
         transform 0.2s ease,
-        background 0.2s ease;
+        background 0.2s ease,
+        opacity 0.2s ease;
 }
 
 .api-link:hover,
 button:hover {
     transform: translateY(-1px);
     background: #7dd3fc;
+}
+
+button:disabled {
+    cursor: not-allowed;
+    opacity: 0.7;
+    transform: none;
 }
 
 .dashboard-layout {
@@ -102,7 +109,8 @@ button:hover {
 
 .summary-card,
 .controls-panel,
-.fixtures-section {
+.fixtures-section,
+.ai-summary-panel {
     background: rgba(17, 24, 39, 0.88);
     border: 1px solid var(--border);
     box-shadow: var(--shadow);
@@ -124,6 +132,52 @@ button:hover {
 .summary-card strong {
     display: block;
     font-size: 2rem;
+}
+
+.ai-summary-panel {
+    display: flex;
+    justify-content: space-between;
+    gap: 1.5rem;
+    align-items: flex-start;
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.18), rgba(34, 197, 94, 0.12));
+    border-radius: 1.5rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.ai-summary-content {
+    flex: 1;
+}
+
+.ai-summary-content h2 {
+    margin: 0;
+    font-size: 1.6rem;
+}
+
+.ai-summary-content p {
+    color: var(--muted);
+    line-height: 1.6;
+}
+
+.ai-summary-output {
+    margin-top: 1rem;
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    padding: 1rem;
+    background: rgba(2, 6, 23, 0.78);
+    color: var(--muted);
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+
+.ai-summary-output.success {
+    color: var(--text);
+    border-color: rgba(34, 197, 94, 0.55);
+}
+
+.ai-summary-output.error {
+    color: #fecaca;
+    border-color: rgba(239, 68, 68, 0.65);
 }
 
 .controls-panel {
@@ -271,6 +325,40 @@ select:focus {
     color: #475569;
 }
 
+.fixture-ai-actions {
+    margin-top: 1rem;
+}
+
+.fixture-ai-button {
+    width: 100%;
+    padding: 0.7rem 1rem;
+    font-size: 0.85rem;
+}
+
+.fixture-ai-summary {
+    margin-top: 0.85rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.9rem;
+    padding: 0.85rem;
+    background: #f8fafc;
+    color: #64748b;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+}
+
+.fixture-ai-summary.success {
+    border-color: rgba(34, 197, 94, 0.4);
+    background: rgba(34, 197, 94, 0.08);
+    color: #14532d;
+}
+
+.fixture-ai-summary.error {
+    border-color: rgba(239, 68, 68, 0.45);
+    background: rgba(239, 68, 68, 0.08);
+    color: #991b1b;
+}
+
 .empty-state {
     grid-column: 1 / -1;
     text-align: center;
@@ -300,45 +388,10 @@ select:focus {
     }
 
     .ai-summary-panel {
-    display: flex;
-    justify-content: space-between;
-    gap: 1.5rem;
-    align-items: flex-start;
-    background: linear-gradient(135deg, rgba(14, 165, 233, 0.18), rgba(34, 197, 94, 0.12));
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow);
-    backdrop-filter: blur(16px);
-    border-radius: 1.5rem;
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
+        flex-direction: column;
     }
 
-    .ai-summary-content h2 {
-        margin: 0;
-        font-size: 1.6rem;
-    }
-
-    .ai-summary-content p {
-        color: var(--muted);
-        line-height: 1.6;
-    }
-
-    .ai-summary-output {
-        margin-top: 1rem;
-        padding: 1rem;
-        border-radius: 1rem;
-        background: rgba(2, 6, 23, 0.72);
-        border: 1px solid var(--border);
-        color: var(--text);
-        line-height: 1.7;
-        white-space: pre-wrap;
-    }
-
-    .ai-summary-output.success {
-        border-color: rgba(34, 197, 94, 0.55);
-    }
-
-    .ai-summary-output.error {
-        border-color: rgba(239, 68, 68, 0.6);
+    .ai-summary-panel button {
+        width: 100%;
     }
 }
