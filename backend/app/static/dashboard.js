@@ -1,6 +1,7 @@
 const state = {
     allFixtures: [],
     visibleFixtures: [],
+    fixtureSummaries: {},
     filters: {
         team: "",
         group: "",
@@ -180,6 +181,9 @@ function renderFixtures(fixtures) {
         const card = document.createElement("article");
         card.className = "fixture-card";
 
+        const fixtureId = fixture.id;
+        const savedSummary = state.fixtureSummaries[fixtureId];
+
         card.innerHTML = `
             <div class="fixture-meta">
                 <span>${escapeHtml(fixture.competition || "World Cup 2026")}</span>
@@ -210,6 +214,23 @@ function renderFixtures(fixtures) {
                     ${formatStatus(fixture.status)}
                 </span>
             </div>
+
+            <div class="fixture-ai-actions">
+                <button
+                    class="fixture-ai-button"
+                    type="button"
+                    data-fixture-summary-id="${fixtureId}"
+                >
+                    Generate Match Summary
+                </button>
+            </div>
+
+            <div
+                class="fixture-ai-summary ${savedSummary ? "success" : ""}"
+                id="fixture-summary-${fixtureId}"
+            >
+                ${savedSummary ? escapeHtml(savedSummary) : "No match summary generated yet."}
+            </div>
         `;
 
         elements.fixturesContainer.appendChild(card);
@@ -219,7 +240,7 @@ function renderFixtures(fixtures) {
 async function generateAiSummary() {
     elements.generateAiSummary.disabled = true;
     elements.generateAiSummary.textContent = "Generating...";
-    elements.aiSummaryMessage.textContent = "Asking your local Llama model for a fixture summary...";
+    elements.aiSummaryMessage.textContent = "Asking your local Llama model for a tournament summary...";
     elements.aiSummaryOutput.className = "ai-summary-output";
     elements.aiSummaryOutput.textContent = "Generating AI summary. This may take a few seconds.";
 
@@ -245,6 +266,42 @@ async function generateAiSummary() {
     } finally {
         elements.generateAiSummary.disabled = false;
         elements.generateAiSummary.textContent = "Generate AI Summary";
+    }
+}
+
+async function generateSingleFixtureSummary(fixtureId, button) {
+    const summaryElement = document.querySelector(`#fixture-summary-${fixtureId}`);
+
+    if (!summaryElement) {
+        return;
+    }
+
+    button.disabled = true;
+    button.textContent = "Generating...";
+    summaryElement.className = "fixture-ai-summary";
+    summaryElement.textContent = "Generating match summary from local Llama...";
+
+    try {
+        const response = await fetch(`/ai/fixtures/${fixtureId}/summary`);
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || "Unable to generate match summary.");
+        }
+
+        const data = await response.json();
+
+        state.fixtureSummaries[fixtureId] = data.summary;
+        summaryElement.className = "fixture-ai-summary success";
+        summaryElement.textContent = data.summary;
+    } catch (error) {
+        console.error(error);
+        summaryElement.className = "fixture-ai-summary error";
+        summaryElement.textContent =
+            "Unable to generate this match summary. Check that the local Llama tunnel and Ollama are running.";
+    } finally {
+        button.disabled = false;
+        button.textContent = "Generate Match Summary";
     }
 }
 
@@ -342,15 +399,25 @@ function bindEvents() {
         applyFilters();
     });
 
-    elements.generateAiSummary.addEventListener("click", () => {
-        generateAiSummary();
+    elements.generateAiSummary.addEventListener("click", generateAiSummary);
+
+    elements.fixturesContainer.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-fixture-summary-id]");
+
+        if (!button) {
+            return;
+        }
+
+        const fixtureId = button.dataset.fixtureSummaryId;
+        generateSingleFixtureSummary(fixtureId, button);
     });
 }
 
 async function initializeDashboard() {
-    try {
-        bindEvents();
+    bindEvents();
+    setLoadingState();
 
+    try {
         state.allFixtures = await fetchFixtures();
         state.visibleFixtures = state.allFixtures;
 
@@ -362,7 +429,7 @@ async function initializeDashboard() {
         elements.dashboardMessage.textContent = "Unable to load fixtures.";
         elements.fixturesContainer.innerHTML = `
             <div class="empty-state">
-                The dashboard could not load fixture data. Please check that the fixtures API is running.
+                The dashboard could not load fixture data. Please check that the API server is running.
             </div>
         `;
     }
