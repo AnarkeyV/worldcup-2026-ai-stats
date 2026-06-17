@@ -15,7 +15,7 @@
       }
     ]
   },
-  "description": "Polished Grafana dashboard for the World Cup 2026 AI Stats local monitoring stack.",
+  "description": "Grafana dashboard for the World Cup 2026 AI Stats monitoring stack. This version focuses on metrics currently exposed by the FastAPI backend and Prometheus scrape target.",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -69,7 +69,7 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 4,
+        "h": 5,
         "w": 6,
         "x": 0,
         "y": 0
@@ -113,7 +113,7 @@
         "type": "prometheus",
         "uid": "Prometheus"
       },
-      "description": "Number of metric samples collected from the backend during each scrape.",
+      "description": "Number of metric samples collected from the backend during each Prometheus scrape.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -133,7 +133,7 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 4,
+        "h": 5,
         "w": 6,
         "x": 6,
         "y": 0
@@ -206,7 +206,7 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 4,
+        "h": 5,
         "w": 6,
         "x": 12,
         "y": 0
@@ -250,7 +250,83 @@
         "type": "prometheus",
         "uid": "Prometheus"
       },
-      "description": "Backend process memory usage reported by the Python metrics client.",
+      "description": "Backend Python runtime metadata exposed by the Prometheus Python client.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "1": {
+                  "color": "green",
+                  "index": 0,
+                  "text": "Available"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.4.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Prometheus"
+          },
+          "editorMode": "code",
+          "expr": "python_info{job=\"worldcup-backend\"}",
+          "legendFormat": "Python runtime",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Python Runtime Metrics",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "description": "Resident memory used by the FastAPI backend process.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -303,16 +379,17 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 18,
-        "y": 0
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 5
       },
-      "id": 4,
+      "id": 5,
       "options": {
         "legend": {
           "calcs": [
-            "lastNotNull"
+            "lastNotNull",
+            "max"
           ],
           "displayMode": "list",
           "placement": "bottom",
@@ -333,12 +410,12 @@
           },
           "editorMode": "code",
           "expr": "process_resident_memory_bytes{job=\"worldcup-backend\"}",
-          "legendFormat": "Backend memory",
+          "legendFormat": "Resident memory",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Backend Memory Usage",
+      "title": "Backend Resident Memory",
       "type": "timeseries"
     },
     {
@@ -346,7 +423,7 @@
         "type": "prometheus",
         "uid": "Prometheus"
       },
-      "description": "Request rate from common FastAPI/HTTP Prometheus metric names. This panel will populate when matching HTTP counters are available.",
+      "description": "Virtual memory allocated by the backend process.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -361,7 +438,7 @@
             "barAlignment": 0,
             "barWidthFactor": 0.6,
             "drawStyle": "line",
-            "fillOpacity": 15,
+            "fillOpacity": 20,
             "gradientMode": "opacity",
             "hideFrom": {
               "legend": false,
@@ -385,7 +462,6 @@
               "mode": "off"
             }
           },
-          "decimals": 3,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -395,112 +471,7 @@
               }
             ]
           },
-          "unit": "reqps"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 4
-      },
-      "id": 5,
-      "options": {
-        "legend": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "pluginVersion": "11.4.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "Prometheus"
-          },
-          "editorMode": "code",
-          "expr": "sum(rate({__name__=~\"http_requests_total|http_request_duration_seconds_count|http_server_requests_seconds_count\", job=\"worldcup-backend\"}[5m]))",
-          "legendFormat": "Requests/sec",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "Backend HTTP Request Rate",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "Prometheus"
-      },
-      "description": "95th percentile request latency from common HTTP histogram metric names. This panel will populate when matching histogram buckets are available.",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 15,
-            "gradientMode": "opacity",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 2,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "decimals": 3,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 0.5
-              },
-              {
-                "color": "red",
-                "value": 1
-              }
-            ]
-          },
-          "unit": "s"
+          "unit": "bytes"
         },
         "overrides": []
       },
@@ -508,13 +479,14 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 4
+        "y": 5
       },
       "id": 6,
       "options": {
         "legend": {
           "calcs": [
-            "lastNotNull"
+            "lastNotNull",
+            "max"
           ],
           "displayMode": "list",
           "placement": "bottom",
@@ -522,8 +494,8 @@
         },
         "tooltip": {
           "hideZeros": false,
-          "mode": "multi",
-          "sort": "desc"
+          "mode": "single",
+          "sort": "none"
         }
       },
       "pluginVersion": "11.4.0",
@@ -534,13 +506,13 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.95, sum(rate({__name__=~\"http_request_duration_seconds_bucket|http_request_duration_highr_seconds_bucket|http_server_requests_seconds_bucket\", job=\"worldcup-backend\"}[5m])) by (le))",
-          "legendFormat": "p95 latency",
+          "expr": "process_virtual_memory_bytes{job=\"worldcup-backend\"}",
+          "legendFormat": "Virtual memory",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Backend Request Latency p95",
+      "title": "Backend Virtual Memory",
       "type": "timeseries"
     },
     {
@@ -602,16 +574,17 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 7,
+        "h": 8,
         "w": 12,
         "x": 0,
-        "y": 12
+        "y": 13
       },
       "id": 7,
       "options": {
         "legend": {
           "calcs": [
-            "lastNotNull"
+            "lastNotNull",
+            "max"
           ],
           "displayMode": "list",
           "placement": "bottom",
@@ -638,6 +611,103 @@
         }
       ],
       "title": "Backend CPU Usage",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "description": "Python garbage collection activity by generation.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 13
+      },
+      "id": 8,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "11.4.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Prometheus"
+          },
+          "editorMode": "code",
+          "expr": "python_gc_collections_total{job=\"worldcup-backend\"}",
+          "legendFormat": "Generation {{generation}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Python GC Collections",
       "type": "timeseries"
     },
     {
@@ -672,12 +742,12 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 7,
-        "w": 12,
-        "x": 12,
-        "y": 12
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 21
       },
-      "id": 8,
+      "id": 9,
       "options": {
         "cellHeight": "sm",
         "footer": {
@@ -714,8 +784,6 @@
             "excludeByName": {
               "Time": true
             },
-            "includeByName": {},
-            "indexByName": {},
             "renameByName": {
               "Value": "Series Count",
               "__name__": "Metric Name"
@@ -746,6 +814,6 @@
   "timezone": "browser",
   "title": "World Cup 2026 AI Stats - Observability Overview",
   "uid": "worldcup-2026-overview",
-  "version": 1,
+  "version": 2,
   "weekStart": ""
 }
