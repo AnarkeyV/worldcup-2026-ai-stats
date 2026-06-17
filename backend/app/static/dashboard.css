@@ -110,6 +110,7 @@ button:disabled {
 .summary-card,
 .controls-panel,
 .fixtures-section,
+.standings-section,
 .ai-summary-panel {
     background: rgba(17, 24, 39, 0.88);
     border: 1px solid var(--border);
@@ -257,9 +258,14 @@ select:focus {
     border-color: var(--accent);
 }
 
-.fixtures-section {
+.fixtures-section,
+.standings-section {
     border-radius: 1.5rem;
     padding: 1.5rem;
+}
+
+.standings-section {
+    margin-bottom: 1.5rem;
 }
 
 .section-heading {
@@ -278,6 +284,48 @@ select:focus {
 .section-heading p {
     margin: 0.35rem 0 0;
     color: var(--muted);
+}
+
+.standings-container {
+    overflow-x: auto;
+}
+
+.standings-table-wrapper {
+    overflow-x: auto;
+    border-radius: 1rem;
+    border: 1px solid var(--border);
+}
+
+.standings-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 760px;
+    background: #ffffff;
+    color: #111827;
+}
+
+.standings-table th,
+.standings-table td {
+    padding: 0.85rem 0.9rem;
+    text-align: left;
+    border-bottom: 1px solid #e5e7eb;
+    white-space: nowrap;
+}
+
+.standings-table th {
+    background: #f8fafc;
+    color: #475569;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.standings-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.standings-table tbody tr:hover {
+    background: #f8fafc;
 }
 
 .fixtures-grid {

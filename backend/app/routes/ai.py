@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.fixture import Fixture
 from app.services.local_llama_client import LocalLlamaClient
+from app.services.standings_service import COMPLETED_STATUSES, build_group_standings
 
 router = APIRouter(
     prefix="/ai",
@@ -17,13 +18,40 @@ router = APIRouter(
 DISPLAY_TIMEZONE = ZoneInfo("Asia/Singapore")
 DISPLAY_TIMEZONE_LABEL = "SGT"
 
+LIVE_STATUSES = {
+    "live",
+}
+
+SCHEDULED_STATUSES = {
+    "scheduled",
+    "upcoming",
+    "not_started",
+    "not started",
+}
+
 
 def get_llama_client() -> LocalLlamaClient:
     return LocalLlamaClient()
 
 
+def normalize_fixture_status(fixture: Fixture) -> str:
+    return str(getattr(fixture, "status", "") or "").strip().lower()
+
+
+def is_completed_fixture(fixture: Fixture) -> bool:
+    return normalize_fixture_status(fixture) in COMPLETED_STATUSES
+
+
+def is_live_fixture(fixture: Fixture) -> bool:
+    return normalize_fixture_status(fixture) in LIVE_STATUSES
+
+
+def is_scheduled_fixture(fixture: Fixture) -> bool:
+    return normalize_fixture_status(fixture) in SCHEDULED_STATUSES
+
+
 def format_fixture_result_state(fixture: Fixture) -> str:
-    if fixture.status == "complete":
+    if is_completed_fixture(fixture):
         if fixture.home_score is not None and fixture.away_score is not None:
             return (
                 f"MATCH_STATE=COMPLETED_FINAL | "
@@ -38,7 +66,7 @@ def format_fixture_result_state(fixture: Fixture) -> str:
             "RESULT_SENTENCE=This match is complete, but the score is unavailable."
         )
 
-    if fixture.status == "live":
+    if is_live_fixture(fixture):
         if fixture.home_score is not None and fixture.away_score is not None:
             return (
                 f"MATCH_STATE=LIVE_NOW | "
@@ -52,7 +80,7 @@ def format_fixture_result_state(fixture: Fixture) -> str:
             "RESULT_SENTENCE=This match is currently live."
         )
 
-    if fixture.status == "scheduled":
+    if is_scheduled_fixture(fixture):
         return (
             "MATCH_STATE=UPCOMING_NOT_PLAYED | "
             "FINAL_SCORE=not available because the match has not been played | "
@@ -209,7 +237,7 @@ def build_deterministic_fixture_summary(fixture: Fixture) -> str:
     group_text = f" in {fixture.group_name}" if fixture.group_name else ""
     venue_text = f" at {fixture.venue}" if fixture.venue else ""
 
-    if fixture.status == "complete":
+    if is_completed_fixture(fixture):
         result_text = build_result_text(fixture)
         kickoff_text = format_kickoff_phrase(fixture, completed=True)
 
@@ -219,7 +247,7 @@ def build_deterministic_fixture_summary(fixture: Fixture) -> str:
             "Final whistle time is not available in the current fixture data."
         )
 
-    if fixture.status == "scheduled":
+    if is_scheduled_fixture(fixture):
         kickoff_text = format_kickoff_phrase(fixture)
 
         return (
@@ -227,7 +255,7 @@ def build_deterministic_fixture_summary(fixture: Fixture) -> str:
             f"{kickoff_text}{venue_text}. No score is available yet because the match has not been played."
         )
 
-    if fixture.status == "live":
+    if is_live_fixture(fixture):
         if fixture.home_score is not None and fixture.away_score is not None:
             return (
                 f"{fixture.home_team} vs {fixture.away_team}{group_text} is currently live, "
@@ -245,18 +273,77 @@ def build_deterministic_fixture_summary(fixture: Fixture) -> str:
     )
 
 
+def format_goal_difference(goal_difference: int) -> str:
+    if goal_difference > 0:
+        return f"+{goal_difference}"
+
+    return str(goal_difference)
+
+
+def format_leader_entry(standing: dict) -> str:
+    return (
+        f"{standing['team']} "
+        f"({standing['group_name']}, {standing['points']} pts, "
+        f"{format_goal_difference(standing['goal_difference'])} GD)"
+    )
+
+
+def join_readable_list(items: list[str]) -> str:
+    if not items:
+        return ""
+
+    if len(items) == 1:
+        return items[0]
+
+    if len(items) == 2:
+        return f"{items[0]} and {items[1]}"
+
+    return f"{', '.join(items[:-1])}, and {items[-1]}"
+
+
+def build_group_leaders_summary(fixtures: list[Fixture], max_leaders: int = 4) -> str | None:
+    standings = build_group_standings(fixtures)
+
+    if not standings:
+        return None
+
+    leaders_by_group: dict[str, dict] = {}
+
+    for standing in standings:
+        group_name = standing.get("group_name")
+
+        if not group_name:
+            continue
+
+        if group_name not in leaders_by_group:
+            leaders_by_group[group_name] = standing
+
+    if not leaders_by_group:
+        return None
+
+    leader_entries = [
+        format_leader_entry(leaders_by_group[group_name])
+        for group_name in sorted(leaders_by_group)
+    ][:max_leaders]
+
+    return (
+        "Current group leaders based on completed fixtures include "
+        f"{join_readable_list(leader_entries)}."
+    )
+
+
 def build_deterministic_tournament_summary(fixtures: list[Fixture]) -> str:
     completed_fixtures = [
         fixture for fixture in fixtures
-        if fixture.status == "complete"
+        if is_completed_fixture(fixture)
     ]
     live_fixtures = [
         fixture for fixture in fixtures
-        if fixture.status == "live"
+        if is_live_fixture(fixture)
     ]
     scheduled_fixtures = [
         fixture for fixture in fixtures
-        if fixture.status == "scheduled"
+        if is_scheduled_fixture(fixture)
     ]
 
     lines = []
@@ -269,6 +356,11 @@ def build_deterministic_tournament_summary(fixtures: list[Fixture]) -> str:
 
         for fixture in completed_fixtures[:2]:
             lines.append(build_deterministic_fixture_summary(fixture))
+
+        group_leaders_summary = build_group_leaders_summary(fixtures)
+
+        if group_leaders_summary:
+            lines.append(group_leaders_summary)
 
     if live_fixtures:
         live_count = len(live_fixtures)
@@ -318,7 +410,7 @@ def summarize_fixtures(
         return {
             "fixture_count": len(fixtures),
             "provider": "deterministic_tournament_summary",
-            "model": "rules_based_v1",
+            "model": "rules_based_v2",
             "summary": summary,
         }
 
@@ -351,7 +443,7 @@ def summarize_fixture_by_id(
         return {
             "fixture_id": fixture.id,
             "provider": "deterministic_fixture_summary",
-            "model": "rules_based_v1",
+            "model": "rules_based_v2",
             "summary": summary,
         }
 

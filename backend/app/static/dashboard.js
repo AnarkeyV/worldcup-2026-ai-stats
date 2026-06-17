@@ -1,6 +1,7 @@
 const state = {
     allFixtures: [],
     visibleFixtures: [],
+    standings: [],
     fixtureSummaries: {},
     aiAvailable: false,
     filters: {
@@ -22,6 +23,8 @@ const elements = {
     resetFilters: document.querySelector("#reset-filters"),
     dashboardMessage: document.querySelector("#dashboard-message"),
     fixturesContainer: document.querySelector("#fixtures-container"),
+    standingsMessage: document.querySelector("#standings-message"),
+    standingsContainer: document.querySelector("#standings-container"),
     generateAiSummary: document.querySelector("#generate-ai-summary"),
     aiSummaryMessage: document.querySelector("#ai-summary-message"),
     aiSummaryOutput: document.querySelector("#ai-summary-output"),
@@ -53,6 +56,32 @@ async function fetchFixtures(filters = {}) {
     }
 
     throw new Error("Unable to load fixtures from available API endpoints.");
+}
+
+async function fetchStandings(filters = {}) {
+    const queryString = buildStandingsQueryString(filters);
+
+    const possibleEndpoints = [
+        `/api/standings${queryString}`,
+        `/standings${queryString}`,
+    ];
+
+    for (const endpoint of possibleEndpoints) {
+        try {
+            const response = await fetch(endpoint);
+
+            if (!response.ok) {
+                continue;
+            }
+
+            const data = await response.json();
+            return normalizeStandingsResponse(data);
+        } catch (error) {
+            console.warn(`Unable to fetch standings from ${endpoint}`, error);
+        }
+    }
+
+    throw new Error("Unable to load standings from available API endpoints.");
 }
 
 async function checkAiHealth() {
@@ -129,6 +158,18 @@ function buildFixtureQueryString(filters) {
     return queryString ? `?${queryString}` : "";
 }
 
+function buildStandingsQueryString(filters) {
+    const params = new URLSearchParams();
+
+    if (filters.group) {
+        params.set("group_name", filters.group);
+    }
+
+    const queryString = params.toString();
+
+    return queryString ? `?${queryString}` : "";
+}
+
 function normalizeFixturesResponse(data) {
     if (Array.isArray(data)) {
         return data;
@@ -136,6 +177,22 @@ function normalizeFixturesResponse(data) {
 
     if (Array.isArray(data.fixtures)) {
         return data.fixtures;
+    }
+
+    if (Array.isArray(data.results)) {
+        return data.results;
+    }
+
+    return [];
+}
+
+function normalizeStandingsResponse(data) {
+    if (Array.isArray(data)) {
+        return data;
+    }
+
+    if (Array.isArray(data.standings)) {
+        return data.standings;
     }
 
     if (Array.isArray(data.results)) {
@@ -200,9 +257,16 @@ async function applyFilters() {
     setLoadingState();
 
     try {
-        state.visibleFixtures = await fetchFixtures(state.filters);
+        const [fixtures, standings] = await Promise.all([
+            fetchFixtures(state.filters),
+            fetchStandings(state.filters),
+        ]);
+
+        state.visibleFixtures = fixtures;
+        state.standings = standings;
 
         updateSummary(state.allFixtures, state.visibleFixtures);
+        renderStandings(state.standings);
         renderFixtures(state.visibleFixtures);
     } catch (error) {
         console.error(error);
@@ -212,11 +276,80 @@ async function applyFilters() {
                 The dashboard could not load filtered fixture data. Please check that the fixtures API is running.
             </div>
         `;
+        elements.standingsMessage.textContent = "Unable to load standings.";
+        elements.standingsContainer.innerHTML = `
+            <div class="empty-state">
+                The dashboard could not load standings data. Please check that the standings API is running.
+            </div>
+        `;
     }
 }
 
 function setLoadingState() {
     elements.dashboardMessage.textContent = "Loading fixtures...";
+    elements.standingsMessage.textContent = "Loading standings...";
+}
+
+function renderStandings(standings) {
+    elements.standingsContainer.innerHTML = "";
+
+    if (standings.length === 0) {
+        elements.standingsContainer.innerHTML = `
+            <div class="empty-state">
+                No completed fixtures are available for the selected group yet.
+            </div>
+        `;
+        elements.standingsMessage.textContent = "Standings will appear after completed fixtures are synced.";
+        return;
+    }
+
+    const selectedGroup = state.filters.group || "all groups";
+
+    elements.standingsMessage.textContent =
+        `Showing ${standings.length} team${standings.length === 1 ? "" : "s"} for ${selectedGroup}.`;
+
+    const table = document.createElement("div");
+    table.className = "standings-table-wrapper";
+
+    table.innerHTML = `
+        <table class="standings-table">
+            <thead>
+                <tr>
+                    <th>Group</th>
+                    <th>Team</th>
+                    <th>P</th>
+                    <th>W</th>
+                    <th>D</th>
+                    <th>L</th>
+                    <th>GF</th>
+                    <th>GA</th>
+                    <th>GD</th>
+                    <th>Pts</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${standings.map((team) => `
+                    <tr>
+                        <td>${escapeHtml(team.group_name)}</td>
+                        <td>
+                            <strong>${escapeHtml(team.team)}</strong>
+                            <span class="team-code">${escapeHtml(team.team_code || "")}</span>
+                        </td>
+                        <td>${formatNumber(team.played)}</td>
+                        <td>${formatNumber(team.wins)}</td>
+                        <td>${formatNumber(team.draws)}</td>
+                        <td>${formatNumber(team.losses)}</td>
+                        <td>${formatNumber(team.goals_for)}</td>
+                        <td>${formatNumber(team.goals_against)}</td>
+                        <td>${formatSignedNumber(team.goal_difference)}</td>
+                        <td><strong>${formatNumber(team.points)}</strong></td>
+                    </tr>
+                `).join("")}
+            </tbody>
+        </table>
+    `;
+
+    elements.standingsContainer.appendChild(table);
 }
 
 function renderFixtures(fixtures) {
@@ -370,6 +503,16 @@ function formatScore(score) {
     return score === null || score === undefined ? "-" : score;
 }
 
+function formatNumber(value) {
+    return value === null || value === undefined ? 0 : value;
+}
+
+function formatSignedNumber(value) {
+    const number = formatNumber(value);
+
+    return number > 0 ? `+${number}` : number;
+}
+
 function formatStatus(status) {
     if (!status) {
         return "Unknown";
@@ -480,11 +623,18 @@ async function initializeDashboard() {
     checkAiHealth();
 
     try {
-        state.allFixtures = await fetchFixtures();
-        state.visibleFixtures = state.allFixtures;
+        const [fixtures, standings] = await Promise.all([
+            fetchFixtures(),
+            fetchStandings(),
+        ]);
+
+        state.allFixtures = fixtures;
+        state.visibleFixtures = fixtures;
+        state.standings = standings;
 
         populateFilters(state.allFixtures);
         updateSummary(state.allFixtures, state.visibleFixtures);
+        renderStandings(state.standings);
         renderFixtures(state.visibleFixtures);
     } catch (error) {
         console.error(error);
@@ -492,6 +642,12 @@ async function initializeDashboard() {
         elements.fixturesContainer.innerHTML = `
             <div class="empty-state">
                 The dashboard could not load fixture data. Please check that the API server is running.
+            </div>
+        `;
+        elements.standingsMessage.textContent = "Unable to load standings.";
+        elements.standingsContainer.innerHTML = `
+            <div class="empty-state">
+                The dashboard could not load standings data. Please check that the standings API is running.
             </div>
         `;
     }
