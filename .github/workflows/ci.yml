@@ -32,3 +32,20 @@ jobs:
 
       - name: Run tests
         run: pytest
+
+  docker-build:
+    name: Docker Build Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build backend Docker image
+        run: docker build -t worldcup-backend:test ./backend
+
+      - name: Build dashboard Docker image
+        run: docker build -t worldcup-dashboard:test ./dashboard
+
+      - name: Validate Docker Compose configuration
+        run: docker compose -f docker-compose.yml config
