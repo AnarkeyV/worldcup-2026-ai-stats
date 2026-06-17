@@ -26,6 +26,7 @@ class FakeLlamaClient:
 
 def make_completed_fixture(
     *,
+    fixture_id=1,
     group_name="Group A",
     home_team="Mexico",
     away_team="South Africa",
@@ -36,7 +37,7 @@ def make_completed_fixture(
     status="complete",
 ):
     return SimpleNamespace(
-        id=1,
+        id=fixture_id,
         competition="FIFA World Cup 2026",
         stage="Group Stage",
         group_name=group_name,
@@ -90,7 +91,7 @@ def test_ai_fixture_summary_returns_deterministic_tournament_summary(client, mon
 
     assert data["fixture_count"] == 4
     assert data["provider"] == "deterministic_tournament_summary"
-    assert data["model"] == "rules_based_v2"
+    assert data["model"] == "rules_based_v3"
     assert isinstance(data["summary"], str)
 
     summary = data["summary"].lower()
@@ -103,6 +104,13 @@ def test_ai_fixture_summary_returns_deterministic_tournament_summary(client, mon
     assert "united states (group d, 3 pts, +3 gd)" in summary
     assert "france (group i, 3 pts, +2 gd)" in summary
     assert "argentina (group j, 3 pts, +3 gd)" in summary
+    assert "strongest attacks based on completed fixtures include" in summary
+    assert "united states (group d, 4 gf)" in summary
+    assert "argentina (group j, 3 gf)" in summary
+    assert "best defences based on completed fixtures include" in summary
+    assert "argentina (group j, 0 ga)" in summary
+    assert "mexico (group a, 0 ga)" in summary
+    assert "unbeaten teams include" in summary
     assert "upcoming" not in summary
 
 
@@ -123,12 +131,13 @@ def test_ai_fixture_summary_does_not_depend_on_llama_generation(client, monkeypa
     data = response.json()
 
     assert data["provider"] == "deterministic_tournament_summary"
-    assert data["model"] == "rules_based_v2"
+    assert data["model"] == "rules_based_v3"
 
 
 def test_deterministic_tournament_summary_includes_standings_leaders():
     fixtures = [
         make_completed_fixture(
+            fixture_id=1,
             group_name="Group A",
             home_team="Mexico",
             away_team="South Africa",
@@ -138,6 +147,7 @@ def test_deterministic_tournament_summary_includes_standings_leaders():
             away_score=0,
         ),
         make_completed_fixture(
+            fixture_id=2,
             group_name="Group A",
             home_team="South Korea",
             away_team="Czechia",
@@ -153,6 +163,51 @@ def test_deterministic_tournament_summary_includes_standings_leaders():
     assert "2 fixtures have been completed" in summary
     assert "current group leaders based on completed fixtures include" in summary
     assert "mexico (group a, 3 pts, +2 gd)" in summary
+
+
+def test_deterministic_tournament_summary_includes_group_analytics():
+    fixtures = [
+        make_completed_fixture(
+            fixture_id=1,
+            group_name="Group A",
+            home_team="Mexico",
+            away_team="South Africa",
+            home_team_code="MEX",
+            away_team_code="RSA",
+            home_score=2,
+            away_score=0,
+        ),
+        make_completed_fixture(
+            fixture_id=2,
+            group_name="Group D",
+            home_team="United States",
+            away_team="Paraguay",
+            home_team_code="USA",
+            away_team_code="PAR",
+            home_score=4,
+            away_score=1,
+        ),
+        make_completed_fixture(
+            fixture_id=3,
+            group_name="Group J",
+            home_team="Argentina",
+            away_team="Algeria",
+            home_team_code="ARG",
+            away_team_code="DZA",
+            home_score=3,
+            away_score=0,
+        ),
+    ]
+
+    summary = build_deterministic_tournament_summary(fixtures).lower()
+
+    assert "strongest attacks based on completed fixtures include" in summary
+    assert "united states (group d, 4 gf)" in summary
+    assert "argentina (group j, 3 gf)" in summary
+    assert "best defences based on completed fixtures include" in summary
+    assert "argentina (group j, 0 ga)" in summary
+    assert "mexico (group a, 0 ga)" in summary
+    assert "unbeaten teams include" in summary
 
 
 def test_ai_single_fixture_summary_returns_deterministic_summary(client, monkeypatch):

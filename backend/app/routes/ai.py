@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.fixture import Fixture
+from app.services.insights_service import build_group_insights
 from app.services.local_llama_client import LocalLlamaClient
 from app.services.standings_service import COMPLETED_STATUSES, build_group_standings
 
@@ -288,6 +289,17 @@ def format_leader_entry(standing: dict) -> str:
     )
 
 
+def format_team_metric_entry(team: dict, metric_key: str, metric_label: str) -> str:
+    return (
+        f"{team['team']} "
+        f"({team['group_name']}, {team[metric_key]} {metric_label})"
+    )
+
+
+def format_team_name_entry(team: dict) -> str:
+    return f"{team['team']} ({team['group_name']})"
+
+
 def join_readable_list(items: list[str]) -> str:
     if not items:
         return ""
@@ -332,6 +344,50 @@ def build_group_leaders_summary(fixtures: list[Fixture], max_leaders: int = 4) -
     )
 
 
+def build_group_analytics_summary_lines(fixtures: list[Fixture]) -> list[str]:
+    insights = build_group_insights(fixtures=fixtures, limit=3)
+
+    if not insights["summary"]["has_data"]:
+        return []
+
+    lines = []
+
+    strongest_attack_entries = [
+        format_team_metric_entry(team, "goals_for", "GF")
+        for team in insights["strongest_attacks"]
+    ]
+
+    if strongest_attack_entries:
+        lines.append(
+            "Strongest attacks based on completed fixtures include "
+            f"{join_readable_list(strongest_attack_entries)}."
+        )
+
+    best_defence_entries = [
+        format_team_metric_entry(team, "goals_against", "GA")
+        for team in insights["best_defences"]
+    ]
+
+    if best_defence_entries:
+        lines.append(
+            "Best defences based on completed fixtures include "
+            f"{join_readable_list(best_defence_entries)}."
+        )
+
+    unbeaten_entries = [
+        format_team_name_entry(team)
+        for team in insights["unbeaten_teams"]
+    ]
+
+    if unbeaten_entries:
+        lines.append(
+            "Unbeaten teams include "
+            f"{join_readable_list(unbeaten_entries)}."
+        )
+
+    return lines
+
+
 def build_deterministic_tournament_summary(fixtures: list[Fixture]) -> str:
     completed_fixtures = [
         fixture for fixture in fixtures
@@ -361,6 +417,8 @@ def build_deterministic_tournament_summary(fixtures: list[Fixture]) -> str:
 
         if group_leaders_summary:
             lines.append(group_leaders_summary)
+
+        lines.extend(build_group_analytics_summary_lines(fixtures))
 
     if live_fixtures:
         live_count = len(live_fixtures)
@@ -410,7 +468,7 @@ def summarize_fixtures(
         return {
             "fixture_count": len(fixtures),
             "provider": "deterministic_tournament_summary",
-            "model": "rules_based_v2",
+            "model": "rules_based_v3",
             "summary": summary,
         }
 

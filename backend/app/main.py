@@ -9,6 +9,7 @@ from app.database import create_db_and_tables
 from app.routes.ai import router as ai_router
 from app.routes.dashboard import router as dashboard_router
 from app.routes.fixtures import router as fixtures_router
+from app.routes.insights import router as insights_router
 from app.routes.notifications import router as notifications_router
 from app.routes.standings import router as standings_router
 
@@ -44,6 +45,7 @@ def root():
         "dashboard": "/dashboard",
         "fixtures": "/fixtures",
         "standings": "/standings",
+        "group_insights": "/insights/groups",
         "ai_summary": "/ai/fixtures/summary",
     }
 
@@ -60,5 +62,6 @@ def health_check():
 app.include_router(ai_router)
 app.include_router(dashboard_router)
 app.include_router(fixtures_router)
+app.include_router(insights_router)
 app.include_router(notifications_router)
 app.include_router(standings_router)

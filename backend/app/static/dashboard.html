@@ -13,7 +13,7 @@
             <p class="eyebrow">World Cup 2026 AI Stats</p>
             <h1>Interactive Dashboard</h1>
             <p class="subtitle">
-                Browse fixtures, filter matches, view group standings, and generate local AI summaries powered by your Windows laptop Llama model.
+                Browse fixtures, filter matches, view group standings, explore team insights, and generate local AI summaries.
             </p>
         </div>
 
@@ -63,7 +63,7 @@
                 </div>
 
                 <p id="ai-summary-message">
-                    Generate a short tournament-wide summary using the local Llama model running on your Windows laptop.
+                    Generate a short tournament-wide summary using deterministic rules and local AI health checks.
                 </p>
 
                 <p id="ai-health-details" class="ai-health-details">
@@ -109,6 +109,17 @@
             </button>
         </section>
 
+        <section class="insights-section" aria-label="Group insights">
+            <div class="section-heading">
+                <div>
+                    <h2>Group Insights</h2>
+                    <p id="insights-message">Loading insights...</p>
+                </div>
+            </div>
+
+            <div id="insights-container" class="insights-grid" aria-live="polite"></div>
+        </section>
+
         <section class="standings-section" aria-label="Group standings">
             <div class="section-heading">
                 <div>
@@ -134,7 +145,7 @@
 
     <footer class="app-footer">
         <p>
-            v1.1.0 Group Standings Engine · Powered by FastAPI
+            v1.2.0 Team Insights and Group Analytics · Powered by FastAPI
         </p>
     </footer>
 
