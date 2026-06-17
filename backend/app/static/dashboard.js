@@ -3,6 +3,7 @@ const state = {
     visibleFixtures: [],
     standings: [],
     insights: null,
+    playerStats: null,
     fixtureSummaries: {},
     aiAvailable: false,
     filters: {
@@ -28,6 +29,8 @@ const elements = {
     standingsContainer: document.querySelector("#standings-container"),
     insightsMessage: document.querySelector("#insights-message"),
     insightsContainer: document.querySelector("#insights-container"),
+    playerStatsMessage: document.querySelector("#player-stats-message"),
+    playerStatsContainer: document.querySelector("#player-stats-container"),
     generateAiSummary: document.querySelector("#generate-ai-summary"),
     aiSummaryMessage: document.querySelector("#ai-summary-message"),
     aiSummaryOutput: document.querySelector("#ai-summary-output"),
@@ -111,6 +114,53 @@ async function fetchInsights(filters = {}) {
     }
 
     throw new Error("Unable to load insights from available API endpoints.");
+}
+
+async function fetchPlayerStats(filters = {}, sortBy = "goals", limit = 5) {
+    const queryString = buildPlayerStatsQueryString(filters, sortBy, limit);
+
+    const possibleEndpoints = [
+        `/api/players/stats${queryString}`,
+        `/players/stats${queryString}`,
+    ];
+
+    for (const endpoint of possibleEndpoints) {
+        try {
+            const response = await fetch(endpoint);
+
+            if (!response.ok) {
+                continue;
+            }
+
+            const data = await response.json();
+            return normalizePlayerStatsResponse(data);
+        } catch (error) {
+            console.warn(`Unable to fetch player stats from ${endpoint}`, error);
+        }
+    }
+
+    throw new Error("Unable to load player stats from available API endpoints.");
+}
+
+async function fetchPlayerStatsSummary(filters = {}) {
+    const [
+        topScorers,
+        topAssists,
+        yellowCards,
+        redCards,
+    ] = await Promise.all([
+        fetchPlayerStats(filters, "goals", 5),
+        fetchPlayerStats(filters, "assists", 5),
+        fetchPlayerStats(filters, "yellow_cards", 5),
+        fetchPlayerStats(filters, "red_cards", 5),
+    ]);
+
+    return {
+        topScorers,
+        topAssists,
+        yellowCards,
+        redCards,
+    };
 }
 
 async function checkAiHealth() {
@@ -199,6 +249,23 @@ function buildGroupOnlyQueryString(filters) {
     return queryString ? `?${queryString}` : "";
 }
 
+function buildPlayerStatsQueryString(filters, sortBy, limit) {
+    const params = new URLSearchParams();
+
+    if (filters.group) {
+        params.set("group_name", filters.group);
+    }
+
+    if (filters.team && filters.team.trim()) {
+        params.set("team", filters.team.trim());
+    }
+
+    params.set("sort_by", sortBy);
+    params.set("limit", limit);
+
+    return `?${params.toString()}`;
+}
+
 function normalizeFixturesResponse(data) {
     if (Array.isArray(data)) {
         return data;
@@ -252,6 +319,18 @@ function normalizeInsightsResponse(data) {
         unbeaten_teams: [],
         winless_teams: [],
     };
+}
+
+function normalizePlayerStatsResponse(data) {
+    if (data && Array.isArray(data.stats)) {
+        return data.stats;
+    }
+
+    if (Array.isArray(data)) {
+        return data;
+    }
+
+    return [];
 }
 
 function populateFilters(fixtures) {
@@ -309,18 +388,21 @@ async function applyFilters() {
     setLoadingState();
 
     try {
-        const [fixtures, standings, insights] = await Promise.all([
+        const [fixtures, standings, insights, playerStats] = await Promise.all([
             fetchFixtures(state.filters),
             fetchStandings(state.filters),
             fetchInsights(state.filters),
+            fetchPlayerStatsSummary(state.filters),
         ]);
 
         state.visibleFixtures = fixtures;
         state.standings = standings;
         state.insights = insights;
+        state.playerStats = playerStats;
 
         updateSummary(state.allFixtures, state.visibleFixtures);
         renderInsights(state.insights);
+        renderPlayerStats(state.playerStats);
         renderStandings(state.standings);
         renderFixtures(state.visibleFixtures);
     } catch (error) {
@@ -343,6 +425,12 @@ async function applyFilters() {
                 The dashboard could not load group insight data. Please check that the insights API is running.
             </div>
         `;
+        elements.playerStatsMessage.textContent = "Unable to load player statistics.";
+        elements.playerStatsContainer.innerHTML = `
+            <div class="empty-state">
+                The dashboard could not load player statistics. Please check that the player stats API is running.
+            </div>
+        `;
     }
 }
 
@@ -350,6 +438,7 @@ function setLoadingState() {
     elements.dashboardMessage.textContent = "Loading fixtures...";
     elements.standingsMessage.textContent = "Loading standings...";
     elements.insightsMessage.textContent = "Loading insights...";
+    elements.playerStatsMessage.textContent = "Loading player statistics...";
 }
 
 function renderInsights(insights) {
@@ -408,6 +497,62 @@ function renderInsights(insights) {
         `;
 
         elements.insightsContainer.appendChild(card);
+    });
+}
+
+function renderPlayerStats(playerStats) {
+    elements.playerStatsContainer.innerHTML = "";
+
+    if (!hasPlayerStatsData(playerStats)) {
+        elements.playerStatsContainer.innerHTML = `
+            <div class="empty-state">
+                Player statistics will appear after sample player stats are synced.
+            </div>
+        `;
+        elements.playerStatsMessage.textContent = "No player statistics are available yet.";
+        return;
+    }
+
+    const selectedGroup = state.filters.group || "all groups";
+    const selectedTeam = state.filters.team ? ` matching "${state.filters.team}"` : "";
+
+    elements.playerStatsMessage.textContent =
+        `Showing player leaders for ${selectedGroup}${selectedTeam}.`;
+
+    const cards = [
+        {
+            label: "Top Scorers",
+            value: formatPlayerMetricList(playerStats.topScorers, "goals", "G"),
+            detail: "Players ranked by goals, then assists.",
+        },
+        {
+            label: "Top Assists",
+            value: formatPlayerMetricList(playerStats.topAssists, "assists", "A"),
+            detail: "Players creating the most goals.",
+        },
+        {
+            label: "Yellow Cards",
+            value: formatPlayerMetricList(playerStats.yellowCards, "yellow_cards", "YC"),
+            detail: "Players with the most yellow cards.",
+        },
+        {
+            label: "Red Cards",
+            value: formatPlayerMetricList(playerStats.redCards, "red_cards", "RC"),
+            detail: "Players with red card records.",
+        },
+    ];
+
+    cards.forEach((item) => {
+        const card = document.createElement("article");
+        card.className = "player-stat-card";
+
+        card.innerHTML = `
+            <span class="player-stat-label">${escapeHtml(item.label)}</span>
+            <strong>${escapeHtml(item.value)}</strong>
+            <p>${escapeHtml(item.detail)}</p>
+        `;
+
+        elements.playerStatsContainer.appendChild(card);
     });
 }
 
@@ -620,6 +765,34 @@ async function generateSingleFixtureSummary(fixtureId, button) {
     }
 }
 
+function hasPlayerStatsData(playerStats) {
+    if (!playerStats) {
+        return false;
+    }
+
+    return [
+        playerStats.topScorers,
+        playerStats.topAssists,
+        playerStats.yellowCards,
+        playerStats.redCards,
+    ].some((items) => Array.isArray(items) && items.length > 0);
+}
+
+function formatPlayerMetricList(players, metricKey, metricLabel) {
+    if (!players || players.length === 0) {
+        return "No players yet";
+    }
+
+    return players
+        .slice(0, 3)
+        .map((player) => {
+            const value = formatNumber(player[metricKey]);
+            const teamCode = player.team_code || player.team || "Team";
+            return `${player.player_name} (${teamCode}, ${value} ${metricLabel})`;
+        })
+        .join(", ");
+}
+
 function formatScore(score) {
     return score === null || score === undefined ? "-" : score;
 }
@@ -764,20 +937,23 @@ async function initializeDashboard() {
     checkAiHealth();
 
     try {
-        const [fixtures, standings, insights] = await Promise.all([
+        const [fixtures, standings, insights, playerStats] = await Promise.all([
             fetchFixtures(),
             fetchStandings(),
             fetchInsights(),
+            fetchPlayerStatsSummary(),
         ]);
 
         state.allFixtures = fixtures;
         state.visibleFixtures = fixtures;
         state.standings = standings;
         state.insights = insights;
+        state.playerStats = playerStats;
 
         populateFilters(state.allFixtures);
         updateSummary(state.allFixtures, state.visibleFixtures);
         renderInsights(state.insights);
+        renderPlayerStats(state.playerStats);
         renderStandings(state.standings);
         renderFixtures(state.visibleFixtures);
     } catch (error) {
@@ -798,6 +974,12 @@ async function initializeDashboard() {
         elements.insightsContainer.innerHTML = `
             <div class="empty-state">
                 The dashboard could not load group insight data. Please check that the insights API is running.
+            </div>
+        `;
+        elements.playerStatsMessage.textContent = "Unable to load player statistics.";
+        elements.playerStatsContainer.innerHTML = `
+            <div class="empty-state">
+                The dashboard could not load player statistics. Please check that the player stats API is running.
             </div>
         `;
     }

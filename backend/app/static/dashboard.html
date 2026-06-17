@@ -13,7 +13,7 @@
             <p class="eyebrow">World Cup 2026 AI Stats</p>
             <h1>Interactive Dashboard</h1>
             <p class="subtitle">
-                Browse fixtures, filter matches, view group standings, explore team insights, and generate local AI summaries.
+                Browse fixtures, filter matches, view group standings, explore team insights, track player statistics, and generate local AI summaries.
             </p>
         </div>
 
@@ -120,6 +120,17 @@
             <div id="insights-container" class="insights-grid" aria-live="polite"></div>
         </section>
 
+        <section class="player-stats-section" aria-label="Player statistics">
+            <div class="section-heading">
+                <div>
+                    <h2>Player Statistics</h2>
+                    <p id="player-stats-message">Loading player statistics...</p>
+                </div>
+            </div>
+
+            <div id="player-stats-container" class="player-stats-grid" aria-live="polite"></div>
+        </section>
+
         <section class="standings-section" aria-label="Group standings">
             <div class="section-heading">
                 <div>
@@ -145,7 +156,7 @@
 
     <footer class="app-footer">
         <p>
-            v1.2.0 Team Insights and Group Analytics · Powered by FastAPI
+            v1.3.0 Player-Level Statistics Foundation · Powered by FastAPI
         </p>
     </footer>
 

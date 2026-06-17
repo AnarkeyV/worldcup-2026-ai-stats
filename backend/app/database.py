@@ -35,6 +35,9 @@ SessionLocal = sessionmaker(
 
 def create_db_and_tables() -> None:
     from app.models.fixture import Fixture
+    from app.models.player_stat import PlayerStat
+
+    _ = Fixture, PlayerStat
 
     Base.metadata.create_all(bind=engine)
 
