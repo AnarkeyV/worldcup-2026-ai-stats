@@ -47,6 +47,16 @@ def test_dashboard_page_includes_group_standings_section():
     assert "Loading standings..." in response.text
 
 
+def test_dashboard_page_includes_group_insights_section():
+    response = client.get("/dashboard")
+
+    assert response.status_code == 200
+    assert "Group Insights" in response.text
+    assert 'id="insights-message"' in response.text
+    assert 'id="insights-container"' in response.text
+    assert "Loading insights..." in response.text
+
+
 def test_static_dashboard_css_loads():
     response = client.get("/static/dashboard.css")
 
@@ -76,6 +86,16 @@ def test_static_dashboard_css_includes_standings_styles():
     assert "standings-container" in response.text
     assert "standings-table-wrapper" in response.text
     assert "standings-table" in response.text
+
+
+def test_static_dashboard_css_includes_insight_styles():
+    response = client.get("/static/dashboard.css")
+
+    assert response.status_code == 200
+    assert "insights-section" in response.text
+    assert "insights-grid" in response.text
+    assert "insight-card" in response.text
+    assert "insight-label" in response.text
 
 
 def test_static_dashboard_js_loads():
@@ -117,16 +137,31 @@ def test_dashboard_js_includes_standings_logic():
     assert response.status_code == 200
     assert "fetchStandings" in response.text
     assert "renderStandings" in response.text
-    assert "buildStandingsQueryString" in response.text
+    assert "buildGroupOnlyQueryString" in response.text
     assert "/standings" in response.text
     assert "Group" in response.text
     assert "Pts" in response.text
 
 
-def test_root_includes_dashboard_ai_summary_and_standings_links():
+def test_dashboard_js_includes_insights_logic():
+    response = client.get("/static/dashboard.js")
+
+    assert response.status_code == 200
+    assert "fetchInsights" in response.text
+    assert "renderInsights" in response.text
+    assert "/insights/groups" in response.text
+    assert "Group Leaders" in response.text
+    assert "Strongest Attack" in response.text
+    assert "Best Defence" in response.text
+    assert "Unbeaten Teams" in response.text
+    assert "Winless Teams" in response.text
+
+
+def test_root_includes_dashboard_ai_summary_standings_and_insights_links():
     response = client.get("/")
 
     assert response.status_code == 200
     assert response.json()["dashboard"] == "/dashboard"
     assert response.json()["ai_summary"] == "/ai/fixtures/summary"
     assert response.json()["standings"] == "/standings"
+    assert response.json()["group_insights"] == "/insights/groups"

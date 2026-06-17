@@ -5,7 +5,7 @@
 ![Dashboard](https://img.shields.io/badge/dashboard-FastAPI%20Static%20Dashboard-skyblue)
 ![Docker](https://img.shields.io/badge/container-Docker-blue)
 ![Python](https://img.shields.io/badge/python-3.14-yellow)
-![Version](https://img.shields.io/badge/version-v1.1.2-purple)
+![Version](https://img.shields.io/badge/version-v1.2.0-purple)
 ![Tests](https://img.shields.io/badge/tests-57%20passed-brightgreen)
 
 A self-hosted, containerized, AI-assisted World Cup 2026 match tracking and insights platform built with **FastAPI**, **SQLAlchemy**, **PostgreSQL-ready database configuration**, **Docker Compose**, a **static dashboard**, and a **local-first Llama/Ollama AI summary workflow**.
@@ -16,7 +16,7 @@ This project is intentionally being built in public, milestone by milestone, to 
 
 ## 📌 Current Version
 
-**v1.1.2 — Version and Container Workflow Cleanup**
+**v1.2.0 — Team Insights and Group Analytics**
 
 This documentation milestone updates the project README after the completed **v1.1.0 Group Standings Engine** milestone.
 
@@ -617,6 +617,7 @@ Example response:
   "dashboard": "/dashboard",
   "fixtures": "/fixtures",
   "standings": "/standings",
+  "group_insights": "/insights/groups",
   "ai_summary": "/ai/fixtures/summary"
 }
 ```
@@ -929,6 +930,7 @@ worldcup-2026-ai-stats/
 │   │   │   ├── ai.py
 │   │   │   ├── dashboard.py
 │   │   │   ├── fixtures.py
+│   │   │   ├── insights.py
 │   │   │   ├── notifications.py
 │   │   │   └── standings.py
 │   │   ├── services/
@@ -955,6 +957,8 @@ worldcup-2026-ai-stats/
 │   │   ├── test_fixture_sync_service.py
 │   │   ├── test_fixtures.py
 │   │   ├── test_health.py
+│   │   ├── test_insights_routes.py
+│   │   ├── test_insights_service.py
 │   │   ├── test_local_llama_client.py
 │   │   ├── test_notifications.py
 │   │   ├── test_standings_routes.py
@@ -1404,15 +1408,20 @@ Completed:
 
 ### v1.2.0 — Team Insights and Group Analytics
 
-Planned:
+Completed:
 
-- Group-level summary endpoint
-- Team form summary from completed fixtures
-- Best attack / best defence insights
-- Dashboard group insight cards
-- AI summary improvements using analytics signals
-
----
+- Added `backend/app/services/insights_service.py`
+- Added `GET /insights/groups`
+- Added `GET /insights/groups?group_name=Group A`
+- Added ranked insight lists for group leaders, strongest attacks, best defences, unbeaten teams, and winless teams
+- Added dashboard Group Insights cards
+- Added `/insights/groups` link to the root API response
+- Upgraded tournament summary model from `rules_based_v2` to `rules_based_v3`
+- Added insights-aware deterministic AI summary lines
+- Added insights service tests
+- Added insights route tests
+- Expanded dashboard tests for insight cards
+- Expanded AI route tests for group analytics summaries
 
 ### v1.3.0 — Player-Level Statistics
 
@@ -1467,7 +1476,7 @@ Planned:
 | v1.1.0 | Group standings engine, standings API, dashboard standings table, and standings-aware AI summary | Completed |
 | v1.1.1 | README and project documentation refresh | In progress |
 | v1.1.2 | Version and container workflow cleanup | Completed |
-| v1.2.0 | Team insights and group analytics | Planned |
+| v1.2.0 | Team insights and group analytics | Completed |
 | v1.3.0 | Player-level statistics | Planned |
 | v1.4.0 | Monitoring and observability | Planned |
 | v1.5.0 | Portfolio release polish | Planned |
@@ -1769,9 +1778,9 @@ https://github.com/AnarkeyV
 Current status:
 
 ```text
-v1.1.2 — Version and Container Workflow Cleanup
+v1.2.0 — Team Insights and Group Analytics
 ```
 
-The backend now supports fixture sync, fixture filtering, completed-match detection, Telegram notification workflows, group standings, dashboard standings, deterministic AI summaries, standings-aware tournament summaries, and Local Llama health checks.
+The backend now supports fixture sync, fixture filtering, completed-match detection, Telegram notification workflows, group standings, dashboard standings, group insights, dashboard insight cards, deterministic AI summaries, standings-aware and insights-aware tournament summaries, and Local Llama health checks.
 
 Sample fixtures remain available as a safe fallback for local development, public GitHub users, and testing without provider, Telegram, or external AI credentials.

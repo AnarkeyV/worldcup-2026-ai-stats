@@ -2,6 +2,7 @@ const state = {
     allFixtures: [],
     visibleFixtures: [],
     standings: [],
+    insights: null,
     fixtureSummaries: {},
     aiAvailable: false,
     filters: {
@@ -25,6 +26,8 @@ const elements = {
     fixturesContainer: document.querySelector("#fixtures-container"),
     standingsMessage: document.querySelector("#standings-message"),
     standingsContainer: document.querySelector("#standings-container"),
+    insightsMessage: document.querySelector("#insights-message"),
+    insightsContainer: document.querySelector("#insights-container"),
     generateAiSummary: document.querySelector("#generate-ai-summary"),
     aiSummaryMessage: document.querySelector("#ai-summary-message"),
     aiSummaryOutput: document.querySelector("#ai-summary-output"),
@@ -59,7 +62,7 @@ async function fetchFixtures(filters = {}) {
 }
 
 async function fetchStandings(filters = {}) {
-    const queryString = buildStandingsQueryString(filters);
+    const queryString = buildGroupOnlyQueryString(filters);
 
     const possibleEndpoints = [
         `/api/standings${queryString}`,
@@ -82,6 +85,32 @@ async function fetchStandings(filters = {}) {
     }
 
     throw new Error("Unable to load standings from available API endpoints.");
+}
+
+async function fetchInsights(filters = {}) {
+    const queryString = buildGroupOnlyQueryString(filters);
+
+    const possibleEndpoints = [
+        `/api/insights/groups${queryString}`,
+        `/insights/groups${queryString}`,
+    ];
+
+    for (const endpoint of possibleEndpoints) {
+        try {
+            const response = await fetch(endpoint);
+
+            if (!response.ok) {
+                continue;
+            }
+
+            const data = await response.json();
+            return normalizeInsightsResponse(data);
+        } catch (error) {
+            console.warn(`Unable to fetch insights from ${endpoint}`, error);
+        }
+    }
+
+    throw new Error("Unable to load insights from available API endpoints.");
 }
 
 async function checkAiHealth() {
@@ -158,7 +187,7 @@ function buildFixtureQueryString(filters) {
     return queryString ? `?${queryString}` : "";
 }
 
-function buildStandingsQueryString(filters) {
+function buildGroupOnlyQueryString(filters) {
     const params = new URLSearchParams();
 
     if (filters.group) {
@@ -200,6 +229,29 @@ function normalizeStandingsResponse(data) {
     }
 
     return [];
+}
+
+function normalizeInsightsResponse(data) {
+    if (data && data.insights) {
+        return data.insights;
+    }
+
+    if (data && data.summary) {
+        return data;
+    }
+
+    return {
+        summary: {
+            teams_analyzed: 0,
+            groups_analyzed: 0,
+            has_data: false,
+        },
+        group_leaders: [],
+        strongest_attacks: [],
+        best_defences: [],
+        unbeaten_teams: [],
+        winless_teams: [],
+    };
 }
 
 function populateFilters(fixtures) {
@@ -257,15 +309,18 @@ async function applyFilters() {
     setLoadingState();
 
     try {
-        const [fixtures, standings] = await Promise.all([
+        const [fixtures, standings, insights] = await Promise.all([
             fetchFixtures(state.filters),
             fetchStandings(state.filters),
+            fetchInsights(state.filters),
         ]);
 
         state.visibleFixtures = fixtures;
         state.standings = standings;
+        state.insights = insights;
 
         updateSummary(state.allFixtures, state.visibleFixtures);
+        renderInsights(state.insights);
         renderStandings(state.standings);
         renderFixtures(state.visibleFixtures);
     } catch (error) {
@@ -282,12 +337,78 @@ async function applyFilters() {
                 The dashboard could not load standings data. Please check that the standings API is running.
             </div>
         `;
+        elements.insightsMessage.textContent = "Unable to load insights.";
+        elements.insightsContainer.innerHTML = `
+            <div class="empty-state">
+                The dashboard could not load group insight data. Please check that the insights API is running.
+            </div>
+        `;
     }
 }
 
 function setLoadingState() {
     elements.dashboardMessage.textContent = "Loading fixtures...";
     elements.standingsMessage.textContent = "Loading standings...";
+    elements.insightsMessage.textContent = "Loading insights...";
+}
+
+function renderInsights(insights) {
+    elements.insightsContainer.innerHTML = "";
+
+    if (!insights || !insights.summary || !insights.summary.has_data) {
+        elements.insightsContainer.innerHTML = `
+            <div class="empty-state">
+                Insights will appear after completed fixtures are synced.
+            </div>
+        `;
+        elements.insightsMessage.textContent = "No completed fixture data is available for insights yet.";
+        return;
+    }
+
+    const selectedGroup = state.filters.group || "all groups";
+    elements.insightsMessage.textContent =
+        `Analyzing ${insights.summary.teams_analyzed} team${insights.summary.teams_analyzed === 1 ? "" : "s"} across ${insights.summary.groups_analyzed} group${insights.summary.groups_analyzed === 1 ? "" : "s"} for ${selectedGroup}.`;
+
+    const cards = [
+        {
+            label: "Group Leaders",
+            value: formatTeamList(insights.group_leaders),
+            detail: "Top teams by points, goal difference, and goals scored.",
+        },
+        {
+            label: "Strongest Attack",
+            value: formatTopTeamMetric(insights.strongest_attacks, "goals_for", "GF"),
+            detail: "Teams with the most goals scored.",
+        },
+        {
+            label: "Best Defence",
+            value: formatTopTeamMetric(insights.best_defences, "goals_against", "GA"),
+            detail: "Teams with the fewest goals conceded.",
+        },
+        {
+            label: "Unbeaten Teams",
+            value: formatTeamList(insights.unbeaten_teams),
+            detail: "Teams without a loss in completed fixtures.",
+        },
+        {
+            label: "Winless Teams",
+            value: formatTeamList(insights.winless_teams),
+            detail: "Teams still looking for their first win.",
+        },
+    ];
+
+    cards.forEach((item) => {
+        const card = document.createElement("article");
+        card.className = "insight-card";
+
+        card.innerHTML = `
+            <span class="insight-label">${escapeHtml(item.label)}</span>
+            <strong>${escapeHtml(item.value)}</strong>
+            <p>${escapeHtml(item.detail)}</p>
+        `;
+
+        elements.insightsContainer.appendChild(card);
+    });
 }
 
 function renderStandings(standings) {
@@ -430,7 +551,7 @@ function renderFixtures(fixtures) {
 async function generateAiSummary() {
     elements.generateAiSummary.disabled = true;
     elements.generateAiSummary.textContent = "Generating...";
-    elements.aiSummaryMessage.textContent = "Asking your local Llama model for a tournament summary...";
+    elements.aiSummaryMessage.textContent = "Generating a deterministic tournament summary...";
     elements.aiSummaryOutput.className = "ai-summary-output";
     elements.aiSummaryOutput.textContent = "Generating AI summary. This may take a few seconds.";
 
@@ -453,7 +574,7 @@ async function generateAiSummary() {
         elements.aiSummaryMessage.textContent = "Unable to generate AI summary.";
         elements.aiSummaryOutput.className = "ai-summary-output error";
         elements.aiSummaryOutput.textContent =
-            "Please check that the SSH tunnel to your Windows laptop is active and Ollama is running.";
+            "Please check that the API server is running and fixture data is available.";
         await checkAiHealth();
     } finally {
         elements.generateAiSummary.disabled = false;
@@ -471,7 +592,7 @@ async function generateSingleFixtureSummary(fixtureId, button) {
     button.disabled = true;
     button.textContent = "Generating...";
     summaryElement.className = "fixture-ai-summary";
-    summaryElement.textContent = "Generating match summary from local Llama...";
+    summaryElement.textContent = "Generating match summary...";
 
     try {
         const response = await fetch(`/ai/fixtures/${fixtureId}/summary`);
@@ -491,7 +612,7 @@ async function generateSingleFixtureSummary(fixtureId, button) {
         console.error(error);
         summaryElement.className = "fixture-ai-summary error";
         summaryElement.textContent =
-            "Unable to generate this match summary. Check that the local Llama tunnel and Ollama are running.";
+            "Unable to generate this match summary. Check that the API server is running and fixture data is available.";
         await checkAiHealth();
     } finally {
         button.disabled = false;
@@ -511,6 +632,26 @@ function formatSignedNumber(value) {
     const number = formatNumber(value);
 
     return number > 0 ? `+${number}` : number;
+}
+
+function formatTeamList(teams) {
+    if (!teams || teams.length === 0) {
+        return "No teams yet";
+    }
+
+    return teams
+        .slice(0, 3)
+        .map((team) => `${team.team} (${team.team_code || team.group_name})`)
+        .join(", ");
+}
+
+function formatTopTeamMetric(teams, metricKey, metricLabel) {
+    if (!teams || teams.length === 0) {
+        return "No teams yet";
+    }
+
+    const team = teams[0];
+    return `${team.team} (${formatNumber(team[metricKey])} ${metricLabel})`;
 }
 
 function formatStatus(status) {
@@ -623,17 +764,20 @@ async function initializeDashboard() {
     checkAiHealth();
 
     try {
-        const [fixtures, standings] = await Promise.all([
+        const [fixtures, standings, insights] = await Promise.all([
             fetchFixtures(),
             fetchStandings(),
+            fetchInsights(),
         ]);
 
         state.allFixtures = fixtures;
         state.visibleFixtures = fixtures;
         state.standings = standings;
+        state.insights = insights;
 
         populateFilters(state.allFixtures);
         updateSummary(state.allFixtures, state.visibleFixtures);
+        renderInsights(state.insights);
         renderStandings(state.standings);
         renderFixtures(state.visibleFixtures);
     } catch (error) {
@@ -648,6 +792,12 @@ async function initializeDashboard() {
         elements.standingsContainer.innerHTML = `
             <div class="empty-state">
                 The dashboard could not load standings data. Please check that the standings API is running.
+            </div>
+        `;
+        elements.insightsMessage.textContent = "Unable to load insights.";
+        elements.insightsContainer.innerHTML = `
+            <div class="empty-state">
+                The dashboard could not load group insight data. Please check that the insights API is running.
             </div>
         `;
     }
