@@ -25,10 +25,12 @@ def test_sync_sample_fixtures(client):
     assert data["created"] == 4
     assert data["updated"] == 0
     assert data["total_sample_fixtures"] == 4
-    assert data["newly_completed_count"] == 2
+    assert data["newly_completed_count"] == 4
     assert data["newly_completed"] == [
         "sample-mex-rsa-2026-06-11",
         "sample-usa-par-2026-06-12",
+        "sample-fra-sen-2026-06-16",
+        "sample-arg-dza-2026-06-16",
     ]
     assert data["notifications"]["status"] == "skipped"
     assert data["notifications"]["reason"] == "TELEGRAM_BOT_TOKEN is not configured."
@@ -90,7 +92,7 @@ def test_list_fixtures_filters_by_status(client):
 
     data = response.json()
 
-    assert data["count"] == 2
+    assert data["count"] == 4
     assert data["filters"]["group_name"] is None
     assert data["filters"]["status"] == "complete"
     assert data["filters"]["team"] is None

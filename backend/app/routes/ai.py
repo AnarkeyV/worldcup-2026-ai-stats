@@ -1,3 +1,6 @@
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
@@ -11,38 +14,76 @@ router = APIRouter(
     tags=["ai"],
 )
 
+DISPLAY_TIMEZONE = ZoneInfo("Asia/Singapore")
+DISPLAY_TIMEZONE_LABEL = "SGT"
+
 
 def get_llama_client() -> LocalLlamaClient:
     return LocalLlamaClient()
+
+
+def format_fixture_result_state(fixture: Fixture) -> str:
+    if fixture.status == "complete":
+        if fixture.home_score is not None and fixture.away_score is not None:
+            return (
+                f"MATCH_STATE=COMPLETED_FINAL | "
+                f"FINAL_SCORE={fixture.home_team} {fixture.home_score}-{fixture.away_score} {fixture.away_team} | "
+                f"RESULT_SENTENCE={fixture.home_team} defeated {fixture.away_team} "
+                f"{fixture.home_score}-{fixture.away_score}."
+            )
+
+        return (
+            "MATCH_STATE=COMPLETED_FINAL | "
+            "FINAL_SCORE=score unavailable | "
+            "RESULT_SENTENCE=This match is complete, but the score is unavailable."
+        )
+
+    if fixture.status == "live":
+        if fixture.home_score is not None and fixture.away_score is not None:
+            return (
+                f"MATCH_STATE=LIVE_NOW | "
+                f"LIVE_SCORE={fixture.home_team} {fixture.home_score}-{fixture.away_score} {fixture.away_team} | "
+                f"RESULT_SENTENCE={fixture.home_team} and {fixture.away_team} are currently playing."
+            )
+
+        return (
+            "MATCH_STATE=LIVE_NOW | "
+            "LIVE_SCORE=score unavailable | "
+            "RESULT_SENTENCE=This match is currently live."
+        )
+
+    if fixture.status == "scheduled":
+        return (
+            "MATCH_STATE=UPCOMING_NOT_PLAYED | "
+            "FINAL_SCORE=not available because the match has not been played | "
+            "RESULT_SENTENCE=This match is scheduled and has not been played yet."
+        )
+
+    return (
+        f"MATCH_STATE=UNKNOWN | "
+        f"RAW_STATUS={fixture.status or 'unknown'} | "
+        "RESULT_SENTENCE=The match status is unknown."
+    )
 
 
 def build_fixture_context(fixtures: list[Fixture]) -> str:
     lines = []
 
     for fixture in fixtures:
-        if fixture.home_score is not None and fixture.away_score is not None:
-            score = f"{fixture.home_score}-{fixture.away_score}"
-        else:
-            score = "match has not started"
-
-        if fixture.kickoff_time:
-            kickoff_time = (
-                fixture.kickoff_time.isoformat()
-                if hasattr(fixture.kickoff_time, "isoformat")
-                else str(fixture.kickoff_time)
-            )
-        else:
-            kickoff_time = "TBC"
+        kickoff_time = format_kickoff_display(fixture)
+        result_state = format_fixture_result_state(fixture)
 
         lines.append(
             (
-                f"- {fixture.home_team} ({fixture.home_team_code}) vs "
+                f"- Fixture ID: {fixture.id} | "
+                f"Competition: {fixture.competition or 'FIFA World Cup 2026'} | "
+                f"Teams: {fixture.home_team} ({fixture.home_team_code}) vs "
                 f"{fixture.away_team} ({fixture.away_team_code}) | "
                 f"Group: {fixture.group_name or 'N/A'} | "
-                f"Status: {fixture.status} | "
+                f"Raw status: {fixture.status} | "
                 f"Kickoff: {kickoff_time} | "
-                f"Score: {score} | "
-                f"Venue: {fixture.venue or 'TBC'}"
+                f"Venue: {fixture.venue or 'TBC'} | "
+                f"{result_state}"
             )
         )
 
@@ -53,22 +94,201 @@ def build_summary_prompt(fixture_context: str) -> str:
     return f"""
 You are an assistant for a World Cup 2026 stats dashboard.
 
-Summarize the fixture information below in clear, simple language.
+Your job is to summarize the fixture information below accurately.
 
-Important rules:
-- Keep the summary short.
-- Only use the fixture data provided below.
-- Do not invent facts.
-- If Status is complete, describe it as a completed result.
-- If Status is scheduled, describe it as an upcoming scheduled match.
-- Never say "unscheduled" when the Status is scheduled.
+Use only the fixture data provided. Do not invent facts.
+
+Most important rule:
+MATCH_STATE is the source of truth.
+
+Status meaning:
+- MATCH_STATE=COMPLETED_FINAL means the match is already finished.
+- MATCH_STATE=LIVE_NOW means the match is currently being played.
+- MATCH_STATE=UPCOMING_NOT_PLAYED means the match has not been played yet.
+
+Strict rules:
+- For COMPLETED_FINAL matches, say the match is complete, finished, or final.
+- For COMPLETED_FINAL matches, use the provided FINAL_SCORE or RESULT_SENTENCE.
+- For COMPLETED_FINAL matches, never say scheduled, upcoming, set to kick off, will play, or has not started.
+- For UPCOMING_NOT_PLAYED matches, say the match is upcoming or scheduled.
+- For UPCOMING_NOT_PLAYED matches, never invent a final score or winner.
+- For LIVE_NOW matches, say the match is live.
 - Never say a fixture has no kickoff time unless the Kickoff value is exactly TBC.
-- If a fixture has a Kickoff date/time, say it is scheduled for that date/time.
-- Use a helpful sports-analysis tone.
+- Do not describe a completed result as a future match.
+- Keep the summary short and clear.
+- Avoid hype and avoid saying "next round" unless the data explicitly says that.
+
+Output style:
+- Write 2 to 5 short bullet points.
+- Each bullet must be based on the provided fixture data.
+- Do not include internal labels such as MATCH_STATE, FINAL_SCORE, or RESULT_SENTENCE in the final answer.
 
 Fixture data:
 {fixture_context}
 """.strip()
+
+
+def parse_kickoff_datetime(kickoff_time) -> datetime | None:
+    if kickoff_time is None:
+        return None
+
+    if isinstance(kickoff_time, datetime):
+        return kickoff_time
+
+    if isinstance(kickoff_time, str):
+        value = kickoff_time.strip()
+
+        if not value:
+            return None
+
+        try:
+            return datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+
+    return None
+
+
+def format_datetime_for_display(value: datetime) -> str:
+    if value.tzinfo is not None:
+        value = value.astimezone(DISPLAY_TIMEZONE)
+
+    formatted = value.strftime("%d %b %Y, %I:%M %p")
+    formatted = formatted.replace(", 0", ", ")
+
+    if value.tzinfo is not None:
+        return f"{formatted} {DISPLAY_TIMEZONE_LABEL}"
+
+    return formatted
+
+
+def format_kickoff_display(fixture: Fixture) -> str:
+    kickoff_datetime = parse_kickoff_datetime(fixture.kickoff_time)
+
+    if kickoff_datetime is None:
+        return "TBC"
+
+    return format_datetime_for_display(kickoff_datetime)
+
+
+def format_kickoff_phrase(fixture: Fixture, completed: bool = False) -> str:
+    kickoff_time = format_kickoff_display(fixture)
+
+    if kickoff_time == "TBC":
+        return "with kickoff time still to be confirmed"
+
+    if completed:
+        return f"after kicking off on {kickoff_time}"
+
+    return f"with kickoff scheduled for {kickoff_time}"
+
+
+def build_result_text(fixture: Fixture) -> str:
+    if fixture.home_score is None or fixture.away_score is None:
+        return "The match is complete, but the final score is not available in the dashboard data"
+
+    if fixture.home_score > fixture.away_score:
+        return (
+            f"{fixture.home_team} defeated {fixture.away_team} "
+            f"{fixture.home_score}-{fixture.away_score}"
+        )
+
+    if fixture.away_score > fixture.home_score:
+        return (
+            f"{fixture.away_team} defeated {fixture.home_team} "
+            f"{fixture.away_score}-{fixture.home_score}"
+        )
+
+    return (
+        f"{fixture.home_team} and {fixture.away_team} drew "
+        f"{fixture.home_score}-{fixture.away_score}"
+    )
+
+
+def build_deterministic_fixture_summary(fixture: Fixture) -> str:
+    group_text = f" in {fixture.group_name}" if fixture.group_name else ""
+    venue_text = f" at {fixture.venue}" if fixture.venue else ""
+
+    if fixture.status == "complete":
+        result_text = build_result_text(fixture)
+        kickoff_text = format_kickoff_phrase(fixture, completed=True)
+
+        return (
+            f"{result_text}{group_text}. "
+            f"The match is complete {kickoff_text}{venue_text}. "
+            "Final whistle time is not available in the current fixture data."
+        )
+
+    if fixture.status == "scheduled":
+        kickoff_text = format_kickoff_phrase(fixture)
+
+        return (
+            f"{fixture.home_team} vs {fixture.away_team}{group_text} is an upcoming fixture "
+            f"{kickoff_text}{venue_text}. No score is available yet because the match has not been played."
+        )
+
+    if fixture.status == "live":
+        if fixture.home_score is not None and fixture.away_score is not None:
+            return (
+                f"{fixture.home_team} vs {fixture.away_team}{group_text} is currently live, "
+                f"with the score at {fixture.home_score}-{fixture.away_score}."
+            )
+
+        return (
+            f"{fixture.home_team} vs {fixture.away_team}{group_text} is currently live, "
+            f"but no score is available in the dashboard data."
+        )
+
+    return (
+        f"{fixture.home_team} vs {fixture.away_team}{group_text} has status "
+        f"'{fixture.status or 'unknown'}' in the dashboard data."
+    )
+
+
+def build_deterministic_tournament_summary(fixtures: list[Fixture]) -> str:
+    completed_fixtures = [
+        fixture for fixture in fixtures
+        if fixture.status == "complete"
+    ]
+    live_fixtures = [
+        fixture for fixture in fixtures
+        if fixture.status == "live"
+    ]
+    scheduled_fixtures = [
+        fixture for fixture in fixtures
+        if fixture.status == "scheduled"
+    ]
+
+    lines = []
+
+    if completed_fixtures:
+        completed_count = len(completed_fixtures)
+        lines.append(
+            f"{completed_count} fixture{' has' if completed_count == 1 else 's have'} been completed."
+        )
+
+        for fixture in completed_fixtures[:2]:
+            lines.append(build_deterministic_fixture_summary(fixture))
+
+    if live_fixtures:
+        live_count = len(live_fixtures)
+        lines.append(
+            f"{live_count} fixture{' is' if live_count == 1 else 's are'} currently live."
+        )
+
+    if scheduled_fixtures:
+        scheduled_count = len(scheduled_fixtures)
+        lines.append(
+            f"{scheduled_count} fixture{' is' if scheduled_count == 1 else 's are'} still upcoming."
+        )
+
+        for fixture in scheduled_fixtures[:2]:
+            lines.append(build_deterministic_fixture_summary(fixture))
+
+    if not lines:
+        return "No fixture summary is available yet."
+
+    return "\n".join(f"- {line}" for line in lines)
 
 
 @router.get("/health")
@@ -79,7 +299,6 @@ def ai_health(llama_client: LocalLlamaClient = Depends(get_llama_client)):
 @router.get("/fixtures/summary")
 def summarize_fixtures(
     db: Session = Depends(get_db),
-    llama_client: LocalLlamaClient = Depends(get_llama_client),
 ):
     try:
         fixtures = (
@@ -94,31 +313,17 @@ def summarize_fixtures(
                 detail="No fixtures available to summarize.",
             )
 
-        fixture_context = build_fixture_context(fixtures)
-        prompt = build_summary_prompt(fixture_context)
-        result = llama_client.generate_summary(prompt)
+        summary = build_deterministic_tournament_summary(fixtures)
 
         return {
             "fixture_count": len(fixtures),
-            "provider": result["provider"],
-            "model": result["model"],
-            "summary": result["summary"],
+            "provider": "deterministic_tournament_summary",
+            "model": "rules_based_v1",
+            "summary": summary,
         }
 
     except HTTPException:
         raise
-
-    except ValueError as error:
-        raise HTTPException(
-            status_code=400,
-            detail=str(error),
-        ) from error
-
-    except RuntimeError as error:
-        raise HTTPException(
-            status_code=503,
-            detail=str(error),
-        ) from error
 
     except SQLAlchemyError as error:
         raise HTTPException(
@@ -131,7 +336,6 @@ def summarize_fixtures(
 def summarize_fixture_by_id(
     fixture_id: int,
     db: Session = Depends(get_db),
-    llama_client: LocalLlamaClient = Depends(get_llama_client),
 ):
     try:
         fixture = db.query(Fixture).filter(Fixture.id == fixture_id).first()
@@ -142,31 +346,17 @@ def summarize_fixture_by_id(
                 detail="Fixture not found.",
             )
 
-        fixture_context = build_fixture_context([fixture])
-        prompt = build_summary_prompt(fixture_context)
-        result = llama_client.generate_summary(prompt)
+        summary = build_deterministic_fixture_summary(fixture)
 
         return {
             "fixture_id": fixture.id,
-            "provider": result["provider"],
-            "model": result["model"],
-            "summary": result["summary"],
+            "provider": "deterministic_fixture_summary",
+            "model": "rules_based_v1",
+            "summary": summary,
         }
 
     except HTTPException:
         raise
-
-    except ValueError as error:
-        raise HTTPException(
-            status_code=400,
-            detail=str(error),
-        ) from error
-
-    except RuntimeError as error:
-        raise HTTPException(
-            status_code=503,
-            detail=str(error),
-        ) from error
 
     except SQLAlchemyError as error:
         raise HTTPException(
