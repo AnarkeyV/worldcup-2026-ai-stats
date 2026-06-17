@@ -5,8 +5,8 @@
 ![Dashboard](https://img.shields.io/badge/dashboard-FastAPI%20Static%20Dashboard-skyblue)
 ![Docker](https://img.shields.io/badge/container-Docker-blue)
 ![Python](https://img.shields.io/badge/python-3.14-yellow)
-![Version](https://img.shields.io/badge/version-v1.3.0-purple)
-![Tests](https://img.shields.io/badge/tests-94%20passed-brightgreen)
+![Version](https://img.shields.io/badge/version-v1.4.0-purple)
+![Tests](https://img.shields.io/badge/tests-105%20passed-brightgreen)
 
 A self-hosted, containerized, AI-assisted World Cup 2026 match tracking and insights platform built with **FastAPI**, **SQLAlchemy**, **PostgreSQL-ready database configuration**, **Docker Compose**, a **static dashboard**, and a **local-first Llama/Ollama AI summary workflow**.
 
@@ -16,9 +16,9 @@ This project is intentionally being built in public, milestone by milestone, to 
 
 ## 📌 Current Version
 
-**v1.3.0 — Player-Level Statistics Foundation**
+**v1.4.0 — Monitoring and Observability Foundation**
 
-This milestone adds a player statistics foundation on top of the existing fixture, standings, insights, dashboard, notification, and deterministic AI summary layers.
+This milestone adds a Prometheus monitoring foundation on top of the existing fixture, standings, insights, player statistics, dashboard, notification, and deterministic AI summary layers.
 
 The application now supports:
 
@@ -34,10 +34,13 @@ The application now supports:
 - `/insights/groups` API endpoint
 - `/players/stats` API endpoint
 - `/players/stats/sync/sample` sample sync endpoint
+- `/metrics` Prometheus metrics endpoint
+- Prometheus container in Docker Compose
+- Prometheus scrape config for the backend
 - deterministic AI summaries
 - standings-aware and insights-aware tournament summaries using `rules_based_v3`
 - local Llama/Ollama health checks
-- full backend test coverage with **94 passing tests**
+- full backend test coverage with **105 passing tests**
 
 ---
 
@@ -47,6 +50,9 @@ The application now supports:
 - SQLAlchemy fixture model
 - SQLAlchemy player statistics model
 - PostgreSQL-ready database configuration
+- Prometheus metrics endpoint
+- Prometheus Docker Compose service
+- Prometheus scrape configuration
 - Sample World Cup fixture data
 - Sample World Cup player statistics data
 - Manual sample fixture sync endpoint
@@ -62,6 +68,12 @@ The application now supports:
 - Telegram completed-fixture notification helper
 - Safe Telegram test notification endpoint
 - Sync responses that expose notification status
+- HTTP request metrics
+- HTTP request duration metrics
+- Fixture sync metrics
+- Player statistics sync metrics
+- Notification result metrics
+- AI summary request metrics
 - API-level fixture filters:
   - group filter
   - status filter
@@ -115,6 +127,9 @@ The application now supports:
 - AI route tests
 - Docker Compose local environment
 - GitHub Actions CI with backend tests and Docker build validation
+- Docker Compose config validation
+- Monitoring configuration tests
+- Metrics endpoint tests
 - Local pytest test suite
 
 ---
@@ -133,13 +148,14 @@ The idea is to build something realistic instead of only following tutorials. A 
 - notification workflows
 - safe secret handling
 - Docker-based local development
+- Prometheus monitoring
 - CI testing
 - deterministic backend logic
 - local-first AI integration
 - dashboard integration with backend APIs
 - sports analytics features built from structured data
 
-The World Cup is also a good use case because match data changes over time. Fixtures start as scheduled, later become live or completed, then trigger downstream workflows such as notifications, standings updates, summaries, dashboard insights, and player statistics displays.
+The World Cup is also a good use case because match data changes over time. Fixtures start as scheduled, later become live or completed, then trigger downstream workflows such as notifications, standings updates, summaries, dashboard insights, player statistics displays, and monitoring metrics.
 
 ---
 
@@ -191,6 +207,7 @@ FastAPI Backend
     +--> /insights/groups?group_name=Group A
     +--> /players/stats
     +--> /players/stats/sync/sample
+    +--> /metrics
     +--> /notifications/telegram/test
     +--> /ai/health
     +--> /ai/fixtures/summary
@@ -223,6 +240,15 @@ Services
     |       +--> Create/update player stat records
     |       +--> Rank players by goals, assists, cards, minutes, player name, and team
     |
+    +--> Metrics Service
+    |       |
+    |       +--> HTTP request counters
+    |       +--> Request duration histograms
+    |       +--> Fixture sync counters
+    |       +--> Player stats sync counters
+    |       +--> Notification result counters
+    |       +--> AI summary request counters
+    |
     +--> Notification Helper
     |       |
     |       +--> Telegram Message Builder
@@ -247,6 +273,11 @@ Database
     |
     +--> fixtures
     +--> player_stats
+
+Prometheus
+    |
+    +--> Scrapes backend /metrics every 15 seconds
+    +--> Stores local monitoring data in worldcup_prometheus_data volume
 ```
 
 ---
@@ -467,6 +498,15 @@ Return availability, configured model, and available models
 ```
 
 The dashboard still checks Local Llama/Ollama health, but the tournament and single-fixture summaries are currently deterministic and do not depend on Llama generation.
+
+---
+
+### Monitoring Flow
+
+```text
+FastAPI middleware and workflow routes record Prometheus metrics.
+Prometheus scrapes backend:8000/metrics every 15 seconds.
+```
 
 ---
 
@@ -756,6 +796,57 @@ Example response shape:
 
 ---
 
+## 📈 Monitoring and Observability
+
+The monitoring foundation is handled through:
+
+```text
+backend/app/services/metrics_service.py
+backend/app/routes/metrics.py
+monitoring/prometheus.yml
+```
+
+The metrics endpoint is:
+
+```http
+GET /metrics
+```
+
+The endpoint exposes Prometheus-format metrics for local observability.
+
+Core metrics include:
+
+```text
+worldcup_app_info
+worldcup_http_requests_total
+worldcup_http_request_duration_seconds
+worldcup_fixture_sync_runs_total
+worldcup_fixture_sync_created_total
+worldcup_fixture_sync_updated_total
+worldcup_fixture_sync_newly_completed_total
+worldcup_player_stats_sync_runs_total
+worldcup_player_stats_sync_created_total
+worldcup_player_stats_sync_updated_total
+worldcup_notification_results_total
+worldcup_ai_summary_requests_total
+```
+
+Prometheus is included in Docker Compose:
+
+```text
+http://localhost:9090
+```
+
+Prometheus scrapes the backend service at:
+
+```text
+backend:8000/metrics
+```
+
+This milestone focuses on monitoring foundations. Grafana dashboards and alerting are planned as future improvements.
+
+---
+
 ## 📣 Telegram Notifications
 
 Telegram notifications are handled through:
@@ -913,12 +1004,13 @@ Example response:
 {
   "message": "World Cup 2026 AI Stats API",
   "status": "running",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "dashboard": "/dashboard",
   "fixtures": "/fixtures",
   "standings": "/standings",
   "group_insights": "/insights/groups",
   "player_stats": "/players/stats",
+  "metrics": "/metrics",
   "ai_summary": "/ai/fixtures/summary"
 }
 ```
@@ -937,7 +1029,7 @@ Example response:
 {
   "status": "healthy",
   "service": "backend",
-  "version": "1.3.0"
+  "version": "1.4.0"
 }
 ```
 
@@ -1180,6 +1272,33 @@ Example response:
 
 ---
 
+### Prometheus Metrics
+
+```http
+GET /metrics
+```
+
+Returns Prometheus-format backend metrics.
+
+Example local check:
+
+```bash
+curl http://localhost:8000/metrics
+```
+
+Useful metrics to look for:
+
+```text
+worldcup_app_info
+worldcup_http_requests_total
+worldcup_fixture_sync_runs_total
+worldcup_player_stats_sync_runs_total
+worldcup_notification_results_total
+worldcup_ai_summary_requests_total
+```
+
+---
+
 ## 🤖 AI Endpoints
 
 ### AI Health Check
@@ -1264,7 +1383,8 @@ Example response:
 | Notifications | Telegram Bot API |
 | Local AI Health | Ollama / Llama |
 | Deterministic Summaries | Rules-based Python service logic |
-| Future Monitoring | Prometheus / Grafana |
+| Monitoring | Prometheus |
+| Future Dashboards | Grafana |
 
 ---
 
@@ -1291,6 +1411,7 @@ worldcup-2026-ai-stats/
 │   │   │   ├── dashboard.py
 │   │   │   ├── fixtures.py
 │   │   │   ├── insights.py
+│   │   │   ├── metrics.py
 │   │   │   ├── notifications.py
 │   │   │   ├── players.py
 │   │   │   └── standings.py
@@ -1299,6 +1420,7 @@ worldcup-2026-ai-stats/
 │   │   │   ├── fixture_sync_service.py
 │   │   │   ├── insights_service.py
 │   │   │   ├── local_llama_client.py
+│   │   │   ├── metrics_service.py
 │   │   │   ├── player_stats_sample_data.py
 │   │   │   ├── player_stats_service.py
 │   │   │   ├── sample_data.py
@@ -1324,6 +1446,8 @@ worldcup-2026-ai-stats/
 │   │   ├── test_insights_routes.py
 │   │   ├── test_insights_service.py
 │   │   ├── test_local_llama_client.py
+│   │   ├── test_metrics.py
+│   │   ├── test_monitoring_config.py
 │   │   ├── test_notifications.py
 │   │   ├── test_player_stats_routes.py
 │   │   ├── test_player_stats_service.py
@@ -1338,6 +1462,8 @@ worldcup-2026-ai-stats/
 │   ├── Dockerfile
 │   ├── app.py
 │   └── requirements.txt
+├── monitoring/
+│   └── prometheus.yml
 ├── docs/
 ├── infra/
 ├── .env.example
@@ -1408,7 +1534,7 @@ Current `.env.example`:
 # App
 APP_NAME=World Cup 2026 AI Stats
 APP_ENV=development
-APP_VERSION=1.3.0
+APP_VERSION=1.4.0
 
 # Database
 POSTGRES_USER=worldcup
@@ -1485,6 +1611,8 @@ Use `docker compose down -v` carefully because it removes the database volume.
 | Group Insights API | http://localhost:8000/insights/groups |
 | Player Stats API | http://localhost:8000/players/stats |
 | AI Summary API | http://localhost:8000/ai/fixtures/summary |
+| Metrics API | http://localhost:8000/metrics |
+| Prometheus | http://localhost:9090 |
 | Legacy Streamlit Dashboard | http://localhost:8501 |
 
 ---
@@ -1501,7 +1629,7 @@ pytest -q
 Current expected result:
 
 ```text
-94 passed
+105 passed
 ```
 
 Warnings may appear depending on the local Python and package versions. Current warnings are not blocking the test suite.
@@ -1559,6 +1687,13 @@ Current tests cover:
 - standings-aware AI summary output
 - insights-aware AI summary output
 - scheduled fixture summary factual safety
+- Prometheus metrics endpoint
+- HTTP request metrics
+- fixture sync metrics
+- player stats sync metrics
+- notification result metrics
+- AI summary request metrics
+- Prometheus Docker Compose service configuration
 
 ---
 
@@ -1849,16 +1984,31 @@ Completed:
 
 ---
 
-### v1.4.0 — Monitoring and Observability
+### v1.4.0 — Monitoring and Observability Foundation
 
-Planned:
+Completed:
 
-- Prometheus metrics
-- Grafana dashboard
-- API health metrics
-- Provider sync success/failure metrics
-- Telegram notification success/failure metrics
-- Basic alerting
+- Added `prometheus-client` dependency
+- Added `backend/app/services/metrics_service.py`
+- Added `backend/app/routes/metrics.py`
+- Added `GET /metrics` endpoint
+- Added HTTP request count metrics
+- Added HTTP request duration metrics
+- Added fixture sync run metrics
+- Added fixture sync created/updated/newly-completed metrics
+- Added player stats sync metrics
+- Added notification result metrics
+- Added AI summary request metrics
+- Added `/metrics` link to the root API response
+- Added Prometheus service to `docker-compose.yml`
+- Added `monitoring/prometheus.yml`
+- Added persistent `worldcup_prometheus_data` volume
+- Added metrics endpoint tests
+- Added monitoring configuration tests
+- Validated backend Docker image build
+- Validated dashboard Docker image build
+- Validated Docker Compose configuration
+- Full backend test suite passing: `105 passed`
 
 ---
 
@@ -1893,7 +2043,7 @@ Planned:
 | v1.1.2 | Version and container workflow cleanup | Completed |
 | v1.2.0 | Team insights and group analytics | Completed |
 | v1.3.0 | Player-level statistics foundation | Completed |
-| v1.4.0 | Monitoring and observability | Planned |
+| v1.4.0 | Monitoring and observability foundation with Prometheus metrics and Docker Compose monitoring service | Completed |
 | v1.5.0 | Portfolio release polish | Planned |
 
 ---
@@ -1960,6 +2110,27 @@ curl http://localhost:8000/players/stats
 curl "http://localhost:8000/players/stats?sort_by=assists&limit=5"
 curl "http://localhost:8000/players/stats?team=Mexico"
 curl "http://localhost:8000/players/stats?group_name=Group%20D"
+```
+
+
+### Metrics Endpoint
+
+```bash
+curl http://localhost:8000/metrics
+```
+
+### Prometheus UI
+
+After starting Docker Compose, open:
+
+```text
+http://localhost:9090
+```
+
+Try this Prometheus query:
+
+```text
+worldcup_http_requests_total
 ```
 
 ### AI Health Check
@@ -2178,7 +2349,8 @@ Planned documentation:
 - environment setup guide
 - dashboard usage guide
 - local Llama summary design
-- future monitoring design
+- Prometheus monitoring design
+- future Grafana dashboard design
 
 ---
 
@@ -2223,9 +2395,9 @@ https://github.com/AnarkeyV
 Current status:
 
 ```text
-v1.3.0 — Player-Level Statistics Foundation
+v1.4.0 — Monitoring and Observability Foundation
 ```
 
-The backend now supports fixture sync, fixture filtering, completed-match detection, Telegram notification workflows, group standings, dashboard standings, group insights, dashboard insight cards, player statistics, dashboard player stat cards, deterministic AI summaries, standings-aware and insights-aware tournament summaries, and Local Llama health checks.
+The backend now supports fixture sync, fixture filtering, completed-match detection, Telegram notification workflows, group standings, dashboard standings, group insights, dashboard insight cards, player statistics, dashboard player stat cards, Prometheus metrics, Docker Compose Prometheus monitoring, deterministic AI summaries, standings-aware and insights-aware tournament summaries, and Local Llama health checks.
 
 Sample fixtures and sample player statistics remain available as safe fallbacks for local development, public GitHub users, and testing without provider, Telegram, or external AI credentials.

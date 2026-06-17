@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException
 
+from app.services.metrics_service import record_notification_result
 from app.services.telegram_notifier import (
     build_completed_fixture_message,
     send_telegram_message,
@@ -28,12 +29,22 @@ def send_test_telegram_notification():
     try:
         result = send_telegram_message(message)
 
+        record_notification_result(
+            channel="telegram",
+            status="sent",
+        )
+
         return {
             "message": "Telegram test notification sent successfully",
             "telegram_response": result,
         }
 
     except ValueError as error:
+        record_notification_result(
+            channel="telegram",
+            status="skipped",
+        )
+
         raise HTTPException(
             status_code=400,
             detail=str(error),
