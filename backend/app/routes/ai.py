@@ -9,6 +9,7 @@ from app.database import get_db
 from app.models.fixture import Fixture
 from app.services.insights_service import build_group_insights
 from app.services.local_llama_client import LocalLlamaClient
+from app.services.metrics_service import record_ai_summary_request
 from app.services.standings_service import COMPLETED_STATUSES, build_group_standings
 
 router = APIRouter(
@@ -458,12 +459,22 @@ def summarize_fixtures(
         )
 
         if not fixtures:
+            record_ai_summary_request(
+                summary_type="tournament",
+                status="not_found",
+            )
+
             raise HTTPException(
                 status_code=404,
                 detail="No fixtures available to summarize.",
             )
 
         summary = build_deterministic_tournament_summary(fixtures)
+
+        record_ai_summary_request(
+            summary_type="tournament",
+            status="success",
+        )
 
         return {
             "fixture_count": len(fixtures),
@@ -476,6 +487,11 @@ def summarize_fixtures(
         raise
 
     except SQLAlchemyError as error:
+        record_ai_summary_request(
+            summary_type="tournament",
+            status="error",
+        )
+
         raise HTTPException(
             status_code=503,
             detail=f"Database error while generating fixture summary: {error}",
@@ -491,12 +507,22 @@ def summarize_fixture_by_id(
         fixture = db.query(Fixture).filter(Fixture.id == fixture_id).first()
 
         if fixture is None:
+            record_ai_summary_request(
+                summary_type="fixture",
+                status="not_found",
+            )
+
             raise HTTPException(
                 status_code=404,
                 detail="Fixture not found.",
             )
 
         summary = build_deterministic_fixture_summary(fixture)
+
+        record_ai_summary_request(
+            summary_type="fixture",
+            status="success",
+        )
 
         return {
             "fixture_id": fixture.id,
@@ -509,6 +535,11 @@ def summarize_fixture_by_id(
         raise
 
     except SQLAlchemyError as error:
+        record_ai_summary_request(
+            summary_type="fixture",
+            status="error",
+        )
+
         raise HTTPException(
             status_code=503,
             detail=f"Database error while generating fixture summary: {error}",

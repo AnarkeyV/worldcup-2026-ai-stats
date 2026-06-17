@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.player_stat import PlayerStat
+from app.services.metrics_service import record_player_stats_sync_metrics
 from app.services.player_stats_sample_data import SAMPLE_PLAYER_STATS
 from app.services.player_stats_service import (
     serialize_player_stat,
@@ -102,6 +103,12 @@ def sync_sample_player_stats(db: Session = Depends(get_db)):
     try:
         result = sync_player_stats(db, SAMPLE_PLAYER_STATS)
 
+        record_player_stats_sync_metrics(
+            source="sample",
+            status="success",
+            result=result,
+        )
+
         return {
             "message": "Sample player stats synced successfully",
             "created": result["created"],
@@ -111,6 +118,11 @@ def sync_sample_player_stats(db: Session = Depends(get_db)):
 
     except SQLAlchemyError as error:
         db.rollback()
+
+        record_player_stats_sync_metrics(
+            source="sample",
+            status="error",
+        )
 
         raise HTTPException(
             status_code=503,

@@ -7,6 +7,10 @@ from app.database import get_db
 from app.models.fixture import Fixture
 from app.providers.api_football import ApiFootballProvider
 from app.services.fixture_sync_service import sync_fixtures
+from app.services.metrics_service import (
+    record_fixture_sync_metrics,
+    record_notification_result,
+)
 from app.services.sample_data import SAMPLE_FIXTURES
 from app.services.telegram_notifier import send_completed_fixture_notifications
 
@@ -42,6 +46,11 @@ def notify_newly_completed_fixtures(
     newly_completed_external_ids: list[str],
 ) -> dict:
     if not newly_completed_external_ids:
+        record_notification_result(
+            channel="telegram",
+            status="skipped",
+        )
+
         return {
             "status": "skipped",
             "reason": "No newly completed fixtures",
@@ -59,12 +68,22 @@ def notify_newly_completed_fixtures(
     try:
         result = send_completed_fixture_notifications(serialized_fixtures)
 
+        record_notification_result(
+            channel="telegram",
+            status="sent",
+        )
+
         return {
             "status": "sent",
             "sent": result["sent"],
         }
 
     except ValueError as error:
+        record_notification_result(
+            channel="telegram",
+            status="skipped",
+        )
+
         return {
             "status": "skipped",
             "reason": str(error),
@@ -151,6 +170,12 @@ def get_fixture(fixture_id: int, db: Session = Depends(get_db)):
 def sync_sample_fixtures(db: Session = Depends(get_db)):
     try:
         result = sync_fixtures(db, SAMPLE_FIXTURES)
+        record_fixture_sync_metrics(
+            source="sample",
+            status="success",
+            result=result,
+        )
+
         notification_result = notify_newly_completed_fixtures(
             db,
             result["newly_completed"],
@@ -168,6 +193,10 @@ def sync_sample_fixtures(db: Session = Depends(get_db)):
 
     except SQLAlchemyError as error:
         db.rollback()
+        record_fixture_sync_metrics(
+            source="sample",
+            status="error",
+        )
 
         raise HTTPException(
             status_code=503,
@@ -181,6 +210,12 @@ def sync_provider_fixtures(db: Session = Depends(get_db)):
         provider = ApiFootballProvider()
         fixtures = provider.get_world_cup_fixtures()
         result = sync_fixtures(db, fixtures)
+        record_fixture_sync_metrics(
+            source="provider",
+            status="success",
+            result=result,
+        )
+
         notification_result = notify_newly_completed_fixtures(
             db,
             result["newly_completed"],
@@ -198,6 +233,11 @@ def sync_provider_fixtures(db: Session = Depends(get_db)):
         }
 
     except ValueError as error:
+        record_fixture_sync_metrics(
+            source="provider",
+            status="error",
+        )
+
         raise HTTPException(
             status_code=400,
             detail=str(error),
@@ -205,6 +245,10 @@ def sync_provider_fixtures(db: Session = Depends(get_db)):
 
     except SQLAlchemyError as error:
         db.rollback()
+        record_fixture_sync_metrics(
+            source="provider",
+            status="error",
+        )
 
         raise HTTPException(
             status_code=503,
