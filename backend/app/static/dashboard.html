@@ -47,11 +47,29 @@
 
         <section class="ai-summary-panel" aria-label="AI fixture summary">
             <div class="ai-summary-content">
-                <p class="eyebrow">Local Llama Agent</p>
-                <h2>AI Fixture Summary</h2>
+                <div class="ai-summary-heading">
+                    <div>
+                        <p class="eyebrow">Local Llama Agent</p>
+                        <h2>AI Fixture Summary</h2>
+                    </div>
+
+                    <div
+                        id="ai-health-badge"
+                        class="ai-health-badge checking"
+                        aria-live="polite"
+                    >
+                        Checking AI...
+                    </div>
+                </div>
+
                 <p id="ai-summary-message">
                     Generate a short tournament-wide summary using the local Llama model running on your Windows laptop.
                 </p>
+
+                <p id="ai-health-details" class="ai-health-details">
+                    Local AI status will appear here after the dashboard checks Ollama.
+                </p>
+
                 <div id="ai-summary-output" class="ai-summary-output">
                     No AI summary generated yet.
                 </div>
@@ -105,7 +123,7 @@
 
     <footer class="app-footer">
         <p>
-            v0.9.0 AI Dashboard Summary Integration · Powered by FastAPI
+            v1.0.0 AI Summary Quality + Dashboard Polish · Powered by FastAPI
         </p>
     </footer>
 

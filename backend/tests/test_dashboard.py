@@ -27,6 +27,16 @@ def test_dashboard_page_includes_ai_summary_panel_elements():
     assert 'id="generate-ai-summary"' in response.text
 
 
+def test_dashboard_page_includes_ai_health_status_elements():
+    response = client.get("/dashboard")
+
+    assert response.status_code == 200
+    assert 'id="ai-health-badge"' in response.text
+    assert 'id="ai-health-details"' in response.text
+    assert "Checking AI..." in response.text
+    assert "Local AI status will appear here" in response.text
+
+
 def test_static_dashboard_css_loads():
     response = client.get("/static/dashboard.css")
 
@@ -36,6 +46,16 @@ def test_static_dashboard_css_loads():
     assert "ai-summary-output" in response.text
     assert "fixture-ai-summary" in response.text
     assert "fixture-ai-button" in response.text
+
+
+def test_static_dashboard_css_includes_ai_health_badge_styles():
+    response = client.get("/static/dashboard.css")
+
+    assert response.status_code == 200
+    assert "ai-health-badge" in response.text
+    assert "ai-health-badge.checking" in response.text
+    assert "ai-health-badge.available" in response.text
+    assert "ai-health-badge.unavailable" in response.text
 
 
 def test_static_dashboard_js_loads():
@@ -56,6 +76,19 @@ def test_dashboard_js_includes_fixture_summary_button_logic():
     assert "Generate Match Summary" in response.text
     assert "data-fixture-summary-id" in response.text
     assert "fixtureSummaries" in response.text
+
+
+def test_dashboard_js_includes_ai_health_logic():
+    response = client.get("/static/dashboard.js")
+
+    assert response.status_code == 200
+    assert "checkAiHealth" in response.text
+    assert "/ai/health" in response.text
+    assert "setAiHealthChecking" in response.text
+    assert "setAiHealthAvailable" in response.text
+    assert "setAiHealthUnavailable" in response.text
+    assert "AI Online" in response.text
+    assert "AI Offline" in response.text
 
 
 def test_root_includes_dashboard_and_ai_summary_links():

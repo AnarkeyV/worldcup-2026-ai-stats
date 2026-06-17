@@ -149,6 +149,13 @@ button:disabled {
     flex: 1;
 }
 
+.ai-summary-heading {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
 .ai-summary-content h2 {
     margin: 0;
     font-size: 1.6rem;
@@ -157,6 +164,43 @@ button:disabled {
 .ai-summary-content p {
     color: var(--muted);
     line-height: 1.6;
+}
+
+.ai-health-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 7.5rem;
+    border-radius: 999px;
+    padding: 0.45rem 0.75rem;
+    font-size: 0.78rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border: 1px solid var(--border);
+}
+
+.ai-health-badge.checking {
+    color: #bae6fd;
+    background: rgba(14, 165, 233, 0.16);
+    border-color: rgba(56, 189, 248, 0.45);
+}
+
+.ai-health-badge.available {
+    color: #bbf7d0;
+    background: rgba(34, 197, 94, 0.16);
+    border-color: rgba(34, 197, 94, 0.5);
+}
+
+.ai-health-badge.unavailable {
+    color: #fecaca;
+    background: rgba(239, 68, 68, 0.16);
+    border-color: rgba(239, 68, 68, 0.5);
+}
+
+.ai-health-details {
+    margin: 0.25rem 0 0;
+    font-size: 0.9rem;
 }
 
 .ai-summary-output {
@@ -387,11 +431,13 @@ select:focus {
         grid-template-columns: 1fr;
     }
 
-    .ai-summary-panel {
+    .ai-summary-panel,
+    .ai-summary-heading {
         flex-direction: column;
     }
 
-    .ai-summary-panel button {
+    .ai-summary-panel button,
+    .ai-health-badge {
         width: 100%;
     }
 }
