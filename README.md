@@ -5,7 +5,7 @@
 ![Dashboard](https://img.shields.io/badge/dashboard-FastAPI%20Static%20Dashboard-skyblue)
 ![Docker](https://img.shields.io/badge/container-Docker-blue)
 ![Python](https://img.shields.io/badge/python-3.14-yellow)
-![Version](https://img.shields.io/badge/version-v1.1.1-purple)
+![Version](https://img.shields.io/badge/version-v1.1.2-purple)
 ![Tests](https://img.shields.io/badge/tests-57%20passed-brightgreen)
 
 A self-hosted, containerized, AI-assisted World Cup 2026 match tracking and insights platform built with **FastAPI**, **SQLAlchemy**, **PostgreSQL-ready database configuration**, **Docker Compose**, a **static dashboard**, and a **local-first Llama/Ollama AI summary workflow**.
@@ -16,7 +16,7 @@ This project is intentionally being built in public, milestone by milestone, to 
 
 ## 📌 Current Version
 
-**v1.1.1 — README and Project Documentation Refresh**
+**v1.1.2 — Version and Container Workflow Cleanup**
 
 This documentation milestone updates the project README after the completed **v1.1.0 Group Standings Engine** milestone.
 
@@ -613,7 +613,7 @@ Example response:
 {
   "message": "World Cup 2026 AI Stats API",
   "status": "running",
-  "version": "1.1.0",
+  "version": "1.1.2",
   "dashboard": "/dashboard",
   "fixtures": "/fixtures",
   "standings": "/standings",
@@ -635,7 +635,7 @@ Example response:
 {
   "status": "healthy",
   "service": "backend",
-  "version": "1.1.0"
+  "version": "1.1.2"
 }
 ```
 
@@ -1034,7 +1034,7 @@ Current `.env.example`:
 # App
 APP_NAME=World Cup 2026 AI Stats
 APP_ENV=development
-APP_VERSION=1.1.0
+APP_VERSION=1.1.2
 
 # Database
 POSTGRES_USER=worldcup
@@ -1387,9 +1387,9 @@ Completed:
 
 ---
 
-### v1.1.1 — README and Project Documentation Refresh
+### v1.1.2 — Version and Container Workflow Cleanup
 
-In progress:
+Completed:
 
 - Refresh README version badges
 - Update current feature list
@@ -1466,6 +1466,7 @@ Planned:
 | v1.0.0 | AI summary quality, deterministic summaries, and dashboard polish | Completed |
 | v1.1.0 | Group standings engine, standings API, dashboard standings table, and standings-aware AI summary | Completed |
 | v1.1.1 | README and project documentation refresh | In progress |
+| v1.1.2 | Version and container workflow cleanup | Completed |
 | v1.2.0 | Team insights and group analytics | Planned |
 | v1.3.0 | Player-level statistics | Planned |
 | v1.4.0 | Monitoring and observability | Planned |
@@ -1768,7 +1769,7 @@ https://github.com/AnarkeyV
 Current status:
 
 ```text
-v1.1.1 — README and Project Documentation Refresh
+v1.1.2 — Version and Container Workflow Cleanup
 ```
 
 The backend now supports fixture sync, fixture filtering, completed-match detection, Telegram notification workflows, group standings, dashboard standings, deterministic AI summaries, standings-aware tournament summaries, and Local Llama health checks.
