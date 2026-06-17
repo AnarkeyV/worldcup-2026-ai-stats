@@ -51,4 +51,5 @@ def test_ci_validates_docker_builds():
     assert "Docker Build Validation" in ci_text
     assert "docker build -t worldcup-backend:test ./backend" in ci_text
     assert "docker build -t worldcup-dashboard:test ./dashboard" in ci_text
+    assert "cp .env.example .env" in ci_text
     assert "docker compose -f docker-compose.yml config" in ci_text

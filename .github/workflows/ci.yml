@@ -47,5 +47,8 @@ jobs:
       - name: Build dashboard Docker image
         run: docker build -t worldcup-dashboard:test ./dashboard
 
+      - name: Create CI environment file
+        run: cp .env.example .env
+
       - name: Validate Docker Compose configuration
         run: docker compose -f docker-compose.yml config
