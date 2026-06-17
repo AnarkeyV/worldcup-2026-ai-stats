@@ -5,20 +5,20 @@
 ![Dashboard](https://img.shields.io/badge/dashboard-FastAPI%20Static%20Dashboard-skyblue)
 ![Docker](https://img.shields.io/badge/container-Docker-blue)
 ![Python](https://img.shields.io/badge/python-3.14-yellow)
-![Version](https://img.shields.io/badge/version-v1.2.0-purple)
-![Tests](https://img.shields.io/badge/tests-57%20passed-brightgreen)
+![Version](https://img.shields.io/badge/version-v1.3.0-purple)
+![Tests](https://img.shields.io/badge/tests-94%20passed-brightgreen)
 
 A self-hosted, containerized, AI-assisted World Cup 2026 match tracking and insights platform built with **FastAPI**, **SQLAlchemy**, **PostgreSQL-ready database configuration**, **Docker Compose**, a **static dashboard**, and a **local-first Llama/Ollama AI summary workflow**.
 
-This project is intentionally being built in public, milestone by milestone, to demonstrate backend development, API integration, database design, testing, DevOps fundamentals, notification workflows, dashboard development, deterministic AI-assisted summaries, and local-first AI integration.
+This project is intentionally being built in public, milestone by milestone, to demonstrate backend development, API integration, database design, testing, DevOps fundamentals, notification workflows, dashboard development, deterministic AI-assisted summaries, local-first AI integration, and practical sports analytics.
 
 ---
 
 ## 📌 Current Version
 
-**v1.2.0 — Team Insights and Group Analytics**
+**v1.3.0 — Player-Level Statistics Foundation**
 
-This documentation milestone updates the project README after the completed **v1.1.0 Group Standings Engine** milestone.
+This milestone adds a player statistics foundation on top of the existing fixture, standings, insights, dashboard, notification, and deterministic AI summary layers.
 
 The application now supports:
 
@@ -28,11 +28,16 @@ The application now supports:
 - Telegram notification workflows
 - interactive dashboard cards
 - dashboard group standings
+- dashboard group insights
+- dashboard player statistics cards
 - `/standings` API endpoint
+- `/insights/groups` API endpoint
+- `/players/stats` API endpoint
+- `/players/stats/sync/sample` sample sync endpoint
 - deterministic AI summaries
-- standings-aware tournament summaries using `rules_based_v2`
+- standings-aware and insights-aware tournament summaries using `rules_based_v3`
 - local Llama/Ollama health checks
-- full backend test coverage with **57 passing tests**
+- full backend test coverage with **94 passing tests**
 
 ---
 
@@ -40,13 +45,17 @@ The application now supports:
 
 - FastAPI backend service
 - SQLAlchemy fixture model
+- SQLAlchemy player statistics model
 - PostgreSQL-ready database configuration
 - Sample World Cup fixture data
+- Sample World Cup player statistics data
 - Manual sample fixture sync endpoint
+- Manual sample player statistics sync endpoint
 - Real provider sync endpoint
 - API-Football provider client
 - Provider abstraction layer
 - Fixture sync service with idempotent create/update logic
+- Player statistics sync service with idempotent create/update logic
 - Newly completed fixture detection
 - Telegram message formatter
 - Telegram send helper with safe credential checks
@@ -60,29 +69,52 @@ The application now supports:
 - Group standings calculation service
 - `/standings` endpoint
 - `/standings?group_name=Group A` filtering
+- Group insights calculation service
+- `/insights/groups` endpoint
+- `/insights/groups?group_name=Group A` filtering
+- Player statistics endpoints
+- `/players/stats` endpoint
+- `/players/stats/sync/sample` endpoint
+- Player statistics filters:
+  - team/team-code search
+  - group filter
+- Player statistics sorting:
+  - goals
+  - assists
+  - yellow cards
+  - red cards
+  - minutes played
+  - player name
+  - team
 - Static FastAPI dashboard at `/dashboard`
 - Dashboard fixture cards
 - Dashboard summary stats
 - Dashboard group/status/team filters
 - Dashboard group standings table
+- Dashboard group insight cards
+- Dashboard player statistics cards
 - Dashboard AI summary panel
 - Local Llama/Ollama client
 - Local Llama health endpoint
 - Deterministic AI tournament summary endpoint
 - Deterministic single-fixture summary endpoint
-- AI summary upgraded to `rules_based_v2`
-- Tournament summary includes current group leaders based on completed fixtures
+- AI tournament summary upgraded to `rules_based_v3`
+- Tournament summary includes current group leaders, strongest attacks, best defences, and unbeaten teams based on completed fixtures
 - Mocked provider tests
 - Service tests for match completion detection
 - Service tests for standings calculation
+- Service tests for group insights
+- Service tests for player statistics sorting
 - Telegram notifier tests
 - Route tests for fixture sync and notification behavior
 - Standings API route tests
+- Insights API route tests
+- Player statistics API route tests
 - Dashboard tests
 - Local Llama client tests
 - AI route tests
 - Docker Compose local environment
-- GitHub Actions CI
+- GitHub Actions CI with backend tests and Docker build validation
 - Local pytest test suite
 
 ---
@@ -105,8 +137,9 @@ The idea is to build something realistic instead of only following tutorials. A 
 - deterministic backend logic
 - local-first AI integration
 - dashboard integration with backend APIs
+- sports analytics features built from structured data
 
-The World Cup is also a good use case because match data changes over time. Fixtures start as scheduled, later become live or completed, then trigger downstream workflows such as notifications, standings updates, summaries, and dashboard insights.
+The World Cup is also a good use case because match data changes over time. Fixtures start as scheduled, later become live or completed, then trigger downstream workflows such as notifications, standings updates, summaries, dashboard insights, and player statistics displays.
 
 ---
 
@@ -121,10 +154,13 @@ The goal is to build a self-hosted World Cup 2026 statistics platform that can:
 5. Detect completed matches.
 6. Send match notifications.
 7. Calculate group standings from completed fixtures.
-8. Generate deterministic AI-assisted match and tournament summaries.
-9. Keep a local Llama/Ollama health check integrated for future local AI workflows.
-10. Expand into player-level, team-level, monitoring, and deployment features.
-11. Demonstrate practical DevOps, backend, database, notification, dashboard, and AI integration skills.
+8. Generate group and team insights from standings.
+9. Store and display player-level statistics.
+10. Rank players by goals, assists, cards, minutes played, player name, and team.
+11. Generate deterministic AI-assisted match and tournament summaries.
+12. Keep a local Llama/Ollama health check integrated for future local AI workflows.
+13. Expand into monitoring, observability, provider-backed player data, and deployment features.
+14. Demonstrate practical DevOps, backend, database, notification, dashboard, analytics, and AI integration skills.
 
 ---
 
@@ -151,6 +187,10 @@ FastAPI Backend
     +--> /fixtures/sync/provider
     +--> /standings
     +--> /standings?group_name=Group A
+    +--> /insights/groups
+    +--> /insights/groups?group_name=Group A
+    +--> /players/stats
+    +--> /players/stats/sync/sample
     +--> /notifications/telegram/test
     +--> /ai/health
     +--> /ai/fixtures/summary
@@ -170,6 +210,19 @@ Services
     |       +--> Calculate P/W/D/L/GF/GA/GD/Pts
     |       +--> Sort standings by group, points, goal difference, goals for, team
     |
+    +--> Group Insights Service
+    |       |
+    |       +--> Group leaders
+    |       +--> Strongest attacks
+    |       +--> Best defences
+    |       +--> Unbeaten teams
+    |       +--> Winless teams
+    |
+    +--> Player Statistics Service
+    |       |
+    |       +--> Create/update player stat records
+    |       +--> Rank players by goals, assists, cards, minutes, player name, and team
+    |
     +--> Notification Helper
     |       |
     |       +--> Telegram Message Builder
@@ -180,21 +233,27 @@ Services
     |       +--> Deterministic fixture summary
     |       +--> Deterministic tournament summary
     |       +--> Group leader insight from standings
+    |       +--> Group analytics from insights service
     |       +--> Local Llama health check
     |
     +--> Sample Fixtures
+    |
+    +--> Sample Player Statistics
     |
     +--> API-Football Provider Client
     |
     v
 Database
+    |
+    +--> fixtures
+    +--> player_stats
 ```
 
 ---
 
 ## 🔁 Current Data Flow
 
-### Sample Sync Flow
+### Sample Fixture Sync Flow
 
 ```text
 POST /fixtures/sync/sample
@@ -220,7 +279,7 @@ notify_newly_completed_fixtures()
 API response with sync + notification summary
 ```
 
-### Provider Sync Flow
+### Provider Fixture Sync Flow
 
 ```text
 POST /fixtures/sync/provider
@@ -277,7 +336,75 @@ Calculate standings rows
 Return sorted standings table
 ```
 
-### Dashboard Standings Flow
+### Group Insights Flow
+
+```text
+GET /insights/groups
+    |
+    v
+Read stored fixtures
+    |
+    v
+Build standings from completed fixtures
+    |
+    v
+Calculate:
+    +--> group leaders
+    +--> strongest attacks
+    +--> best defences
+    +--> unbeaten teams
+    +--> winless teams
+    |
+    v
+Return group/team analytics
+```
+
+### Player Statistics Sample Sync Flow
+
+```text
+POST /players/stats/sync/sample
+    |
+    v
+SAMPLE_PLAYER_STATS
+    |
+    v
+sync_player_stats()
+    |
+    +--> create new player stat records
+    +--> update existing player stat records
+    |
+    v
+API response with created/updated count
+```
+
+### Player Statistics Flow
+
+```text
+GET /players/stats
+    |
+    v
+Read stored player_stats rows
+    |
+    v
+Apply optional filters:
+    +--> team
+    +--> group_name
+    |
+    v
+Sort by:
+    +--> goals
+    +--> assists
+    +--> yellow_cards
+    +--> red_cards
+    +--> minutes_played
+    +--> player_name
+    +--> team
+    |
+    v
+Return ranked player statistics
+```
+
+### Dashboard Flow
 
 ```text
 Browser opens /dashboard
@@ -285,14 +412,17 @@ Browser opens /dashboard
     v
 dashboard.js loads fixtures from /fixtures
     |
-    v
-dashboard.js loads standings from /standings
+    +--> loads standings from /standings
+    +--> loads group insights from /insights/groups
+    +--> loads player statistics from /players/stats
     |
     v
 Render:
     +--> summary cards
     +--> AI summary panel
     +--> filters
+    +--> group insights cards
+    +--> player statistics cards
     +--> group standings table
     +--> fixture cards
 ```
@@ -313,9 +443,12 @@ Build deterministic tournament summary
     +--> live fixture count if any
     +--> upcoming fixture count if any
     +--> group leaders from standings engine
+    +--> strongest attacks from insights service
+    +--> best defences from insights service
+    +--> unbeaten teams from insights service
     |
     v
-Return rules_based_v2 summary
+Return rules_based_v3 summary
 ```
 
 ### Local Llama Health Flow
@@ -465,6 +598,164 @@ Example response:
 
 ---
 
+## 📈 Group Insights Engine
+
+The group insights engine is handled through:
+
+```text
+backend/app/services/insights_service.py
+```
+
+It builds analytics from the group standings engine.
+
+Supported insights:
+
+```text
+group_leaders
+strongest_attacks
+best_defences
+unbeaten_teams
+winless_teams
+```
+
+The group insights API route is:
+
+```text
+backend/app/routes/insights.py
+```
+
+Supported endpoints:
+
+```http
+GET /insights/groups
+GET /insights/groups?group_name=Group A
+GET /insights/groups?limit=5
+```
+
+Example response shape:
+
+```json
+{
+  "filters": {
+    "group_name": null,
+    "limit": 5
+  },
+  "insights": {
+    "summary": {
+      "teams_analyzed": 8,
+      "groups_analyzed": 4,
+      "has_data": true
+    },
+    "group_leaders": [],
+    "strongest_attacks": [],
+    "best_defences": [],
+    "unbeaten_teams": [],
+    "winless_teams": []
+  }
+}
+```
+
+---
+
+## 🧍 Player-Level Statistics
+
+The player statistics model is handled through:
+
+```text
+backend/app/models/player_stat.py
+```
+
+Each player stat row includes:
+
+```text
+external_id
+competition
+stage
+group_name
+team
+team_code
+player_name
+position
+shirt_number
+appearances
+goals
+assists
+yellow_cards
+red_cards
+minutes_played
+created_at
+updated_at
+```
+
+The player statistics service is handled through:
+
+```text
+backend/app/services/player_stats_service.py
+```
+
+The sample player statistics data is handled through:
+
+```text
+backend/app/services/player_stats_sample_data.py
+```
+
+The player statistics API route is:
+
+```text
+backend/app/routes/players.py
+```
+
+Supported endpoints:
+
+```http
+GET /players/stats
+POST /players/stats/sync/sample
+```
+
+Useful filters and sorting:
+
+```http
+GET /players/stats?team=Mexico
+GET /players/stats?group_name=Group D
+GET /players/stats?sort_by=goals
+GET /players/stats?sort_by=assists
+GET /players/stats?sort_by=yellow_cards
+GET /players/stats?sort_by=red_cards
+GET /players/stats?sort_by=minutes_played
+GET /players/stats?sort_by=player_name
+GET /players/stats?sort_by=team
+GET /players/stats?sort_by=assists&limit=5
+```
+
+Example response shape:
+
+```json
+{
+  "count": 2,
+  "total_available": 8,
+  "filters": {
+    "team": null,
+    "group_name": null,
+    "sort_by": "goals",
+    "limit": 2
+  },
+  "stats": [
+    {
+      "player_name": "United States Forward",
+      "team": "United States",
+      "team_code": "USA",
+      "goals": 3,
+      "assists": 0,
+      "yellow_cards": 0,
+      "red_cards": 0,
+      "minutes_played": 90
+    }
+  ]
+}
+```
+
+---
+
 ## 📣 Telegram Notifications
 
 Telegram notifications are handled through:
@@ -524,10 +815,10 @@ Venue: Estadio Azteca
 
 The AI summary layer is currently deterministic for safer, factual dashboard output.
 
-Current summary model label:
+Current tournament summary model label:
 
 ```text
-rules_based_v2
+rules_based_v3
 ```
 
 The route still lives under `/ai` because it is the dashboard's AI/insight layer, but the tournament summary does not call Llama generation at the moment.
@@ -542,6 +833,9 @@ Current deterministic summary capabilities:
 - live fixture count
 - upcoming fixture summaries
 - group leader summary based on completed fixtures
+- strongest attack summary based on completed fixtures
+- best defence summary based on completed fixtures
+- unbeaten team summary based on completed fixtures
 - factual single-fixture summaries
 - no invented scores for scheduled fixtures
 
@@ -551,9 +845,15 @@ Example tournament summary response:
 {
   "fixture_count": 4,
   "provider": "deterministic_tournament_summary",
-  "model": "rules_based_v2",
-  "summary": "- 4 fixtures have been completed.\n- Mexico defeated South Africa 2-0 in Group A. The match is complete after kicking off on 12 Jun 2026, 3:00 AM SGT at Estadio Azteca. Final whistle time is not available in the current fixture data.\n- United States defeated Paraguay 4-1 in Group D. The match is complete after kicking off on 13 Jun 2026, 9:00 AM SGT at SoFi Stadium. Final whistle time is not available in the current fixture data.\n- Current group leaders based on completed fixtures include Mexico (Group A, 3 pts, +2 GD), United States (Group D, 3 pts, +3 GD), France (Group I, 3 pts, +2 GD), and Argentina (Group J, 3 pts, +3 GD)."
+  "model": "rules_based_v3",
+  "summary": "- 4 fixtures have been completed.\n- Mexico defeated South Africa 2-0 in Group A.\n- United States defeated Paraguay 4-1 in Group D.\n- Current group leaders based on completed fixtures include Mexico (Group A, 3 pts, +2 GD), United States (Group D, 3 pts, +3 GD), France (Group I, 3 pts, +2 GD), and Argentina (Group J, 3 pts, +3 GD).\n- Strongest attacks based on completed fixtures include United States (Group D, 4 GF), Argentina (Group J, 3 GF), and France (Group I, 3 GF)."
 }
+```
+
+Single-fixture summaries still use:
+
+```text
+rules_based_v2
 ```
 
 ---
@@ -613,11 +913,12 @@ Example response:
 {
   "message": "World Cup 2026 AI Stats API",
   "status": "running",
-  "version": "1.1.2",
+  "version": "1.3.0",
   "dashboard": "/dashboard",
   "fixtures": "/fixtures",
   "standings": "/standings",
   "group_insights": "/insights/groups",
+  "player_stats": "/players/stats",
   "ai_summary": "/ai/fixtures/summary"
 }
 ```
@@ -636,7 +937,7 @@ Example response:
 {
   "status": "healthy",
   "service": "backend",
-  "version": "1.1.2"
+  "version": "1.3.0"
 }
 ```
 
@@ -821,6 +1122,64 @@ Returns standings for one group only.
 
 ---
 
+### List Group Insights
+
+```http
+GET /insights/groups
+```
+
+Returns group and team analytics based on completed fixtures.
+
+Useful query examples:
+
+```bash
+curl http://localhost:8000/insights/groups
+curl "http://localhost:8000/insights/groups?group_name=Group%20A"
+curl "http://localhost:8000/insights/groups?limit=3"
+```
+
+---
+
+### List Player Statistics
+
+```http
+GET /players/stats
+```
+
+Returns player statistics ranked by goals by default.
+
+Useful query examples:
+
+```bash
+curl http://localhost:8000/players/stats
+curl "http://localhost:8000/players/stats?sort_by=assists&limit=5"
+curl "http://localhost:8000/players/stats?team=Mexico"
+curl "http://localhost:8000/players/stats?group_name=Group%20D"
+```
+
+---
+
+### Sync Sample Player Statistics
+
+```http
+POST /players/stats/sync/sample
+```
+
+Syncs sample player statistics for local development and dashboard testing.
+
+Example response:
+
+```json
+{
+  "message": "Sample player stats synced successfully",
+  "created": 8,
+  "updated": 0,
+  "total_sample_player_stats": 8
+}
+```
+
+---
+
 ## 🤖 AI Endpoints
 
 ### AI Health Check
@@ -861,8 +1220,8 @@ Example response:
 {
   "fixture_count": 4,
   "provider": "deterministic_tournament_summary",
-  "model": "rules_based_v2",
-  "summary": "- 4 fixtures have been completed.\n- Mexico defeated South Africa 2-0 in Group A.\n- Current group leaders based on completed fixtures include Mexico (Group A, 3 pts, +2 GD)."
+  "model": "rules_based_v3",
+  "summary": "- 4 fixtures have been completed.\n- Mexico defeated South Africa 2-0 in Group A.\n- Current group leaders based on completed fixtures include Mexico (Group A, 3 pts, +2 GD).\n- Strongest attacks based on completed fixtures include United States (Group D, 4 GF)."
 }
 ```
 
@@ -920,7 +1279,8 @@ worldcup-2026-ai-stats/
 │   ├── app/
 │   │   ├── models/
 │   │   │   ├── __init__.py
-│   │   │   └── fixture.py
+│   │   │   ├── fixture.py
+│   │   │   └── player_stat.py
 │   │   ├── providers/
 │   │   │   ├── __init__.py
 │   │   │   ├── api_football.py
@@ -932,11 +1292,15 @@ worldcup-2026-ai-stats/
 │   │   │   ├── fixtures.py
 │   │   │   ├── insights.py
 │   │   │   ├── notifications.py
+│   │   │   ├── players.py
 │   │   │   └── standings.py
 │   │   ├── services/
 │   │   │   ├── __init__.py
 │   │   │   ├── fixture_sync_service.py
+│   │   │   ├── insights_service.py
 │   │   │   ├── local_llama_client.py
+│   │   │   ├── player_stats_sample_data.py
+│   │   │   ├── player_stats_service.py
 │   │   │   ├── sample_data.py
 │   │   │   ├── standings_service.py
 │   │   │   └── telegram_notifier.py
@@ -961,13 +1325,19 @@ worldcup-2026-ai-stats/
 │   │   ├── test_insights_service.py
 │   │   ├── test_local_llama_client.py
 │   │   ├── test_notifications.py
+│   │   ├── test_player_stats_routes.py
+│   │   ├── test_player_stats_service.py
+│   │   ├── test_release_workflow.py
 │   │   ├── test_standings_routes.py
 │   │   ├── test_standings_service.py
 │   │   └── test_telegram_notifier.py
+│   ├── Dockerfile
 │   ├── pytest.ini
 │   └── requirements.txt
 ├── dashboard/
-│   └── app.py
+│   ├── Dockerfile
+│   ├── app.py
+│   └── requirements.txt
 ├── docs/
 ├── infra/
 ├── .env.example
@@ -1038,7 +1408,7 @@ Current `.env.example`:
 # App
 APP_NAME=World Cup 2026 AI Stats
 APP_ENV=development
-APP_VERSION=1.1.2
+APP_VERSION=1.3.0
 
 # Database
 POSTGRES_USER=worldcup
@@ -1112,6 +1482,8 @@ Use `docker compose down -v` carefully because it removes the database volume.
 | FastAPI Dashboard | http://localhost:8000/dashboard |
 | Fixtures API | http://localhost:8000/fixtures |
 | Standings API | http://localhost:8000/standings |
+| Group Insights API | http://localhost:8000/insights/groups |
+| Player Stats API | http://localhost:8000/players/stats |
 | AI Summary API | http://localhost:8000/ai/fixtures/summary |
 | Legacy Streamlit Dashboard | http://localhost:8501 |
 
@@ -1129,7 +1501,7 @@ pytest -q
 Current expected result:
 
 ```text
-57 passed
+94 passed
 ```
 
 Warnings may appear depending on the local Python and package versions. Current warnings are not blocking the test suite.
@@ -1165,23 +1537,34 @@ Current tests cover:
 - standings route empty response
 - standings route sample-sync response
 - standings route group filter
+- group insights service calculation
+- group insights route empty response
+- group insights route sample-sync response
+- group insights route group filter
+- player statistics sorting service
+- player statistics sample sync
+- player statistics API filtering
+- player statistics API sorting and limit behavior
 - dashboard page loading
 - dashboard static CSS loading
 - dashboard static JS loading
 - dashboard AI summary UI references
 - dashboard group standings UI references
+- dashboard group insight UI references
+- dashboard player statistics UI references
 - local Llama client behavior
 - AI health route
 - deterministic tournament summary route
 - deterministic single-fixture summary route
 - standings-aware AI summary output
+- insights-aware AI summary output
 - scheduled fixture summary factual safety
 
 ---
 
 ## ⚙️ GitHub Actions CI
 
-The project includes GitHub Actions CI for backend tests.
+The project includes GitHub Actions CI for backend tests and Docker build validation.
 
 Typical CI behavior:
 
@@ -1189,13 +1572,22 @@ Typical CI behavior:
 push / pull request
     |
     v
-install dependencies
+install backend dependencies
     |
     v
 run pytest
+    |
+    v
+build backend Docker image
+    |
+    v
+build dashboard Docker image
+    |
+    v
+validate docker compose configuration
 ```
 
-The CI pipeline is intended to catch backend regressions before merging changes into `main`.
+The CI pipeline is intended to catch backend, test, and container workflow regressions before merging changes into `main`.
 
 ---
 
@@ -1391,18 +1783,28 @@ Completed:
 
 ---
 
+### v1.1.1 — README and Project Documentation Refresh
+
+Completed:
+
+- Refreshed README to reflect completed milestones
+- Updated documentation for group standings and AI summary behavior
+- Cleaned up project status and roadmap
+- Published release tag
+
+---
+
 ### v1.1.2 — Version and Container Workflow Cleanup
 
 Completed:
 
-- Refresh README version badges
-- Update current feature list
-- Document standings engine
-- Document rules-based AI summary behavior
-- Update API endpoint documentation
-- Update project structure
-- Update test count
-- Update roadmap and project status
+- Aligned `VERSION`, backend app version, and `.env.example`
+- Added root-level `docker-compose.yml`
+- Updated Local Llama environment variable names
+- Added Docker build validation to GitHub Actions
+- Added Docker Compose config validation in CI
+- Added release workflow regression tests
+- Updated README for v1.1.2
 
 ---
 
@@ -1423,14 +1825,27 @@ Completed:
 - Expanded dashboard tests for insight cards
 - Expanded AI route tests for group analytics summaries
 
-### v1.3.0 — Player-Level Statistics
+---
 
-Planned:
+### v1.3.0 — Player-Level Statistics Foundation
 
-- Player statistics model
-- Goals, assists, cards, minutes
-- Team/player views
-- Provider mapping for player data
+Completed:
+
+- Added `backend/app/models/player_stat.py`
+- Registered the `player_stats` table in database startup
+- Added sample player statistics data
+- Added `sync_player_stats` service
+- Added `GET /players/stats`
+- Added `POST /players/stats/sync/sample`
+- Added player stat filtering by team and group
+- Added player stat sorting by goals, assists, yellow cards, red cards, minutes played, player name, and team
+- Added `/players/stats` link to the root API response
+- Added dashboard Player Statistics cards
+- Added dashboard leaders for top scorers, top assists, yellow cards, and red cards
+- Added player stats service tests
+- Added player stats route tests
+- Expanded dashboard tests for player statistics UI
+- Full backend test suite passing: `94 passed`
 
 ---
 
@@ -1474,10 +1889,10 @@ Planned:
 | v0.8.0 | Local Llama/Ollama summary agent with AI endpoints and dashboard summary button | Completed |
 | v1.0.0 | AI summary quality, deterministic summaries, and dashboard polish | Completed |
 | v1.1.0 | Group standings engine, standings API, dashboard standings table, and standings-aware AI summary | Completed |
-| v1.1.1 | README and project documentation refresh | In progress |
+| v1.1.1 | README and project documentation refresh | Completed |
 | v1.1.2 | Version and container workflow cleanup | Completed |
 | v1.2.0 | Team insights and group analytics | Completed |
-| v1.3.0 | Player-level statistics | Planned |
+| v1.3.0 | Player-level statistics foundation | Completed |
 | v1.4.0 | Monitoring and observability | Planned |
 | v1.5.0 | Portfolio release polish | Planned |
 
@@ -1523,6 +1938,28 @@ curl http://localhost:8000/standings
 
 ```bash
 curl "http://localhost:8000/standings?group_name=Group%20A"
+```
+
+### List Group Insights
+
+```bash
+curl http://localhost:8000/insights/groups
+curl "http://localhost:8000/insights/groups?group_name=Group%20A"
+```
+
+### Sync Sample Player Statistics
+
+```bash
+curl -X POST http://localhost:8000/players/stats/sync/sample
+```
+
+### List Player Statistics
+
+```bash
+curl http://localhost:8000/players/stats
+curl "http://localhost:8000/players/stats?sort_by=assists&limit=5"
+curl "http://localhost:8000/players/stats?team=Mexico"
+curl "http://localhost:8000/players/stats?group_name=Group%20D"
 ```
 
 ### AI Health Check
@@ -1647,8 +2084,12 @@ Screenshots can be added later for:
 - filtered fixture list endpoint
 - standings endpoint
 - standings group filter endpoint
+- insights endpoint
+- player stats endpoint
 - dashboard fixture cards
 - dashboard group standings table
+- dashboard group insights cards
+- dashboard player statistics cards
 - dashboard AI summary panel
 - provider sync response
 - newly completed sync response
@@ -1673,6 +2114,7 @@ Current AI/insight usage:
 - summarize stored fixture data with rules-based logic
 - summarize completed and scheduled matches factually
 - include group leaders in tournament summaries
+- include group analytics in tournament summaries
 - display generated summary in the FastAPI dashboard
 
 Future AI usage:
@@ -1681,6 +2123,7 @@ Future AI usage:
 - create daily World Cup recap messages
 - explain key match events from structured provider data
 - generate short dashboard insights
+- summarize player statistic leaders
 - help format Telegram alerts
 - optionally route specific workflows back through local Llama once factual guardrails are stronger
 
@@ -1729,6 +2172,8 @@ Planned documentation:
 - provider integration notes
 - match completion detector notes
 - standings engine notes
+- group insights notes
+- player statistics notes
 - Telegram notification notes
 - environment setup guide
 - dashboard usage guide
@@ -1778,9 +2223,9 @@ https://github.com/AnarkeyV
 Current status:
 
 ```text
-v1.2.0 — Team Insights and Group Analytics
+v1.3.0 — Player-Level Statistics Foundation
 ```
 
-The backend now supports fixture sync, fixture filtering, completed-match detection, Telegram notification workflows, group standings, dashboard standings, group insights, dashboard insight cards, deterministic AI summaries, standings-aware and insights-aware tournament summaries, and Local Llama health checks.
+The backend now supports fixture sync, fixture filtering, completed-match detection, Telegram notification workflows, group standings, dashboard standings, group insights, dashboard insight cards, player statistics, dashboard player stat cards, deterministic AI summaries, standings-aware and insights-aware tournament summaries, and Local Llama health checks.
 
-Sample fixtures remain available as a safe fallback for local development, public GitHub users, and testing without provider, Telegram, or external AI credentials.
+Sample fixtures and sample player statistics remain available as safe fallbacks for local development, public GitHub users, and testing without provider, Telegram, or external AI credentials.

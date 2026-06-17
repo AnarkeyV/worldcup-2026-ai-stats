@@ -57,6 +57,16 @@ def test_dashboard_page_includes_group_insights_section():
     assert "Loading insights..." in response.text
 
 
+def test_dashboard_page_includes_player_stats_section():
+    response = client.get("/dashboard")
+
+    assert response.status_code == 200
+    assert "Player Statistics" in response.text
+    assert 'id="player-stats-message"' in response.text
+    assert 'id="player-stats-container"' in response.text
+    assert "Loading player statistics..." in response.text
+
+
 def test_static_dashboard_css_loads():
     response = client.get("/static/dashboard.css")
 
@@ -96,6 +106,16 @@ def test_static_dashboard_css_includes_insight_styles():
     assert "insights-grid" in response.text
     assert "insight-card" in response.text
     assert "insight-label" in response.text
+
+
+def test_static_dashboard_css_includes_player_stats_styles():
+    response = client.get("/static/dashboard.css")
+
+    assert response.status_code == 200
+    assert "player-stats-section" in response.text
+    assert "player-stats-grid" in response.text
+    assert "player-stat-card" in response.text
+    assert "player-stat-label" in response.text
 
 
 def test_static_dashboard_js_loads():
@@ -157,7 +177,21 @@ def test_dashboard_js_includes_insights_logic():
     assert "Winless Teams" in response.text
 
 
-def test_root_includes_dashboard_ai_summary_standings_and_insights_links():
+def test_dashboard_js_includes_player_stats_logic():
+    response = client.get("/static/dashboard.js")
+
+    assert response.status_code == 200
+    assert "fetchPlayerStats" in response.text
+    assert "fetchPlayerStatsSummary" in response.text
+    assert "renderPlayerStats" in response.text
+    assert "/players/stats" in response.text
+    assert "Top Scorers" in response.text
+    assert "Top Assists" in response.text
+    assert "Yellow Cards" in response.text
+    assert "Red Cards" in response.text
+
+
+def test_root_includes_dashboard_ai_summary_standings_insights_and_player_stats_links():
     response = client.get("/")
 
     assert response.status_code == 200
@@ -165,3 +199,4 @@ def test_root_includes_dashboard_ai_summary_standings_and_insights_links():
     assert response.json()["ai_summary"] == "/ai/fixtures/summary"
     assert response.json()["standings"] == "/standings"
     assert response.json()["group_insights"] == "/insights/groups"
+    assert response.json()["player_stats"] == "/players/stats"
