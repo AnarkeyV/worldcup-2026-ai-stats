@@ -13,7 +13,7 @@
             <p class="eyebrow">World Cup 2026 AI Stats</p>
             <h1>Interactive Dashboard</h1>
             <p class="subtitle">
-                Browse fixtures, filter matches, and generate local AI summaries powered by your Windows laptop Llama model.
+                Browse fixtures, filter matches, view group standings, and generate local AI summaries powered by your Windows laptop Llama model.
             </p>
         </div>
 
@@ -109,6 +109,17 @@
             </button>
         </section>
 
+        <section class="standings-section" aria-label="Group standings">
+            <div class="section-heading">
+                <div>
+                    <h2>Group Standings</h2>
+                    <p id="standings-message">Loading standings...</p>
+                </div>
+            </div>
+
+            <div id="standings-container" class="standings-container" aria-live="polite"></div>
+        </section>
+
         <section class="fixtures-section">
             <div class="section-heading">
                 <div>
@@ -123,7 +134,7 @@
 
     <footer class="app-footer">
         <p>
-            v1.0.0 AI Summary Quality + Dashboard Polish · Powered by FastAPI
+            v1.1.0 Group Standings Engine · Powered by FastAPI
         </p>
     </footer>
 

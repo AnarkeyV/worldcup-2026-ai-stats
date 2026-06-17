@@ -1,6 +1,9 @@
 from types import SimpleNamespace
 
-from app.routes.ai import build_deterministic_fixture_summary
+from app.routes.ai import (
+    build_deterministic_fixture_summary,
+    build_deterministic_tournament_summary,
+)
 
 
 class FakeLlamaClient:
@@ -19,6 +22,34 @@ class FakeLlamaClient:
             "model": "llama3.2:1b",
             "summary": "This is a test AI summary for the fixture data.",
         }
+
+
+def make_completed_fixture(
+    *,
+    group_name="Group A",
+    home_team="Mexico",
+    away_team="South Africa",
+    home_team_code="MEX",
+    away_team_code="RSA",
+    home_score=2,
+    away_score=0,
+    status="complete",
+):
+    return SimpleNamespace(
+        id=1,
+        competition="FIFA World Cup 2026",
+        stage="Group Stage",
+        group_name=group_name,
+        home_team=home_team,
+        away_team=away_team,
+        home_team_code=home_team_code,
+        away_team_code=away_team_code,
+        kickoff_time="2026-06-11T15:00:00-04:00",
+        venue="Estadio Azteca",
+        status=status,
+        home_score=home_score,
+        away_score=away_score,
+    )
 
 
 def test_ai_health_returns_local_llama_status(client, monkeypatch):
@@ -59,12 +90,20 @@ def test_ai_fixture_summary_returns_deterministic_tournament_summary(client, mon
 
     assert data["fixture_count"] == 4
     assert data["provider"] == "deterministic_tournament_summary"
-    assert data["model"] == "rules_based_v1"
+    assert data["model"] == "rules_based_v2"
     assert isinstance(data["summary"], str)
-    assert "4 fixtures have been completed" in data["summary"].lower()
-    assert "mexico defeated south africa" in data["summary"].lower()
-    assert "united states defeated paraguay" in data["summary"].lower()
-    assert "upcoming" not in data["summary"].lower()
+
+    summary = data["summary"].lower()
+
+    assert "4 fixtures have been completed" in summary
+    assert "mexico defeated south africa" in summary
+    assert "united states defeated paraguay" in summary
+    assert "current group leaders based on completed fixtures include" in summary
+    assert "mexico (group a, 3 pts, +2 gd)" in summary
+    assert "united states (group d, 3 pts, +3 gd)" in summary
+    assert "france (group i, 3 pts, +2 gd)" in summary
+    assert "argentina (group j, 3 pts, +3 gd)" in summary
+    assert "upcoming" not in summary
 
 
 def test_ai_fixture_summary_does_not_depend_on_llama_generation(client, monkeypatch):
@@ -84,7 +123,36 @@ def test_ai_fixture_summary_does_not_depend_on_llama_generation(client, monkeypa
     data = response.json()
 
     assert data["provider"] == "deterministic_tournament_summary"
-    assert data["model"] == "rules_based_v1"
+    assert data["model"] == "rules_based_v2"
+
+
+def test_deterministic_tournament_summary_includes_standings_leaders():
+    fixtures = [
+        make_completed_fixture(
+            group_name="Group A",
+            home_team="Mexico",
+            away_team="South Africa",
+            home_team_code="MEX",
+            away_team_code="RSA",
+            home_score=2,
+            away_score=0,
+        ),
+        make_completed_fixture(
+            group_name="Group A",
+            home_team="South Korea",
+            away_team="Czechia",
+            home_team_code="KOR",
+            away_team_code="CZE",
+            home_score=2,
+            away_score=1,
+        ),
+    ]
+
+    summary = build_deterministic_tournament_summary(fixtures).lower()
+
+    assert "2 fixtures have been completed" in summary
+    assert "current group leaders based on completed fixtures include" in summary
+    assert "mexico (group a, 3 pts, +2 gd)" in summary
 
 
 def test_ai_single_fixture_summary_returns_deterministic_summary(client, monkeypatch):
@@ -107,7 +175,7 @@ def test_ai_single_fixture_summary_returns_deterministic_summary(client, monkeyp
 
     assert data["fixture_id"] == fixture_id
     assert data["provider"] == "deterministic_fixture_summary"
-    assert data["model"] == "rules_based_v1"
+    assert data["model"] == "rules_based_v2"
     assert isinstance(data["summary"], str)
     assert fixture["home_team"] in data["summary"]
     assert fixture["away_team"] in data["summary"]

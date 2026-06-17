@@ -10,6 +10,7 @@ from app.routes.ai import router as ai_router
 from app.routes.dashboard import router as dashboard_router
 from app.routes.fixtures import router as fixtures_router
 from app.routes.notifications import router as notifications_router
+from app.routes.standings import router as standings_router
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -41,6 +42,8 @@ def root():
         "status": "running",
         "version": settings.app_version,
         "dashboard": "/dashboard",
+        "fixtures": "/fixtures",
+        "standings": "/standings",
         "ai_summary": "/ai/fixtures/summary",
     }
 
@@ -58,3 +61,4 @@ app.include_router(ai_router)
 app.include_router(dashboard_router)
 app.include_router(fixtures_router)
 app.include_router(notifications_router)
+app.include_router(standings_router)
