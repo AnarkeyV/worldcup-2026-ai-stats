@@ -1,7 +1,7 @@
 # ⚽ World Cup 2026 AI Stats Dashboard
 
-![Version](https://img.shields.io/badge/version-v1.5.0-purple)
-![Tests](https://img.shields.io/badge/tests-114%20passed-brightgreen)
+![Version](https://img.shields.io/badge/version-v1.6.0-purple)
+![Tests](https://img.shields.io/badge/tests-123%20passed-brightgreen)
 ![Backend](https://img.shields.io/badge/backend-FastAPI-blue)
 ![Dashboard](https://img.shields.io/badge/dashboard-Streamlit%20%2B%20Static%20UI-orange)
 ![Database](https://img.shields.io/badge/database-PostgreSQL-blue)
@@ -11,7 +11,7 @@
 
 ## 📌 Current Version
 
-**v1.5.0 — Portfolio Release Polish**
+**v1.6.0 — Real Match Data Sync Improvement**
 
 World Cup 2026 AI Stats Dashboard is a portfolio-grade football analytics platform built around the FIFA World Cup 2026 use case.
 
@@ -30,7 +30,7 @@ The project combines:
 - Docker Compose runtime orchestration
 - automated pytest coverage
 
-The current release focuses on polishing the project for portfolio review, recruiter screening, interview discussion, and demo readiness.
+The current release improves real provider fixture synchronization so API-Football data is normalized, safer to ingest, and easier to explain during portfolio and technical reviews.
 
 ---
 
@@ -158,6 +158,9 @@ External provider response
       |
       v
 Normalized fixture records
+      |
+      v
+Status cleanup, team-code fallback, and invalid-row skipping
       |
       v
 PostgreSQL
@@ -487,7 +490,7 @@ Then edit `.env` as needed.
 # App
 APP_NAME=World Cup 2026 AI Stats
 APP_ENV=development
-APP_VERSION=1.5.0
+APP_VERSION=1.6.0
 
 # Database
 POSTGRES_USER=worldcup
@@ -661,7 +664,7 @@ Expected response:
 {
   "status": "healthy",
   "service": "backend",
-  "version": "1.5.0"
+  "version": "1.6.0"
 }
 ```
 
@@ -742,7 +745,7 @@ curl -X POST http://localhost:8000/fixtures/sync/sample
 curl -X POST http://localhost:8000/fixtures/sync/provider
 ```
 
-Provider sync requires a valid provider configuration and API key.
+Provider sync requires a valid provider configuration and API key. In v1.6.0, provider payloads are normalized before database sync, including status cleanup, team-code fallback, incomplete fixture skipping, and clearer provider failure responses.
 
 ---
 
@@ -1006,10 +1009,10 @@ For portfolio and presentation evidence, screenshots can be stored locally using
 ```text
 ~/documents/world-cup-ai-stats-screenshots/v1.4.1-demo
 ~/documents/world-cup-ai-stats-screenshots/v1.4.2-demo
-~/documents/world-cup-ai-stats-screenshots/v1.5.0-portfolio-release
+~/documents/world-cup-ai-stats-screenshots/v1.6.0-real-match-data-sync
 ```
 
-Recommended screenshots for v1.5.0:
+Recommended screenshots for v1.6.0:
 
 - GitHub README top section
 - FastAPI `/docs`
@@ -1019,7 +1022,7 @@ Recommended screenshots for v1.5.0:
 - Prometheus targets
 - Grafana dashboard
 - Telegram readiness endpoint
-- pytest `114 passed`
+- pytest `123 passed`
 
 Avoid adding broken image references to the README unless screenshots are committed into the repo.
 
@@ -1030,7 +1033,7 @@ Avoid adding broken image references to the README unless screenshots are commit
 | Document | Purpose |
 |---|---|
 | `README.md` | Main portfolio landing page |
-| `docs/architecture.md` | Current v1.5.0 architecture |
+| `docs/architecture.md` | Current v1.6.0 architecture |
 | `docs/changelog.md` | Release history |
 | `docs/roadmap.md` | Completed and planned milestones |
 | `docs/portfolio-release.md` | Portfolio-facing release summary |
@@ -1039,6 +1042,18 @@ Avoid adding broken image references to the README unless screenshots are commit
 ---
 
 ## 🧾 Release History
+
+### v1.6.0 — Real Match Data Sync Improvement
+
+- Improved API-Football provider normalization for real fixture payloads.
+- Added provider status cleanup, including scheduled, live, complete, postponed, cancelled, and abandoned states.
+- Added team-code fallback logic so provider records remain compatible with the fixture database model.
+- Added incomplete provider fixture skipping to avoid unsafe `external_id` and required-field issues.
+- Added provider error handling for request failures, invalid JSON, and invalid provider payloads.
+- Hardened fixture sync completion detection with case-insensitive status handling.
+- Added route-level provider sync tests for mocked provider success and provider failure behavior.
+- Bumped release metadata to `1.6.0`.
+- Expanded full test baseline: `123 passed`.
 
 ### v1.5.0 — Portfolio Release Polish
 
@@ -1122,6 +1137,7 @@ See `docs/changelog.md` and `docs/roadmap.md` for the full milestone history.
 | v1.4.2 | Telegram API live integration hardening | Completed |
 | v1.4.3 | Documentation and demo evidence cleanup | Completed |
 | v1.5.0 | Portfolio release polish | Completed |
+| v1.6.0 | Real match data sync improvement | Completed |
 
 ---
 
@@ -1131,22 +1147,21 @@ Recommended future milestones:
 
 | Version | Theme |
 |---|---|
-| v1.6.0 | Real match data sync improvement |
 | v1.7.0 | AI insights upgrade |
 | v1.8.0 | Portfolio demo polish |
 
-The next major technical step is likely deeper provider-data reliability and richer real-data workflows.
+The next major technical step is likely richer AI insight generation that can use standings, team context, player statistics, and completed fixture data more intelligently.
 
 ---
 
 ## 📌 Project Status
 
 ```text
-Current version: v1.5.0 — Portfolio Release Polish
-Current test baseline: 114 passed
+Current version: v1.6.0 — Real Match Data Sync Improvement
+Current test baseline: 123 passed
 Runtime: Docker Compose local stack
 Main demo services: FastAPI, dashboard, PostgreSQL, Prometheus, Grafana
 Optional integrations: API-Football, Telegram, Ollama / Local Llama
 ```
 
-This project is now positioned as a portfolio-ready DevOps/backend/observability showcase.
+This project is now positioned as a portfolio-ready DevOps/backend/observability showcase with a stronger real provider data-sync layer.

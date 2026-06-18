@@ -4,13 +4,13 @@
 
 World Cup 2026 AI Stats Dashboard is a containerized football analytics platform built around a FastAPI backend, PostgreSQL database, dashboard layer, local AI summary workflow, Telegram notification integration, and Prometheus/Grafana observability stack.
 
-This architecture document reflects the current **v1.5.0 — Portfolio Release Polish** release.
+This architecture document reflects the current **v1.6.0 — Real Match Data Sync Improvement** release.
 
 The project is designed as a local-first portfolio system that can be explained clearly during interviews, recruiter reviews, and technical walkthroughs.
 
 ---
 
-## Current Architecture - v1.5.0
+## Current Architecture - v1.6.0
 
 ```text
 +--------------------------+
@@ -35,7 +35,7 @@ The project is designed as a local-first portfolio system that can be explained 
 |                                                                |
 | Responsibilities:                                              |
 | - API routes                                                   |
-| - fixture sync                                                 |
+| - sample and provider fixture sync                             |
 | - standings calculation                                        |
 | - group insights                                               |
 | - player statistics                                            |
@@ -240,6 +240,12 @@ External provider response
 Normalized fixture data
    |
    v
+Status normalization, team-code fallback, invalid-row skipping
+   |
+   v
+Fixture sync service
+   |
+   v
 Database persistence
 ```
 
@@ -252,6 +258,15 @@ API_FOOTBALL_KEY=replace_me
 API_FOOTBALL_WORLD_CUP_LEAGUE_ID=1
 API_FOOTBALL_SEASON=2026
 ```
+
+In v1.6.0, provider sync adds a stronger normalization layer before database persistence:
+
+- API-Football status values such as `NS`, `FT`, `AET`, and `PEN` are converted into dashboard-friendly status values such as `scheduled` and `complete`.
+- Missing provider team codes are filled using known overrides or safe derived fallbacks.
+- Incomplete provider rows are skipped when required fields such as fixture ID, kickoff time, home team, or away team are missing.
+- Provider request failures and invalid payloads are wrapped into clear provider errors.
+- `/fixtures/sync/provider` returns `502` for provider-side failures, `400` for missing API key configuration, and `503` for database failures.
+
 
 ---
 
@@ -608,14 +623,14 @@ The project follows these security principles:
 
 ## Current Limitations
 
-The current v1.5.0 release is portfolio-ready but still local-first.
+The current v1.6.0 release is portfolio-ready and has a stronger provider sync layer, but it is still local-first.
 
 Known limitations:
 
 - It is not a production deployment.
 - Grafana credentials are local demo credentials.
 - Telegram delivery requires valid user-provided credentials.
-- Provider sync requires a valid API-Football key.
+- Provider sync requires a valid API-Football key and depends on provider availability.
 - Local AI summaries require Ollama to be installed and running.
 - Traffic is not protected by HTTPS in the default local Docker Compose setup.
 - There is no production authentication layer.
@@ -627,12 +642,13 @@ Known limitations:
 
 Potential future improvements:
 
-### v1.6.0 — Real Match Data Sync Improvement
+### Completed in v1.6.0 — Real Match Data Sync Improvement
 
-- Improve provider sync reliability.
-- Add clearer provider error reporting.
-- Add richer sync metadata.
-- Improve real-world data validation.
+- Improved provider sync reliability.
+- Added clearer provider error reporting.
+- Added real-world provider payload validation and incomplete-row skipping.
+- Added status normalization and team-code fallback before database persistence.
+- Added route-level provider sync tests for success and failure paths.
 
 ### v1.7.0 — AI Insights Upgrade
 
@@ -671,3 +687,4 @@ Potential future improvements:
 | v1.4.2 | Telegram live hardening |
 | v1.4.3 | Documentation and evidence cleanup |
 | v1.5.0 | Portfolio release polish |
+| v1.6.0 | Real match data sync improvement |

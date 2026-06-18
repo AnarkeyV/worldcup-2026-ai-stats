@@ -6,6 +6,35 @@ This project follows semantic versioning and milestone-based releases.
 
 ---
 
+## [1.6.0] - Real Match Data Sync Improvement
+
+### Added
+
+- Added API-Football provider error wrapping for request failures, HTTP failures, invalid JSON, and invalid provider payloads.
+- Added provider fixture validation so incomplete provider rows are skipped before database sync.
+- Added team-code fallback logic for provider payloads that do not include country/team codes.
+- Added route-level tests for successful mocked provider sync and provider failure handling.
+- Added sync service validation for missing or blank fixture `external_id` values.
+
+### Changed
+
+- Normalized API-Football fixture statuses into app-friendly states such as `scheduled`, `live`, `complete`, `postponed`, `cancelled`, and `abandoned`.
+- Hardened fixture completion detection so provider-native completed statuses such as `FT`, `AET`, and `PEN` are handled case-insensitively.
+- Updated `/fixtures/sync/provider` to return `502` for provider-side sync failures.
+- Updated release metadata from `1.5.0` to `1.6.0`.
+
+### Tested
+
+- Expanded full test baseline from `114 passed` to `123 passed`.
+- Added focused tests for provider normalization, incomplete provider rows, invalid provider payloads, request failures, sync-service validation, and provider route behavior.
+
+### Notes
+
+- This release focuses on real match data-sync reliability rather than dashboard redesign.
+- API-Football credentials are still optional and must be configured by the user before live provider sync can run.
+
+---
+
 ## [1.5.0] - Portfolio Release Polish
 
 ### Added
