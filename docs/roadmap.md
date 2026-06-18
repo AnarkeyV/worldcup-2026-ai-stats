@@ -1,8 +1,8 @@
 # Roadmap
 
-This roadmap tracks the development journey for the World Cup 2026 AI Stats Dashboard.
+World Cup 2026 AI Stats Dashboard is developed milestone by milestone.
 
-The project follows semantic versioning and is built milestone by milestone so each release can be tested, documented, and demonstrated clearly.
+Each milestone is designed to add a clear capability, preserve test coverage, and improve the project as a portfolio-ready DevOps/backend engineering showcase.
 
 ---
 
@@ -11,32 +11,33 @@ The project follows semantic versioning and is built milestone by milestone so e
 Current version:
 
 ```text
-v1.4.3 — Documentation and Demo Evidence Cleanup
+v1.5.0 — Portfolio Release Polish
 ```
 
-The project currently includes:
+Current test baseline:
 
+```text
+114 passed
+```
+
+Current runtime model:
+
+```text
+Docker Compose local stack:
 - FastAPI backend
-- PostgreSQL-ready SQLAlchemy data layer
-- Docker Compose runtime
-- FastAPI static dashboard
-- Legacy Streamlit dashboard
-- Sample World Cup fixtures
-- API-Football provider foundation
-- Fixture sync workflow
-- Match completion detection
-- Telegram notification workflow
-- Live Telegram Bot API test support
-- Group standings engine
-- Group insights
-- Player statistics foundation
-- Deterministic AI summaries
-- Local Llama/Ollama health integration
-- Prometheus metrics
-- Prometheus Docker Compose service
-- Grafana Docker Compose service
-- Provisioned Grafana datasource and dashboard
-- pytest coverage for backend behavior
+- Streamlit dashboard
+- PostgreSQL
+- Prometheus
+- Grafana
+```
+
+Optional integrations:
+
+```text
+- API-Football provider
+- Telegram Bot API
+- Ollama / Local Llama
+```
 
 ---
 
@@ -46,15 +47,14 @@ The project currently includes:
 
 Status: Completed
 
-- Created initial repository structure
-- Added Docker Compose setup
-- Added FastAPI backend
-- Added Streamlit dashboard placeholder
-- Added PostgreSQL container
-- Added health endpoint
-- Added pytest foundation
-- Added GitHub Actions CI
-- Added version file
+Delivered:
+
+- FastAPI backend foundation
+- basic project structure
+- Dockerfile
+- health endpoint
+- pytest setup
+- initial CI workflow
 
 ---
 
@@ -62,13 +62,12 @@ Status: Completed
 
 Status: Completed
 
-- Improved public GitHub presentation
-- Added project story
-- Added architecture section
-- Added setup instructions
-- Added roadmap section
-- Added security notes
-- Added version history
+Delivered:
+
+- README improvement
+- architecture notes
+- version history
+- clearer setup documentation
 
 ---
 
@@ -76,15 +75,13 @@ Status: Completed
 
 Status: Completed
 
-- Added SQLAlchemy database layer
-- Added fixture model
-- Added sample fixture data
-- Added manual sample sync endpoint
-- Added fixture listing endpoint
-- Added fixture detail endpoint
-- Added dashboard fixture table
-- Added SQLite test database
-- Added fixture endpoint tests
+Delivered:
+
+- fixture model foundation
+- fixture API routes
+- sample fixture sync
+- database-backed fixture persistence
+- tests for fixture workflows
 
 ---
 
@@ -92,11 +89,13 @@ Status: Completed
 
 Status: Completed
 
-- Added API-Football provider client
-- Added provider configuration
-- Added provider sync endpoint
-- Added provider response normalization
-- Added mocked provider tests
+Delivered:
+
+- provider abstraction
+- API-Football provider support
+- provider sync route
+- provider configuration
+- provider tests
 
 ---
 
@@ -104,9 +103,12 @@ Status: Completed
 
 Status: Completed
 
-- Added match completion detection during fixture sync
-- Added newly completed fixture response fields
-- Added status transition tests
+Delivered:
+
+- match completion detection
+- completed fixture handling
+- newly completed match tracking
+- tests for completion behavior
 
 ---
 
@@ -114,12 +116,12 @@ Status: Completed
 
 Status: Completed
 
-- Added Telegram configuration fields
-- Added Telegram notifier service
-- Added completed fixture Telegram message formatter
-- Added safe Telegram test endpoint
-- Wired notifications into fixture sync responses
-- Added Telegram notification tests
+Delivered:
+
+- Telegram notifier service
+- Telegram notification workflow
+- environment-based Telegram configuration
+- notification tests
 
 ---
 
@@ -127,12 +129,12 @@ Status: Completed
 
 Status: Completed
 
-- Added FastAPI static dashboard
-- Added fixture cards
-- Added summary stats
-- Added static HTML/CSS/JS assets
-- Added dashboard route
-- Added dashboard tests
+Delivered:
+
+- dashboard route
+- static dashboard assets
+- dashboard tests
+- local dashboard documentation
 
 ---
 
@@ -140,10 +142,12 @@ Status: Completed
 
 Status: Completed
 
-- Added fixture filters by group and status
-- Added team search
-- Connected dashboard filters to backend query parameters
-- Expanded fixture and dashboard tests
+Delivered:
+
+- fixture filtering by group
+- fixture filtering by status
+- team search support
+- route tests for filter behavior
 
 ---
 
@@ -151,11 +155,13 @@ Status: Completed
 
 Status: Completed
 
-- Added Local Llama/Ollama client
-- Added AI health endpoint
-- Added AI fixture summary endpoint
-- Added dashboard AI summary button
-- Added local AI tests
+Delivered:
+
+- local Llama/Ollama client
+- AI health endpoint
+- fixture summary endpoints
+- fallback behavior
+- local AI tests
 
 ---
 
@@ -163,9 +169,12 @@ Status: Completed
 
 Status: Completed
 
-- Improved deterministic summaries
-- Added safer fallback summary behavior
-- Improved dashboard summary display
+Delivered:
+
+- improved AI summary behavior
+- improved dashboard presentation
+- route and service test expansion
+- clearer AI documentation
 
 ---
 
@@ -173,11 +182,13 @@ Status: Completed
 
 Status: Completed
 
-- Added standings calculation engine
-- Added standings API endpoint
-- Added dashboard standings table
-- Added standings-aware AI summary logic
-- Added standings tests
+Delivered:
+
+- standings service
+- standings API route
+- group ranking logic
+- points, wins, draws, losses, goals, and goal difference
+- standings tests
 
 ---
 
@@ -185,9 +196,12 @@ Status: Completed
 
 Status: Completed
 
-- Refreshed README and documentation after standings work
-- Improved project story and release notes
-- Updated version metadata
+Delivered:
+
+- README refresh
+- documentation cleanup
+- release history updates
+- portfolio readability improvements
 
 ---
 
@@ -195,9 +209,11 @@ Status: Completed
 
 Status: Completed
 
-- Cleaned up version metadata
-- Improved local container workflow notes
-- Updated documentation for stable local usage
+Delivered:
+
+- version metadata cleanup
+- container workflow documentation
+- release consistency checks
 
 ---
 
@@ -205,11 +221,12 @@ Status: Completed
 
 Status: Completed
 
-- Added group insights service
-- Added group insights endpoint
-- Added dashboard insight cards
-- Added insights-aware tournament summaries
-- Added insights tests
+Delivered:
+
+- group insights route
+- insights service
+- group-level analytics output
+- tests for insights routes and service
 
 ---
 
@@ -217,12 +234,13 @@ Status: Completed
 
 Status: Completed
 
-- Added player statistics model
-- Added sample player statistics
-- Added player statistics service
-- Added player statistics routes
-- Added dashboard player statistics cards
-- Added player statistics tests
+Delivered:
+
+- player statistics service
+- sample player stats data
+- player statistics API route
+- player stats tests
+- player-level analytics foundation
 
 ---
 
@@ -230,15 +248,14 @@ Status: Completed
 
 Status: Completed
 
-- Added Prometheus metrics endpoint
-- Added HTTP request metrics
-- Added fixture sync metrics
-- Added player stats sync metrics
-- Added notification result metrics
-- Added AI summary request metrics
-- Added Prometheus service to Docker Compose
-- Added Prometheus scrape configuration
-- Added monitoring tests
+Delivered:
+
+- Prometheus metrics endpoint
+- metrics service
+- Prometheus Docker Compose service
+- Grafana Docker Compose service
+- monitoring configuration
+- monitoring tests
 
 ---
 
@@ -246,13 +263,13 @@ Status: Completed
 
 Status: Completed
 
-- Added Grafana service to Docker Compose
-- Added Grafana Prometheus datasource provisioning
-- Added Grafana dashboard provisioning
-- Added World Cup overview dashboard
-- Added useful backend observability panels
-- Verified Grafana locally
-- Captured screenshot evidence
+Delivered:
+
+- Grafana datasource provisioning
+- Grafana dashboard provisioning
+- default dashboard home configuration
+- dashboard polish for local demo
+- monitoring demo evidence guidance
 
 ---
 
@@ -260,12 +277,13 @@ Status: Completed
 
 Status: Completed
 
-- Added Telegram readiness endpoint
-- Added safer Telegram API failure handling
-- Added configured-but-failed Telegram error handling
-- Added Telegram route and service tests
-- Verified real Telegram Bot API delivery locally
-- Kept secrets local-only through `.env`
+Delivered:
+
+- Telegram readiness/status endpoint
+- Telegram test notification endpoint
+- safer Telegram credential handling
+- stronger Telegram notifier tests
+- live delivery validation workflow
 
 ---
 
@@ -273,122 +291,174 @@ Status: Completed
 
 Status: Completed
 
-- Updated README current version and service URLs
-- Updated Telegram documentation
-- Updated Prometheus and Grafana documentation
-- Updated screenshot evidence notes
-- Updated changelog
-- Updated roadmap
-- Updated release metadata
+Delivered:
+
+- README version and milestone cleanup
+- changelog update
+- roadmap update
+- screenshot/evidence guidance
+- release metadata bump to `1.4.3`
+
+---
+
+### v1.5.0 — Portfolio Release Polish
+
+Status: Completed
+
+Delivered:
+
+- README refreshed as portfolio landing page
+- architecture documentation updated to current v1.5.0 system
+- changelog updated
+- roadmap updated
+- portfolio release summary added
+- demo walkthrough added
+- release metadata bumped to `1.5.0`
+- full test baseline preserved: `114 passed`
 
 ---
 
 ## Planned Milestones
 
-### v1.5.0 — Portfolio Release Polish
-
-Status: Planned
-
-Goals:
-
-- Make the project easier to understand as a portfolio project
-- Add final demo workflow documentation
-- Add public-safe screenshot references
-- Add architecture diagram updates
-- Add interview/demo talking points
-- Add troubleshooting guide for MacBook + Windows laptop workflow
-
-Planned tasks:
-
-- Add or update `docs/architecture.md`
-- Add local demo checklist
-- Add screenshot checklist
-- Add troubleshooting notes
-- Add portfolio summary section
-- Add final project walk-through section
-
----
-
 ### v1.6.0 — Real Match Data Sync Improvement
 
-Status: Planned
+Goal:
 
-Goals:
+Improve real provider data synchronization and make the project stronger for real-world football data workflows.
 
-- Improve provider sync reliability
-- Make live football API behavior easier to inspect
-- Improve error handling for provider failures
+Potential scope:
 
-Planned tasks:
+- improve provider sync error handling
+- add clearer sync status metadata
+- add provider response validation
+- improve duplicate handling
+- improve fixture update rules
+- document provider sync limitations
+- add tests for provider edge cases
 
-- Add provider sync status response improvements
-- Add last sync timestamp
-- Add sync history tracking
-- Add API rate-limit notes
-- Add failed provider sync tests
-- Improve dashboard provider sync visibility
+Why it matters:
+
+This would make the app feel closer to a real production-style sports data service.
 
 ---
 
 ### v1.7.0 — AI Insights Upgrade
 
-Status: Planned
+Goal:
 
-Goals:
+Improve the AI layer from basic fixture summaries into richer football analysis.
 
-- Improve local AI and deterministic summary usefulness
-- Add richer summaries for groups, teams, and completed matches
+Potential scope:
 
-Planned tasks:
+- standings-aware summaries
+- team form summaries
+- group qualification scenario summaries
+- player-stat-aware insights
+- better prompt templates
+- more structured fallback responses
+- AI response tests
 
-- Improve local Llama prompt structure
-- Add group standings summary
-- Add match result summary
-- Add team performance summary
-- Add AI fallback messaging
-- Add AI insight history
-- Add tests for AI response handling
+Why it matters:
+
+This would make the AI component more meaningful and more closely tied to the football analytics domain.
 
 ---
 
 ### v1.8.0 — Portfolio Demo Polish
 
-Status: Planned
+Goal:
 
-Goals:
+Create a smoother final demo experience for GitHub, LinkedIn, and interviews.
 
-- Prepare the project for interviews, LinkedIn, and portfolio walkthroughs
+Potential scope:
 
-Planned tasks:
+- curated demo seed flow
+- optional committed screenshots
+- demo evidence folder
+- recorded demo script
+- recruiter-friendly project summary
+- LinkedIn launch post draft
+- final release checklist
 
-- Add demo script
-- Add README screenshot gallery
-- Add final architecture diagram
-- Add beginner-friendly setup guide
-- Add Windows host + MacBook control workflow guide
+Why it matters:
+
+This would help turn the project from a strong technical repo into a polished public showcase.
+
+---
+
+## Longer-Term Ideas
+
+Potential future ideas beyond v1.8.0:
+
+- cloud deployment
+- authentication
+- user accounts
+- scheduled provider sync
+- background task queue
+- Redis caching
+- richer dashboard charts
+- PDF or HTML match reports
+- team comparison views
+- deployment to a low-cost VPS
+- Kubernetes demo deployment
+- CI/CD image build and deploy workflow
 
 ---
 
 ## Security Notes
 
-- Never commit `.env`
-- Never commit real API keys
-- Never commit real Telegram bot tokens
-- Never commit Telegram chat IDs
-- Never expose secrets in screenshots
-- Use `.env.example` only for safe placeholders
-- Use deployment secrets for production-style environments
+Current security posture:
+
+- local-first portfolio/demo application
+- secrets managed through `.env`
+- `.env.example` contains placeholders only
+- Telegram credentials are not hardcoded
+- API provider key is not hardcoded
+- local Grafana credentials are demo-only
+
+Future production hardening would require:
+
+- HTTPS
+- real authentication
+- stronger secret management
+- restricted network exposure
+- production database credentials
+- backup and restore strategy
+- logging and alerting review
 
 ---
 
 ## Cost Notes
 
-This project is designed to run locally through Docker Compose.
+The current project is designed to run locally through Docker Compose.
 
-Optional external services may include:
+This keeps cost low because the main services run on local machines:
 
-- API-Football / API-Sports
-- Telegram Bot API
-- Ollama local models
+- MacBook for development
+- Windows laptop for Docker/runtime/demo hosting
 
-The current local-first setup avoids cloud costs by default.
+Optional external services may have separate limits or costs:
+
+- API-Football provider usage
+- cloud hosting if added later
+- external observability tools if used later
+
+---
+
+## Roadmap Principle
+
+The project should continue to follow this pattern:
+
+```text
+small milestone
+clear scope
+full-file documentation where needed
+tests pass
+commit
+push
+PR
+merge
+publish
+```
+
+This keeps the project safe, explainable, and portfolio-ready.
