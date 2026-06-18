@@ -32,7 +32,7 @@ The goal is to make the existing system look and feel like a serious portfolio p
 ```text
 Version: v1.5.0
 Release name: Portfolio Release Polish
-Test status: 114 passed
+Test status: 138 passed
 Runtime: Docker Compose local stack
 Primary demo services: FastAPI, dashboard, PostgreSQL, Prometheus, Grafana
 Optional integrations: API-Football, Telegram, Ollama / Local Llama
@@ -142,7 +142,7 @@ That is useful in interviews because it shows the project is not only manually t
 A strong demo flow is:
 
 1. Open GitHub README and explain the project purpose.
-2. Run or show `python -m pytest` with `114 passed`.
+2. Run or show `python -m pytest` with `138 passed`.
 3. Start Docker Compose.
 4. Open FastAPI `/health`.
 5. Open FastAPI `/docs`.
@@ -208,5 +208,5 @@ Highlights:
 - Added demo walkthrough
 - Updated changelog and roadmap
 - Bumped release metadata to 1.5.0
-- Verified full test suite: 114 passed
+- Verified full test suite: 138 passed
 ```
