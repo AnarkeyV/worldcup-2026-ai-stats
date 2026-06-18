@@ -1,3 +1,5 @@
+import pytest
+
 from app.models.fixture import Fixture
 from app.services.fixture_sync_service import sync_fixtures
 
@@ -97,6 +99,7 @@ def test_sync_fixtures_updates_existing_fixture(db_session):
     assert saved_fixture.created_at == "2026-06-16T00:00:00+00:00"
     assert saved_fixture.updated_at != "2026-06-16T00:00:00+00:00"
 
+
 def test_sync_fixtures_detects_newly_completed_existing_fixture(db_session):
     existing_fixture = Fixture(
         external_id="provider-fixture-3",
@@ -144,6 +147,53 @@ def test_sync_fixtures_detects_newly_completed_existing_fixture(db_session):
     assert result["newly_completed"] == ["provider-fixture-3"]
 
 
+def test_sync_fixtures_detects_uppercase_provider_completed_status(db_session):
+    existing_fixture = Fixture(
+        external_id="provider-fixture-uppercase-ft",
+        competition="FIFA World Cup 2026",
+        stage="Group Stage",
+        group_name="Group B",
+        home_team="Spain",
+        away_team="Japan",
+        home_team_code="ESP",
+        away_team_code="JPN",
+        kickoff_time="2026-06-17T19:00:00+00:00",
+        venue="BMO Field",
+        status="scheduled",
+        home_score=None,
+        away_score=None,
+        created_at="2026-06-16T00:00:00+00:00",
+        updated_at="2026-06-16T00:00:00+00:00",
+    )
+    db_session.add(existing_fixture)
+    db_session.commit()
+
+    fixtures = [
+        {
+            "external_id": "provider-fixture-uppercase-ft",
+            "competition": "FIFA World Cup 2026",
+            "stage": "Group Stage",
+            "group_name": "Group B",
+            "home_team": "Spain",
+            "away_team": "Japan",
+            "home_team_code": "ESP",
+            "away_team_code": "JPN",
+            "kickoff_time": "2026-06-17T19:00:00+00:00",
+            "venue": "BMO Field",
+            "status": "FT",
+            "home_score": 2,
+            "away_score": 2,
+        }
+    ]
+
+    result = sync_fixtures(db_session, fixtures)
+
+    assert result["created"] == 0
+    assert result["updated"] == 1
+    assert result["newly_completed_count"] == 1
+    assert result["newly_completed"] == ["provider-fixture-uppercase-ft"]
+
+
 def test_sync_fixtures_does_not_duplicate_already_completed_fixture(db_session):
     existing_fixture = Fixture(
         external_id="provider-fixture-4",
@@ -189,3 +239,26 @@ def test_sync_fixtures_does_not_duplicate_already_completed_fixture(db_session):
     assert result["updated"] == 1
     assert result["newly_completed_count"] == 0
     assert result["newly_completed"] == []
+
+
+def test_sync_fixtures_rejects_missing_external_id(db_session):
+    fixtures = [
+        {
+            "external_id": "",
+            "competition": "FIFA World Cup 2026",
+            "stage": "Group Stage",
+            "group_name": "Group A",
+            "home_team": "Mexico",
+            "away_team": "South Africa",
+            "home_team_code": "MEX",
+            "away_team_code": "RSA",
+            "kickoff_time": "2026-06-11T19:00:00+00:00",
+            "venue": "Estadio Azteca",
+            "status": "scheduled",
+            "home_score": None,
+            "away_score": None,
+        }
+    ]
+
+    with pytest.raises(ValueError, match="Fixture external_id is required."):
+        sync_fixtures(db_session, fixtures)

@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.fixture import Fixture
-from app.providers.api_football import ApiFootballProvider
+from app.providers.api_football import ApiFootballProvider, ApiFootballProviderError
 from app.services.fixture_sync_service import sync_fixtures
 from app.services.metrics_service import (
     record_fixture_sync_metrics,
@@ -255,6 +255,17 @@ def sync_provider_fixtures(db: Session = Depends(get_db)):
 
         raise HTTPException(
             status_code=400,
+            detail=str(error),
+        ) from error
+
+    except ApiFootballProviderError as error:
+        record_fixture_sync_metrics(
+            source="provider",
+            status="error",
+        )
+
+        raise HTTPException(
+            status_code=502,
             detail=str(error),
         ) from error
 
