@@ -6,6 +6,36 @@ This project follows semantic versioning and milestone-based releases.
 
 ---
 
+## [1.8.0] - AI Insights Upgrade
+
+### Added
+
+- Added `GET /ai/insights` for structured AI insights.
+- Added `backend/app/services/ai_insights_service.py` for deterministic, fallback-safe insight generation.
+- Added AI insight categories for fixture availability, completed results, standings leaders, strongest attacks, and provider sync runtime status.
+- Added group and team filtering for AI insights.
+- Added Structured AI Insights panel to the FastAPI static dashboard.
+- Added focused service, route, and dashboard coverage for the AI insights upgrade.
+- Added `docs/v1.8.0-ai-insights-upgrade.md` as a dedicated milestone guide.
+
+### Changed
+
+- Updated release metadata from `1.7.0` to `1.8.0`.
+- Updated dashboard footer to reflect `v1.8.0 — AI Insights Upgrade`.
+- Updated README, architecture, roadmap, and demo walkthrough documentation for the v1.8.0 release.
+
+### Tested
+
+- Expanded full test baseline from `138 passed` to `149 passed`.
+
+### Notes
+
+- The structured AI insights endpoint is intentionally deterministic and offline-safe.
+- `/ai/insights` does not require Ollama to be running.
+- The existing Local Llama summary endpoints remain available for local AI experimentation.
+
+---
+
 ## [1.7.0] - Provider Sync Observability and Runtime Demo
 
 ### Added

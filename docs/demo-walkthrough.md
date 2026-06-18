@@ -4,7 +4,7 @@
 
 This walkthrough explains how to demonstrate the World Cup 2026 AI Stats Dashboard project during a portfolio review, interview, or technical discussion.
 
-The demo is designed for the current **v1.7.0 — Provider Sync Observability & Runtime Demo** release.
+The demo is designed for the current **v1.8.0 — AI Insights Upgrade** release.
 
 ---
 
@@ -37,7 +37,7 @@ python -m pytest
 Expected test result:
 
 ```text
-138 passed
+149 passed
 ```
 
 Confirm `.env` exists:
@@ -174,7 +174,7 @@ Expected idea:
 {
   "status": "healthy",
   "service": "backend",
-  "version": "1.7.0"
+  "version": "1.8.0"
 }
 ```
 
@@ -205,9 +205,10 @@ Point out:
 
 - fixtures
 - standings
-- insights
+- group insights
+- structured AI insights
 - player stats
-- AI
+- AI summaries
 - Telegram notifications
 - metrics
 
@@ -345,6 +346,29 @@ The insights layer turns fixture and standings data into group-level analytics.
 
 ---
 
+## 8A. Show Structured AI Insights
+
+Open or run:
+
+```bash
+curl http://localhost:8000/ai/insights
+```
+
+Optional filtered examples:
+
+```bash
+curl "http://localhost:8000/ai/insights?group_name=Group%20A"
+curl "http://localhost:8000/ai/insights?team=Mexico"
+```
+
+Explain:
+
+```text
+v1.8.0 upgrades the AI layer with structured insights. The endpoint combines fixture data, standings context, and provider sync runtime state into deterministic insight cards that are safe for demos even when Ollama is not running.
+```
+
+---
+
 ## 9. Show Player Statistics
 
 Run:
@@ -380,7 +404,7 @@ Explain:
 
 ```text
 The project includes both a backend-served static dashboard and a separate dashboard container.
-For v1.7.0, the static dashboard includes a Provider Sync Runtime panel showing the latest sync status, provider, duration, fetched count, created count, updated count, newly completed count, and last error.
+For v1.8.0, the static dashboard includes both the Provider Sync Runtime panel and a Structured AI Insights panel. The AI insights panel shows fixture, result, standings, and sync-status insights in a clean dashboard format.
 ```
 
 ---
@@ -491,10 +515,11 @@ If Ollama is running, it can generate fixture summaries.
 If it is unavailable, the backend should handle that safely.
 ```
 
-Optional summary endpoint:
+Optional summary endpoints:
 
 ```bash
 curl http://localhost:8000/ai/fixtures/summary
+curl http://localhost:8000/ai/insights
 ```
 
 ---
@@ -563,7 +588,7 @@ docker compose ps
 Recommended screenshots for portfolio evidence:
 
 - README top section
-- `python -m pytest` showing `138 passed`
+- `python -m pytest` showing `149 passed`
 - Docker Compose containers running
 - `/health`
 - `/docs`
@@ -573,8 +598,9 @@ Recommended screenshots for portfolio evidence:
 - `/fixtures/sync/status` after sync
 - `/standings`
 - `/insights/groups`
+- `/ai/insights`
 - `/players/stats`
-- static dashboard with Provider Sync Runtime panel
+- static dashboard with Provider Sync Runtime and Structured AI Insights panels
 - Streamlit dashboard
 - Prometheus `worldcup_fixture_sync_*` query
 - Grafana provider sync observability dashboard
@@ -583,7 +609,7 @@ Recommended screenshots for portfolio evidence:
 Suggested local folder:
 
 ```text
-~/documents/world-cup-ai-stats-screenshots/v1.7.0-provider-sync-observability
+~/documents/world-cup-ai-stats-screenshots/v1.8.0-ai-insights-upgrade
 ```
 
 ---
