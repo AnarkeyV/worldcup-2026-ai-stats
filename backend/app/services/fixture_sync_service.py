@@ -1,22 +1,50 @@
 from datetime import datetime, timezone
+from typing import Any
 
 from sqlalchemy.orm import Session
 
 from app.models.fixture import Fixture
 
 
-COMPLETED_STATUSES = {"complete", "FT", "AET", "PEN"}
+COMPLETED_STATUSES = {
+    "complete",
+    "completed",
+    "finished",
+    "final",
+    "ft",
+    "full-time",
+    "full_time",
+    "match finished",
+    "aet",
+    "pen",
+}
 
 
 def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def _is_completed_status(status: str | None) -> bool:
+def _normalize_status(status: Any) -> str:
     if status is None:
-        return False
+        return ""
 
-    return status in COMPLETED_STATUSES
+    return str(status).strip().lower()
+
+
+def _is_completed_status(status: Any) -> bool:
+    return _normalize_status(status) in COMPLETED_STATUSES
+
+
+def _clean_external_id(value: Any) -> str:
+    if value is None:
+        raise ValueError("Fixture external_id is required.")
+
+    external_id = str(value).strip()
+
+    if not external_id:
+        raise ValueError("Fixture external_id is required.")
+
+    return external_id
 
 
 def sync_fixtures(db: Session, fixtures: list[dict]) -> dict:
@@ -40,7 +68,8 @@ def sync_fixtures(db: Session, fixtures: list[dict]) -> dict:
 
     for fixture_data in fixtures:
         item = fixture_data.copy()
-        external_id = item["external_id"]
+        external_id = _clean_external_id(item.get("external_id"))
+        item["external_id"] = external_id
 
         existing_fixture = (
             db.query(Fixture)

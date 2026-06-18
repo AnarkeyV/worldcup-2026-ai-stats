@@ -11,13 +11,13 @@ Each milestone is designed to add a clear capability, preserve test coverage, an
 Current version:
 
 ```text
-v1.5.0 — Portfolio Release Polish
+v1.6.0 — Real Match Data Sync Improvement
 ```
 
 Current test baseline:
 
 ```text
-114 passed
+123 passed
 ```
 
 Current runtime model:
@@ -318,29 +318,26 @@ Delivered:
 
 ---
 
-## Planned Milestones
-
 ### v1.6.0 — Real Match Data Sync Improvement
 
-Goal:
+Status: Completed
 
-Improve real provider data synchronization and make the project stronger for real-world football data workflows.
+Delivered:
 
-Potential scope:
-
-- improve provider sync error handling
-- add clearer sync status metadata
-- add provider response validation
-- improve duplicate handling
-- improve fixture update rules
-- document provider sync limitations
-- add tests for provider edge cases
-
-Why it matters:
-
-This would make the app feel closer to a real production-style sports data service.
+- API-Football provider status normalization
+- provider team-code fallback for database compatibility
+- incomplete provider fixture skipping
+- provider request and payload error handling
+- `/fixtures/sync/provider` 502 response for provider-side failures
+- sync service validation for missing fixture `external_id`
+- case-insensitive completed status detection
+- provider route tests for mocked success and provider failure
+- release metadata bumped to `1.6.0`
+- full test baseline expanded to `123 passed`
 
 ---
+
+## Planned Milestones
 
 ### v1.7.0 — AI Insights Upgrade
 

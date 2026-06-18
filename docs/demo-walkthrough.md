@@ -4,7 +4,7 @@
 
 This walkthrough explains how to demonstrate the World Cup 2026 AI Stats Dashboard project during a portfolio review, interview, or technical discussion.
 
-The demo is designed for the current **v1.5.0 — Portfolio Release Polish** release.
+The demo is designed for the current **v1.6.0 — Real Match Data Sync Improvement** release.
 
 ---
 
@@ -135,7 +135,7 @@ Say:
 
 ```text
 Before showing the runtime demo, I normally verify the release baseline.
-For v1.5.0, the current suite has 114 passing tests.
+For v1.6.0, the current suite has 123 passing tests.
 ```
 
 This demonstrates release discipline and confidence.
@@ -174,7 +174,7 @@ Expected idea:
 {
   "status": "healthy",
   "service": "backend",
-  "version": "1.5.0"
+  "version": "1.6.0"
 }
 ```
 
@@ -232,6 +232,24 @@ Explain:
 ```text
 This creates or updates sample World Cup fixtures so the rest of the system has data to work with.
 ```
+
+---
+
+## 6A. Explain Provider Sync Improvement
+
+Show the provider sync endpoint in FastAPI docs:
+
+```text
+POST /fixtures/sync/provider
+```
+
+Explain:
+
+```text
+The v1.6.0 milestone improves real provider sync reliability. API-Football payloads are normalized before database writes, provider-native statuses are converted into app-friendly statuses, missing team codes get safe fallbacks, incomplete provider rows are skipped, and provider-side failures now return clear 502 responses.
+```
+
+Do not run live provider sync during a normal demo unless `.env` contains a valid API-Football key.
 
 ---
 
@@ -430,9 +448,9 @@ Docker Compose, Prometheus, Grafana, Telegram notifications, and local AI summar
 I built it milestone by milestone. It started as a simple backend and grew into a
 containerized, monitored, tested, and documented system.
 
-The current v1.5.0 release focuses on portfolio polish. The app has 114 passing tests,
+The current v1.6.0 release improves real provider fixture sync reliability. The app has 123 passing tests,
 a Docker Compose runtime, API documentation, dashboard views, optional Telegram delivery,
-optional local Llama summaries, and a provisioned Grafana monitoring dashboard.
+optional local Llama summaries, a provisioned Grafana monitoring dashboard, and a stronger API-Football sync layer.
 ```
 
 ---
@@ -464,7 +482,7 @@ docker compose ps
 Recommended screenshots for portfolio evidence:
 
 - README top section
-- `python -m pytest` showing `114 passed`
+- `python -m pytest` showing `123 passed`
 - Docker Compose containers running
 - `/health`
 - `/docs`
@@ -481,7 +499,7 @@ Recommended screenshots for portfolio evidence:
 Suggested local folder:
 
 ```text
-~/documents/world-cup-ai-stats-screenshots/v1.5.0-portfolio-release
+~/documents/world-cup-ai-stats-screenshots/v1.6.0-real-match-data-sync
 ```
 
 ---
