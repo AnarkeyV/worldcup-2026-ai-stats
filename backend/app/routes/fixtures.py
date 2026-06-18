@@ -12,7 +12,10 @@ from app.services.metrics_service import (
     record_notification_result,
 )
 from app.services.sample_data import SAMPLE_FIXTURES
-from app.services.telegram_notifier import send_completed_fixture_notifications
+from app.services.telegram_notifier import (
+    TelegramNotificationError,
+    send_completed_fixture_notifications,
+)
 
 router = APIRouter(
     prefix="/fixtures",
@@ -86,6 +89,18 @@ def notify_newly_completed_fixtures(
 
         return {
             "status": "skipped",
+            "reason": str(error),
+            "sent": 0,
+        }
+
+    except TelegramNotificationError as error:
+        record_notification_result(
+            channel="telegram",
+            status="failed",
+        )
+
+        return {
+            "status": "failed",
             "reason": str(error),
             "sent": 0,
         }

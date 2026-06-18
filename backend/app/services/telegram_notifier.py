@@ -3,6 +3,10 @@ import httpx
 from app.config import settings
 
 
+class TelegramNotificationError(RuntimeError):
+    """Raised when Telegram is configured but the Telegram API request fails."""
+
+
 def build_completed_fixture_message(fixture: dict) -> str:
     """
     Build a Telegram message for a completed fixture.
@@ -15,8 +19,8 @@ def build_completed_fixture_message(fixture: dict) -> str:
     """
     home_team = fixture["home_team"]
     away_team = fixture["away_team"]
-    home_score = fixture["home_score"]
-    away_score = fixture["away_score"]
+    home_score = fixture.get("home_score", "?")
+    away_score = fixture.get("away_score", "?")
     competition = fixture.get("competition", "FIFA World Cup 2026")
     stage = fixture.get("stage", "Match")
     venue = fixture.get("venue") or "Venue TBC"
@@ -34,9 +38,15 @@ def send_telegram_message(message: str) -> dict:
     """
     Send a Telegram message using the configured bot token and chat ID.
 
-    This function is safe by default because it raises a clear error when
+    This function is safe by default because it raises a clear ValueError when
     Telegram credentials are not configured.
+
+    If credentials are configured but Telegram cannot be reached, or Telegram
+    rejects the message, TelegramNotificationError is raised.
     """
+    if not message or not message.strip():
+        raise ValueError("Telegram message cannot be empty.")
+
     if not settings.telegram_bot_token or settings.telegram_bot_token == "replace_me":
         raise ValueError("TELEGRAM_BOT_TOKEN is not configured.")
 
@@ -45,17 +55,43 @@ def send_telegram_message(message: str) -> dict:
 
     url = f"https://api.telegram.org/bot{settings.telegram_bot_token}/sendMessage"
 
-    response = httpx.post(
-        url,
-        json={
-            "chat_id": settings.telegram_chat_id,
-            "text": message,
-        },
-        timeout=20.0,
-    )
-    response.raise_for_status()
+    try:
+        response = httpx.post(
+            url,
+            json={
+                "chat_id": settings.telegram_chat_id,
+                "text": message,
+                "disable_web_page_preview": True,
+            },
+            timeout=20.0,
+        )
+        response.raise_for_status()
 
-    return response.json()
+    except httpx.HTTPStatusError as error:
+        status_code = error.response.status_code
+        raise TelegramNotificationError(
+            f"Telegram API returned status {status_code}."
+        ) from error
+
+    except httpx.RequestError as error:
+        raise TelegramNotificationError(
+            f"Telegram API request failed: {error}"
+        ) from error
+
+    try:
+        data = response.json()
+    except ValueError as error:
+        raise TelegramNotificationError(
+            "Telegram API returned an invalid JSON response."
+        ) from error
+
+    if not data.get("ok", False):
+        description = data.get("description", "Unknown Telegram API error.")
+        raise TelegramNotificationError(
+            f"Telegram API rejected the message: {description}"
+        )
+
+    return data
 
 
 def send_completed_fixture_notifications(fixtures: list[dict]) -> dict:
