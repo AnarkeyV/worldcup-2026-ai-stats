@@ -1,137 +1,123 @@
 # ⚽ World Cup 2026 AI Stats Dashboard
 
-![FastAPI](https://img.shields.io/badge/backend-FastAPI-green)
-![SQLAlchemy](https://img.shields.io/badge/ORM-SQLAlchemy-blue)
-![Dashboard](https://img.shields.io/badge/dashboard-FastAPI%20Static%20Dashboard-skyblue)
-![Docker](https://img.shields.io/badge/container-Docker-blue)
-![Python](https://img.shields.io/badge/python-3.14-yellow)
-![Version](https://img.shields.io/badge/version-v1.4.3-purple)
+![Version](https://img.shields.io/badge/version-v1.5.0-purple)
 ![Tests](https://img.shields.io/badge/tests-114%20passed-brightgreen)
-
-A self-hosted, containerized, AI-assisted World Cup 2026 match tracking and insights platform built with **FastAPI**, **SQLAlchemy**, **PostgreSQL-ready database configuration**, **Docker Compose**, a **FastAPI static dashboard**, **Prometheus**, **Grafana**, **Telegram Bot API notifications**, and a **local-first Llama/Ollama AI summary workflow**.
-
-This project is intentionally being built in public, milestone by milestone, to demonstrate backend development, API integration, database design, testing, DevOps fundamentals, notification workflows, dashboard development, deterministic AI-assisted summaries, local-first AI integration, observability, and practical sports analytics.
-
----
+![Backend](https://img.shields.io/badge/backend-FastAPI-blue)
+![Dashboard](https://img.shields.io/badge/dashboard-Streamlit%20%2B%20Static%20UI-orange)
+![Database](https://img.shields.io/badge/database-PostgreSQL-blue)
+![Monitoring](https://img.shields.io/badge/monitoring-Prometheus%20%2B%20Grafana-red)
+![AI](https://img.shields.io/badge/AI-Local%20Llama%20%2F%20Ollama-green)
+![Notifications](https://img.shields.io/badge/notifications-Telegram-lightblue)
 
 ## 📌 Current Version
 
-**v1.4.3 — Documentation and Demo Evidence Cleanup**
+**v1.5.0 — Portfolio Release Polish**
 
-This milestone refreshes the project documentation after the Grafana dashboard polish and live Telegram API integration milestones. It aligns the README, changelog, roadmap, service URLs, screenshot evidence notes, and release metadata with the current working application.
+World Cup 2026 AI Stats Dashboard is a portfolio-grade football analytics platform built around the FIFA World Cup 2026 use case.
 
-The application now supports:
+The project combines:
 
-- fixture syncing
-- fixture filtering
-- match completion detection
+- FastAPI backend services
+- PostgreSQL persistence
+- fixture synchronization
+- standings calculation
+- team and group insights
+- player statistics
+- local AI summaries through Ollama / Llama
 - Telegram notification workflows
-- real Telegram Bot API delivery testing
-- interactive dashboard cards
-- dashboard group standings
-- dashboard group insights
-- dashboard player statistics cards
-- `/standings` API endpoint
-- `/insights/groups` API endpoint
-- `/players/stats` API endpoint
-- `/players/stats/sync/sample` sample sync endpoint
-- `/metrics` Prometheus metrics endpoint
-- Prometheus container in Docker Compose
-- Grafana container in Docker Compose
-- provisioned Grafana Prometheus datasource
-- provisioned Grafana dashboard
-- deterministic AI summaries
-- standings-aware tournament summaries
-- insights-aware tournament summaries
-- local Llama/Ollama health checks
-- safe fallback behavior when optional services are not configured
+- Prometheus metrics
+- Grafana dashboards
+- Docker Compose runtime orchestration
+- automated pytest coverage
+
+The current release focuses on polishing the project for portfolio review, recruiter screening, interview discussion, and demo readiness.
 
 ---
 
 ## 🎯 Project Purpose
 
-The World Cup is a strong use case for a practical DevOps and backend portfolio project because match data changes over time.
+This project was created as a practical DevOps and backend engineering portfolio project.
 
-Fixtures begin as scheduled, become live, then become completed. Once completed, downstream workflows can be triggered, such as:
+Instead of only showing a basic API, the project demonstrates how a real application can grow milestone by milestone from a small backend into a monitored, containerized, documented, and demo-ready system.
 
-1. updating the database
-2. detecting newly completed matches
-3. sending notifications
-4. updating standings
-5. generating summaries
-6. exposing metrics
-7. viewing observability dashboards
-8. demonstrating operational readiness
+The theme is the **FIFA World Cup 2026**, but the engineering ideas are broader:
 
-This project shows how an application can grow from a simple health endpoint into a more complete backend, dashboard, notification, monitoring, and AI-assisted analytics platform.
+- API design
+- database-backed services
+- provider integration
+- test-driven milestone delivery
+- local development workflow
+- Docker runtime workflow
+- monitoring and observability
+- notification integration
+- AI-assisted summaries
+- release documentation
+- portfolio storytelling
 
 ---
 
 ## 🧭 Project Goals
 
-This project is designed to demonstrate:
+The project is designed to show that I can:
 
-- backend API development with FastAPI
-- SQLAlchemy database modelling
-- PostgreSQL-ready application configuration
-- Docker Compose local deployment
-- API provider integration patterns
-- sample-data fallback design
-- match status transition handling
-- Telegram notification workflows
-- local-first AI integration patterns
-- deterministic summary generation
-- dashboard development with HTML, CSS, and JavaScript
-- player and team analytics
-- Prometheus metrics instrumentation
-- Grafana dashboard provisioning
-- automated tests with pytest
-- safe secret handling with `.env`
-- public portfolio documentation
+1. Build and structure a backend application using FastAPI.
+2. Model football fixtures, standings, insights, and player statistics.
+3. Use PostgreSQL as a persistent runtime database.
+4. Containerize services using Docker and Docker Compose.
+5. Integrate provider-based football data sync logic.
+6. Add AI-generated summaries using a local LLM workflow.
+7. Send Telegram notifications safely using configurable credentials.
+8. Expose Prometheus metrics for runtime monitoring.
+9. Provision Grafana dashboards through Docker-mounted configuration.
+10. Maintain release quality through automated tests and documentation.
+11. Explain the system clearly to non-technical and technical reviewers.
 
 ---
 
 ## 🧱 Architecture Overview
 
+At a high level, the system runs as a multi-service Docker Compose application.
+
 ```text
-User / Browser
-    |
-    +--> FastAPI Static Dashboard
-    |       |
-    |       +--> /dashboard
-    |       +--> /fixtures
-    |       +--> /standings
-    |       +--> /insights/groups
-    |       +--> /players/stats
-    |       +--> /ai/fixtures/summary
-    |
-    +--> FastAPI Backend API
-            |
-            +--> Fixture Routes
-            |       +--> sample sync
-            |       +--> provider sync
-            |       +--> fixture filtering
-            |
-            +--> Standings Routes
-            |       +--> group table calculation
-            |
-            +--> Insights Routes
-            |       +--> group analytics
-            |
-            +--> Player Stats Routes
-            |       +--> player sample sync
-            |       +--> player stat filtering/sorting
-            |
-            +--> Notification Routes
-            |       +--> Telegram readiness status
-            |       +--> Telegram test notification
-            |
-            +--> Metrics Route
-            |       +--> Prometheus metrics
-            |
-            +--> AI Routes
-                    +--> deterministic summaries
-                    +--> local Llama/Ollama health checks
++--------------------+
+| User / Reviewer    |
++---------+----------+
+          |
+          v
++--------------------+          +--------------------+
+| Streamlit Dashboard|          | Static Dashboard   |
+| localhost:18501    |          | /dashboard         |
++---------+----------+          +---------+----------+
+          |                               |
+          +---------------+---------------+
+                          |
+                          v
++---------------------------------------------------+
+| FastAPI Backend                                  |
+| localhost:8000                                  |
+|                                                   |
+| Routes:                                           |
+| /fixtures, /standings, /insights/groups           |
+| /players/stats, /ai/*, /notifications/*           |
+| /metrics, /health, /dashboard                     |
++----------------------+----------------------------+
+                       |
+          +------------+-------------+
+          |                          |
+          v                          v
++--------------------+     +-------------------------+
+| PostgreSQL         |     | Local Llama / Ollama    |
+| localhost:5432     |     | localhost:11434         |
++--------------------+     +-------------------------+
+          |
+          v
++--------------------+     +-------------------------+
+| Prometheus         | --> | Grafana                 |
+| localhost:9090     |     | localhost:3000          |
++--------------------+     +-------------------------+
+
+Telegram Bot API is used for optional notification delivery.
+External football API provider configuration is supported through environment variables.
 ```
 
 ---
@@ -141,55 +127,73 @@ User / Browser
 ### Sample Fixture Sync Flow
 
 ```text
+User / Dashboard
+      |
+      v
 POST /fixtures/sync/sample
-    |
-    +--> load sample fixtures
-    +--> insert or update database records
-    +--> detect newly completed fixtures
-    +--> send Telegram notifications if configured
-    +--> update Prometheus metrics
-    +--> return sync and notification summary
+      |
+      v
+Sample data service
+      |
+      v
+PostgreSQL fixtures table
+      |
+      v
+Fixtures, standings, insights, dashboard, metrics
 ```
 
 ### Provider Fixture Sync Flow
 
 ```text
+User / Dashboard
+      |
+      v
 POST /fixtures/sync/provider
-    |
-    +--> API-Football provider client
-    +--> normalize provider fixture response
-    +--> insert or update database records
-    +--> detect newly completed fixtures
-    +--> send Telegram notifications if configured
-    +--> update Prometheus metrics
-    +--> return provider sync and notification summary
+      |
+      v
+API-Football provider adapter
+      |
+      v
+External provider response
+      |
+      v
+Normalized fixture records
+      |
+      v
+PostgreSQL
 ```
 
 ### Telegram Notification Flow
 
 ```text
-Completed fixture detected
-    |
-    +--> build_completed_fixture_message()
-    +--> check TELEGRAM_BOT_TOKEN
-    +--> check TELEGRAM_CHAT_ID
-    +--> send message using Telegram Bot API
-    +--> record sent/skipped/failed metric
-    +--> return notification result
+Match / test notification event
+      |
+      v
+Notification route or service
+      |
+      v
+Telegram notifier
+      |
+      v
+Telegram Bot API
+      |
+      v
+Configured chat
 ```
 
 ### Observability Flow
 
 ```text
-FastAPI Backend
-    |
-    +--> /metrics
-            |
-            +--> Prometheus scrapes backend:8000/metrics
-                    |
-                    +--> Grafana reads from Prometheus
-                            |
-                            +--> World Cup overview dashboard
+FastAPI backend
+      |
+      v
+/metrics endpoint
+      |
+      v
+Prometheus scrape
+      |
+      v
+Grafana provisioned dashboard
 ```
 
 ---
@@ -198,64 +202,151 @@ FastAPI Backend
 
 ### Fixtures
 
-- list fixtures
-- get single fixture
-- sync sample fixtures
-- sync provider fixtures
-- filter by group
-- filter by status
-- search by team name or code
-- detect newly completed fixtures during sync
+The fixtures module supports:
+
+- listing fixtures
+- filtering by group
+- filtering by match status
+- searching by team
+- fetching a fixture by ID
+- syncing sample fixture data
+- syncing provider-backed fixture data
+
+Key endpoints:
+
+```text
+GET  /fixtures
+GET  /fixtures/{fixture_id}
+POST /fixtures/sync/sample
+POST /fixtures/sync/provider
+```
+
+---
 
 ### Standings
 
-- calculate group standings
-- expose standings through API
-- show standings in dashboard
-- support standings-aware AI summaries
+The standings module calculates group table information from fixture results.
+
+It supports:
+
+- group ranking
+- points calculation
+- goals for and against
+- goal difference
+- wins, draws, and losses
+
+Key endpoint:
+
+```text
+GET /standings
+```
+
+---
 
 ### Group Insights
 
-- generate group-level analytics
-- expose insight cards through API
-- show insight cards in dashboard
-- support insights-aware tournament summaries
+The insights module provides analytics-style summaries for World Cup groups.
+
+It supports:
+
+- group-level summaries
+- completed fixture counts
+- standings-linked insight data
+- dashboard-ready analytics output
+
+Key endpoint:
+
+```text
+GET /insights/groups
+```
+
+---
 
 ### Player Statistics
 
-- sync sample player statistics
-- expose player statistics through API
-- filter by team
-- filter by group
-- sort by goals, assists, cards, minutes, player name, and team
-- show player statistics in dashboard cards
+The player statistics module adds player-level data to the project.
 
-### Telegram Notifications
+It supports:
 
-- format completed match notifications
-- safely skip sending when credentials are missing
-- expose Telegram readiness endpoint
-- send real Telegram Bot API test messages when configured
-- handle Telegram API/network failures safely
-- record notification metrics
+- syncing sample player statistics
+- listing player stats
+- filtering by team
+- sorting by goals and other stats
+
+Key endpoints:
+
+```text
+POST /players/stats/sync/sample
+GET  /players/stats
+```
+
+---
 
 ### AI Summary Layer
 
-- deterministic fixture summaries
-- standings-aware tournament summaries
-- insights-aware tournament summaries
-- local Llama/Ollama health checks
-- safe fallback behavior when local AI is unavailable
+The AI layer uses a local Llama/Ollama workflow for summary generation.
+
+It supports:
+
+- AI health checks
+- fixture summary generation
+- fixture-specific summary generation
+- safer fallback behavior when the local model is unavailable
+
+Key endpoints:
+
+```text
+GET /ai/health
+GET /ai/fixtures/summary
+GET /ai/fixtures/{fixture_id}/summary
+```
+
+---
+
+### Telegram Notifications
+
+The Telegram layer supports live notification readiness and test delivery.
+
+It supports:
+
+- checking whether Telegram credentials are configured
+- sending a test Telegram notification
+- safe configuration through environment variables
+- no hardcoded secrets
+
+Key endpoints:
+
+```text
+GET  /notifications/telegram/status
+POST /notifications/telegram/test
+```
+
+---
 
 ### Monitoring and Observability
 
-- Prometheus metrics endpoint
-- Prometheus Docker Compose service
-- Prometheus scrape config
-- Grafana Docker Compose service
+The monitoring layer includes:
+
+- FastAPI `/metrics` endpoint
+- Prometheus scrape configuration
 - Grafana datasource provisioning
 - Grafana dashboard provisioning
-- useful backend runtime panels
+- application info metric with version and environment labels
+
+Key endpoint:
+
+```text
+GET /metrics
+```
+
+Monitoring files:
+
+```text
+monitoring/prometheus.yml
+monitoring/grafana/dashboards/worldcup-overview.json
+monitoring/grafana/provisioning/dashboards/dashboards.yml
+monitoring/grafana/provisioning/datasources/prometheus.yml
+```
 
 ---
 
@@ -264,43 +355,37 @@ FastAPI Backend
 | Area | Technology |
 |---|---|
 | Backend API | FastAPI |
-| Database | PostgreSQL-ready configuration |
-| ORM | SQLAlchemy |
-| Dashboard | FastAPI static HTML/CSS/JS |
-| Legacy Dashboard | Streamlit |
-| Containerization | Docker Compose |
-| Testing | pytest |
-| HTTP Client | httpx, urllib standard library |
-| Settings | pydantic-settings |
-| CI | GitHub Actions |
+| Backend Server | Uvicorn |
+| Database | PostgreSQL |
+| Database Driver | psycopg |
+| Dashboard | Streamlit and static HTML/CSS/JS |
+| AI Layer | Local Llama through Ollama |
 | Notifications | Telegram Bot API |
-| Local AI Health | Ollama / Llama |
-| Deterministic Summaries | Rules-based Python service logic |
 | Metrics | Prometheus client |
 | Monitoring | Prometheus |
-| Observability Dashboard | Grafana |
+| Visualization | Grafana |
+| Runtime | Docker Compose |
+| Testing | pytest |
+| CI | GitHub Actions |
+| Language | Python |
 
 ---
 
 ## 📁 Project Structure
 
 ```text
-worldcup-2026-ai-stats/
+.
 ├── .github/
 │   └── workflows/
 │       └── ci.yml
 ├── backend/
 │   ├── app/
+│   │   ├── config.py
+│   │   ├── database.py
+│   │   ├── main.py
 │   │   ├── models/
-│   │   │   ├── __init__.py
-│   │   │   ├── fixture.py
-│   │   │   └── player_stat.py
 │   │   ├── providers/
-│   │   │   ├── __init__.py
-│   │   │   ├── api_football.py
-│   │   │   └── base.py
 │   │   ├── routes/
-│   │   │   ├── __init__.py
 │   │   │   ├── ai.py
 │   │   │   ├── dashboard.py
 │   │   │   ├── fixtures.py
@@ -310,68 +395,40 @@ worldcup-2026-ai-stats/
 │   │   │   ├── players.py
 │   │   │   └── standings.py
 │   │   ├── services/
-│   │   │   ├── __init__.py
 │   │   │   ├── fixture_sync_service.py
 │   │   │   ├── insights_service.py
 │   │   │   ├── local_llama_client.py
 │   │   │   ├── metrics_service.py
-│   │   │   ├── player_stats_sample_data.py
 │   │   │   ├── player_stats_service.py
 │   │   │   ├── sample_data.py
 │   │   │   ├── standings_service.py
 │   │   │   └── telegram_notifier.py
-│   │   ├── static/
-│   │   │   ├── dashboard.css
-│   │   │   ├── dashboard.html
-│   │   │   └── dashboard.js
-│   │   ├── __init__.py
-│   │   ├── config.py
-│   │   ├── database.py
-│   │   └── main.py
+│   │   └── static/
+│   │       ├── dashboard.css
+│   │       ├── dashboard.html
+│   │       └── dashboard.js
 │   ├── tests/
-│   │   ├── conftest.py
-│   │   ├── test_ai_routes.py
-│   │   ├── test_api_football_provider.py
-│   │   ├── test_dashboard.py
-│   │   ├── test_fixture_sync_service.py
-│   │   ├── test_fixtures.py
-│   │   ├── test_health.py
-│   │   ├── test_insights_routes.py
-│   │   ├── test_insights_service.py
-│   │   ├── test_local_llama_client.py
-│   │   ├── test_metrics.py
-│   │   ├── test_monitoring_config.py
-│   │   ├── test_notifications.py
-│   │   ├── test_player_stats_routes.py
-│   │   ├── test_player_stats_service.py
-│   │   ├── test_release_workflow.py
-│   │   ├── test_standings_routes.py
-│   │   ├── test_standings_service.py
-│   │   └── test_telegram_notifier.py
 │   ├── Dockerfile
 │   ├── pytest.ini
 │   └── requirements.txt
 ├── dashboard/
-│   ├── Dockerfile
 │   ├── app.py
+│   ├── Dockerfile
 │   └── requirements.txt
-├── monitoring/
-│   ├── grafana/
-│   │   ├── dashboards/
-│   │   │   └── worldcup-overview.json
-│   │   └── provisioning/
-│   │       ├── dashboards/
-│   │       │   └── dashboards.yml
-│   │       └── datasources/
-│   │           └── prometheus.yml
-│   └── prometheus.yml
 ├── docs/
 │   ├── architecture.md
 │   ├── changelog.md
+│   ├── demo-walkthrough.md
+│   ├── portfolio-release.md
 │   └── roadmap.md
 ├── infra/
-├── .env.example
-├── .gitignore
+│   └── docker-compose.yml
+├── monitoring/
+│   ├── prometheus.yml
+│   └── grafana/
+│       ├── dashboards/
+│       │   └── worldcup-overview.json
+│       └── provisioning/
 ├── docker-compose.yml
 ├── README.md
 └── VERSION
@@ -383,26 +440,22 @@ worldcup-2026-ai-stats/
 
 ### Prerequisites
 
-Install the following:
+Install these tools before running the project:
 
 - Git
+- Python 3.14 or a compatible Python 3 version
 - Docker Desktop
-- Python 3.14 or compatible Python 3 version
-- VS Code or another code editor
-
-Optional:
-
-- API-Football / API-Sports account for real provider syncing
-- Telegram bot token and chat ID for real Telegram notification testing
-- Ollama for local AI health testing and future local AI workflows
-- Postman or curl for endpoint testing
+- Docker Compose
+- VS Code
+- Optional: Ollama for local AI summaries
+- Optional: Telegram bot token and chat ID for live notifications
 
 ---
 
 ## 📦 Clone the Repository
 
 ```bash
-git clone https://github.com/AnarkeyV/worldcup-2026-ai-stats.git
+git clone <your-repository-url>
 cd worldcup-2026-ai-stats
 ```
 
@@ -410,7 +463,7 @@ cd worldcup-2026-ai-stats
 
 ## 🔐 Environment Setup
 
-Create your local `.env` file from the example file.
+Create your local `.env` file from the example:
 
 ### macOS / Linux
 
@@ -424,21 +477,17 @@ cp .env.example .env
 Copy-Item .env.example .env
 ```
 
-The `.env` file is ignored by Git and should never be committed.
-
-The `.env.example` file is safe to commit because it only contains placeholders.
+Then edit `.env` as needed.
 
 ---
 
 ## 🧾 Environment Variables
 
-Current `.env.example`:
-
 ```env
 # App
 APP_NAME=World Cup 2026 AI Stats
 APP_ENV=development
-APP_VERSION=1.4.3
+APP_VERSION=1.5.0
 
 # Database
 POSTGRES_USER=worldcup
@@ -470,35 +519,41 @@ LLAMA_TIMEOUT_SECONDS=60
 PUBLIC_DASHBOARD_URL=http://localhost:8000/dashboard
 ```
 
+Never commit real API keys, Telegram bot tokens, chat IDs, or production secrets.
+
 ---
 
 ## 🐳 Run with Docker Compose
 
-From the project root:
-
-```bash
-docker compose up --build
-```
-
-Detached mode:
+Build and start the full local stack:
 
 ```bash
 docker compose up -d --build
 ```
 
-Stop:
+Check containers:
+
+```bash
+docker compose ps
+```
+
+View backend logs:
+
+```bash
+docker compose logs -f backend
+```
+
+Stop the stack:
 
 ```bash
 docker compose down
 ```
 
-Stop and remove volumes:
+Stop the stack and remove volumes:
 
 ```bash
 docker compose down -v
 ```
-
-Use `docker compose down -v` carefully because it removes the database, Prometheus, and Grafana volumes.
 
 ---
 
@@ -506,76 +561,91 @@ Use `docker compose down -v` carefully because it removes the database, Promethe
 
 | Service | URL |
 |---|---|
-| Backend API | http://localhost:8000 |
-| Backend Health Check | http://localhost:8000/health |
-| API Docs | http://localhost:8000/docs |
-| FastAPI Dashboard | http://localhost:8000/dashboard |
-| Fixtures API | http://localhost:8000/fixtures |
-| Standings API | http://localhost:8000/standings |
-| Group Insights API | http://localhost:8000/insights/groups |
-| Player Stats API | http://localhost:8000/players/stats |
-| AI Summary API | http://localhost:8000/ai/fixtures/summary |
-| Metrics API | http://localhost:8000/metrics |
+| FastAPI backend | http://localhost:8000 |
+| API docs | http://localhost:8000/docs |
+| Backend static dashboard | http://localhost:8000/dashboard |
+| Streamlit dashboard | http://localhost:18501 |
 | Prometheus | http://localhost:9090 |
 | Grafana | http://localhost:3000 |
-| Legacy Streamlit Dashboard | http://localhost:18501 |
+
+Grafana local credentials:
+
+```text
+Username: admin
+Password: admin
+```
+
+The Docker Compose file maps the Streamlit dashboard from container port `8501` to host port `18501` to avoid common local port conflicts.
 
 ---
 
 ## 🖥️ MacBook + Windows Laptop Workflow
 
-The project can be developed on a MacBook while running Docker Compose on a Windows laptop.
+This project is developed using a two-machine workflow:
+
+| Machine | Role |
+|---|---|
+| MacBook | Main development and control machine |
+| VS Code on MacBook | Main editor |
+| Windows laptop | Docker/runtime/demo host |
+| SSH from MacBook to Windows PowerShell | Optional Docker Compose checks |
 
 Typical workflow:
 
-```text
-MacBook
-    |
-    +--> VS Code / Git / pytest / browser testing
-    +--> SSH session into Windows laptop
-            |
-            +--> Docker Compose runtime
-            +--> backend, dashboard, postgres, prometheus, grafana
-```
+1. Edit project files on the MacBook using VS Code.
+2. Commit changes through Git.
+3. Run local tests on the MacBook.
+4. SSH into the Windows laptop if Docker runtime verification is needed.
+5. Run Docker Compose on the Windows laptop for demo checks.
+6. Use browser access to verify backend, dashboard, Prometheus, and Grafana.
 
-Useful SSH forwarding example:
+Example SSH-style flow:
 
 ```bash
-ssh -L 8000:localhost:8000 -L 9090:localhost:9090 -L 3000:localhost:3000 -L 18501:localhost:18501 <windows-user>@<windows-host>
+ssh <windows-user>@<windows-host>
 ```
 
-Then open these on the MacBook browser:
+Then inside Windows PowerShell:
 
-```text
-http://localhost:8000/docs
-http://localhost:8000/dashboard
-http://localhost:9090
-http://localhost:3000
-http://localhost:18501
+```powershell
+cd path\to\worldcup-2026-ai-stats
+docker compose up -d --build
+docker compose ps
 ```
 
 ---
 
 ## 🧪 Run Tests Locally
 
-From the project root:
+Run the full test suite from the project root:
 
 ```bash
-pytest -q
+python -m pytest
 ```
 
-Or from the backend folder:
-
-```bash
-cd backend
-pytest -q
-```
-
-Current expected result:
+Current release baseline:
 
 ```text
 114 passed
 ```
+
+The test suite covers:
+
+- health route
+- release workflow/version consistency
+- fixture routes
+- fixture sync service
+- API football provider adapter
+- dashboard routes
+- AI routes
+- local Llama client
+- standings routes and service
+- insights routes and service
+- player stats routes and service
+- metrics
+- monitoring configuration
+- Telegram notifier
+- Telegram notification routes
 
 ---
 
@@ -585,38 +655,52 @@ Current expected result:
 curl http://localhost:8000/health
 ```
 
-Example response:
+Expected response:
 
 ```json
 {
   "status": "healthy",
   "service": "backend",
-  "version": "1.4.3"
+  "version": "1.5.0"
 }
 ```
 
 ---
 
-## 📡 Core API Endpoints
+## 📡 Registered API Routes
 
-| Method | Endpoint | Purpose |
-|---|---|---|
-| GET | `/` | Root API information |
-| GET | `/health` | Backend health check |
-| GET | `/dashboard` | Static dashboard |
-| GET | `/fixtures` | List fixtures |
-| GET | `/fixtures/{fixture_id}` | Get one fixture |
-| POST | `/fixtures/sync/sample` | Sync sample fixture data |
-| POST | `/fixtures/sync/provider` | Sync provider fixture data |
-| GET | `/standings` | Get group standings |
-| GET | `/insights/groups` | Get group insights |
-| GET | `/players/stats` | Get player statistics |
-| POST | `/players/stats/sync/sample` | Sync sample player statistics |
-| GET | `/ai/health` | Check local Llama/Ollama health |
-| GET | `/ai/fixtures/summary` | Generate fixture summary |
-| GET | `/metrics` | Prometheus metrics |
-| GET | `/notifications/telegram/status` | Check Telegram readiness |
-| POST | `/notifications/telegram/test` | Send Telegram test notification |
+```text
+GET  /
+GET  /health
+
+GET  /dashboard
+GET  /metrics
+
+GET  /fixtures
+GET  /fixtures/{fixture_id}
+POST /fixtures/sync/sample
+POST /fixtures/sync/provider
+
+GET  /standings
+
+GET  /insights/groups
+
+GET  /players/stats
+POST /players/stats/sync/sample
+
+GET  /ai/health
+GET  /ai/fixtures/summary
+GET  /ai/fixtures/{fixture_id}/summary
+
+GET  /notifications/telegram/status
+POST /notifications/telegram/test
+```
+
+Interactive API docs are available at:
+
+```text
+http://localhost:8000/docs
+```
 
 ---
 
@@ -637,7 +721,7 @@ curl "http://localhost:8000/fixtures?group_name=Group%20A"
 ### Filter by Status
 
 ```bash
-curl "http://localhost:8000/fixtures?status=complete"
+curl "http://localhost:8000/fixtures?status=completed"
 ```
 
 ### Search by Team
@@ -651,6 +735,14 @@ curl "http://localhost:8000/fixtures?team=Mexico"
 ```bash
 curl -X POST http://localhost:8000/fixtures/sync/sample
 ```
+
+### Sync Provider Fixtures
+
+```bash
+curl -X POST http://localhost:8000/fixtures/sync/provider
+```
+
+Provider sync requires a valid provider configuration and API key.
 
 ---
 
@@ -667,8 +759,6 @@ curl http://localhost:8000/standings
 ```bash
 curl http://localhost:8000/insights/groups
 ```
-
-These endpoints power the dashboard standings table, insight cards, and standings-aware summaries.
 
 ---
 
@@ -689,7 +779,7 @@ curl http://localhost:8000/players/stats
 ### Filter by Team
 
 ```bash
-curl "http://localhost:8000/players/stats?team=Mexico"
+curl "http://localhost:8000/players/stats?team=Argentina"
 ```
 
 ### Sort by Goals
@@ -702,121 +792,68 @@ curl "http://localhost:8000/players/stats?sort_by=goals"
 
 ## 📣 Telegram Notifications
 
-Telegram notifications are handled through:
+Telegram notification support is optional and controlled through environment variables.
 
-```text
-backend/app/services/telegram_notifier.py
+Check notification readiness:
+
+```bash
+curl http://localhost:8000/notifications/telegram/status
 ```
 
-Main functions:
+Send a test notification:
 
-```text
-build_completed_fixture_message()
-send_telegram_message()
-send_completed_fixture_notifications()
+```bash
+curl -X POST http://localhost:8000/notifications/telegram/test
 ```
 
-The Telegram readiness endpoint is:
+Environment variables:
 
-```http
-GET /notifications/telegram/status
+```env
+TELEGRAM_BOT_TOKEN=replace_me
+TELEGRAM_CHAT_ID=replace_me
+PUBLIC_DASHBOARD_URL=http://localhost:8000/dashboard
 ```
 
-This endpoint safely reports whether Telegram credentials are configured without exposing the real bot token or chat ID.
+Security notes:
 
-Example response without credentials:
-
-```json
-{
-  "channel": "telegram",
-  "bot_token_configured": false,
-  "chat_id_configured": false,
-  "ready": false
-}
-```
-
-Example response with local credentials configured:
-
-```json
-{
-  "channel": "telegram",
-  "bot_token_configured": true,
-  "chat_id_configured": true,
-  "ready": true
-}
-```
-
-The test notification endpoint is:
-
-```http
-POST /notifications/telegram/test
-```
-
-This endpoint builds a sample completed-match message and attempts to send it using local Telegram credentials.
-
-If credentials are missing, the endpoint returns a safe error response such as:
-
-```json
-{
-  "detail": "TELEGRAM_BOT_TOKEN is not configured."
-}
-```
-
-or:
-
-```json
-{
-  "detail": "TELEGRAM_CHAT_ID is not configured."
-}
-```
-
-If Telegram is configured but the Telegram API request fails, the application returns a controlled failure response instead of crashing.
-
-Example Telegram message format:
-
-```text
-🏁 Match Completed
-
-FIFA World Cup 2026
-Group Stage
-
-Mexico 2 - 0 South Africa
-
-Venue: Estadio Azteca
-```
-
-Real Telegram bot tokens and chat IDs must only be stored in local `.env` files or deployment secrets.
-
-Never commit Telegram credentials.
+- Do not commit real Telegram credentials.
+- Use `.env` for local secrets.
+- Keep `.env.example` safe and generic.
+- Rotate tokens if they are accidentally exposed.
 
 ---
 
 ## 🤖 AI Summary Layer
 
-The AI summary layer is currently deterministic for safer, factual dashboard output.
+The AI summary layer is built for local-first experimentation.
 
-Current summary behavior:
+It uses:
 
-- uses stored fixture data
-- includes total fixtures
-- includes completed fixtures
-- includes upcoming fixtures
-- includes standings context
-- includes group insights context
-- avoids making unsupported claims
-- works even when local Llama is unavailable
+```env
+LLAMA_BASE_URL=http://127.0.0.1:11434
+LLAMA_MODEL=llama3.2:1b
+LLAMA_TIMEOUT_SECONDS=60
+```
 
-Local Llama/Ollama health can be checked with:
+Check AI readiness:
 
 ```bash
 curl http://localhost:8000/ai/health
 ```
 
-Fixture summary endpoint:
+Generate fixture summary:
 
 ```bash
 curl http://localhost:8000/ai/fixtures/summary
 ```
+
+Generate summary for a specific fixture:
+
+```bash
+curl http://localhost:8000/ai/fixtures/1/summary
+```
+
+If Ollama is not running, the backend should fail safely instead of breaking the full application.
 
 ---
 
@@ -828,59 +865,38 @@ The backend exposes Prometheus metrics at:
 http://localhost:8000/metrics
 ```
 
-Prometheus is available at:
+Prometheus runs at:
 
 ```text
 http://localhost:9090
 ```
 
-Prometheus scrapes the backend service at:
+The Prometheus configuration is stored at:
 
 ```text
-backend:8000/metrics
+monitoring/prometheus.yml
 ```
 
-Current custom metrics include:
+The monitoring layer is useful for demonstrating:
 
-```text
-worldcup_app_info
-worldcup_http_requests_total
-worldcup_http_request_duration_seconds
-worldcup_fixture_sync_runs_total
-worldcup_fixture_sync_created_total
-worldcup_fixture_sync_updated_total
-worldcup_fixture_sync_newly_completed_total
-worldcup_player_stats_sync_runs_total
-worldcup_player_stats_sync_created_total
-worldcup_player_stats_sync_updated_total
-worldcup_notification_results_total
-worldcup_ai_summary_requests_total
-```
+- backend uptime
+- request volume
+- request latency
+- HTTP status patterns
+- application version labels
+- runtime observability readiness
 
 ---
 
 ## 📊 Grafana Dashboard
 
-Grafana is available at:
+Grafana runs at:
 
 ```text
 http://localhost:3000
 ```
 
-The Grafana service is provisioned with:
-
-- Prometheus datasource
-- World Cup 2026 overview dashboard
-- backend target status panel
-- scrape sample panel
-- scrape duration panel
-- Python runtime panels
-- backend memory panels
-- backend CPU panel
-- Python garbage collection panels
-- backend metrics inventory panel
-
-Provisioning files:
+Grafana is provisioned through files under:
 
 ```text
 monitoring/grafana/provisioning/datasources/prometheus.yml
@@ -888,273 +904,249 @@ monitoring/grafana/provisioning/dashboards/dashboards.yml
 monitoring/grafana/dashboards/worldcup-overview.json
 ```
 
-Default local Grafana login:
+The dashboard is configured through Docker Compose with:
 
 ```text
-Username: admin
-Password: admin
+GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/var/lib/grafana/dashboards/worldcup-overview.json
 ```
 
-The project also enables anonymous viewer access for local demo convenience.
+This makes the local monitoring demo easier to open and explain.
 
 ---
 
 ## 🔐 Security Notes
 
-- Never commit `.env`
-- Never commit real API keys
-- Never commit real Telegram bot tokens
-- Never commit Telegram chat IDs
-- Never paste real secrets into screenshots, README files, commits, or public issues
-- Use `.env.example` only for safe placeholders
-- Use deployment secrets for production-style environments
-- The Telegram readiness endpoint only exposes boolean readiness flags
+This project is intended as a local portfolio/demo system.
+
+Important security practices:
+
+- Real secrets should only live in `.env`.
+- `.env.example` should contain placeholders only.
+- Telegram credentials must not be committed.
+- API provider keys must not be committed.
+- Local Grafana credentials are demo credentials only.
+- Production deployment would require stronger secrets management, HTTPS, authentication, and network restrictions.
 
 ---
 
 ## 🧯 Troubleshooting Notes
 
-### Windows Docker credential issue
+### Docker container name conflict
 
-If Docker image pulls fail through SSH with a credential helper error, pull the image directly from Windows PowerShell.
+If a container already exists:
 
-Example:
-
-```powershell
-docker pull grafana/grafana:11.4.0
+```bash
+docker compose down
+docker rm -f worldcup-backend worldcup-dashboard worldcup-postgres worldcup-prometheus worldcup-grafana
+docker compose up -d --build
 ```
 
 ### Windows port bind issue
 
-On the Windows laptop, host ports `8501` and `8502` may be blocked or reserved.
-
-The legacy Streamlit dashboard uses host port:
+If port `8501` is blocked or reserved on Windows, this project uses host port `18501` for the Streamlit dashboard:
 
 ```text
-18501
+localhost:18501 -> container:8501
 ```
 
-Open it at:
+### Docker credential issue on Windows
 
-```text
-http://localhost:18501
-```
-
-### Docker container name conflict
-
-If Docker reports that a World Cup container name is already in use:
+If Docker has credential helper issues on Windows, restart Docker Desktop and confirm that Docker commands work from PowerShell:
 
 ```powershell
-docker compose down --remove-orphans
-docker rm -f worldcup-backend worldcup-dashboard worldcup-postgres worldcup-prometheus worldcup-grafana
+docker version
+docker compose version
+docker compose ps
 ```
 
-Then start again:
+### Backend cannot connect to database
 
-```powershell
-docker compose up -d --build
+Check container status:
+
+```bash
+docker compose ps
+docker compose logs postgres
+docker compose logs backend
 ```
 
-Do not remove Docker volumes unless you intentionally want to reset stored data.
+Confirm the `DATABASE_URL` points to the Docker service name:
+
+```env
+DATABASE_URL=postgresql+psycopg://worldcup:worldcup@postgres:5432/worldcup
+```
+
+### Grafana dashboard does not appear
+
+Restart Grafana:
+
+```bash
+docker compose restart grafana
+```
+
+Check logs:
+
+```bash
+docker compose logs grafana
+```
+
+Confirm provisioning files exist:
+
+```bash
+find monitoring/grafana -type f | sort
+```
 
 ---
 
-## 📸 Screenshots
+## 📸 Demo Evidence
 
-Demo screenshots are stored outside the repository on the local development machine.
+No screenshot images are currently committed in the repository.
 
-Current local screenshot evidence folders:
+For portfolio and presentation evidence, screenshots can be stored locally using folders such as:
 
 ```text
-~/documents/world-cup-ai-stats-screenshots/v1.4.0-demo
 ~/documents/world-cup-ai-stats-screenshots/v1.4.1-demo
 ~/documents/world-cup-ai-stats-screenshots/v1.4.2-demo
+~/documents/world-cup-ai-stats-screenshots/v1.5.0-portfolio-release
 ```
 
-Recommended screenshot evidence by milestone:
+Recommended screenshots for v1.5.0:
 
-### v1.4.0 — Monitoring and Observability Foundation
+- GitHub README top section
+- FastAPI `/docs`
+- backend `/health`
+- backend `/dashboard`
+- Streamlit dashboard
+- Prometheus targets
+- Grafana dashboard
+- Telegram readiness endpoint
+- pytest `114 passed`
 
-- backend health check
-- API docs
-- FastAPI dashboard
-- Prometheus targets page
-- Prometheus metrics query
-- Docker Compose services running
-
-### v1.4.1 — Grafana Dashboard Polish
-
-- Grafana dashboard overview
-- Docker Compose services with Grafana running
-- Streamlit dashboard on port `18501`
-- Prometheus graph page
-- FastAPI docs
-- backend dashboard
-
-### v1.4.2 — Telegram API Live Integration Hardening
-
-- Telegram status endpoint showing `ready: true`
-- Telegram test endpoint success response
-- Telegram bot receiving the test match notification
-- FastAPI notification endpoints in API docs
-
-Do not commit screenshots that expose secrets, tokens, chat IDs, private account details, or local-only credentials.
-
-Suggested repository folder for future public-safe screenshots:
-
-```text
-docs/images/
-```
+Avoid adding broken image references to the README unless screenshots are committed into the repo.
 
 ---
 
 ## 📚 Documentation
 
-Additional project documentation:
-
-```text
-docs/architecture.md
-docs/changelog.md
-docs/roadmap.md
-```
+| Document | Purpose |
+|---|---|
+| `README.md` | Main portfolio landing page |
+| `docs/architecture.md` | Current v1.5.0 architecture |
+| `docs/changelog.md` | Release history |
+| `docs/roadmap.md` | Completed and planned milestones |
+| `docs/portfolio-release.md` | Portfolio-facing release summary |
+| `docs/demo-walkthrough.md` | Interview/demo walkthrough |
 
 ---
 
 ## 🧾 Release History
 
+### v1.5.0 — Portfolio Release Polish
+
+- Refreshed README as the main GitHub and portfolio landing page.
+- Updated architecture documentation to reflect the current backend, dashboard, AI, Telegram, metrics, Prometheus, and Grafana stack.
+- Added a portfolio release summary.
+- Added a demo walkthrough for interviews and recruiter review.
+- Updated roadmap and changelog for release readiness.
+- Bumped release metadata to `1.5.0`.
+- Preserved full test baseline: `114 passed`.
+
 ### v1.4.3 — Documentation and Demo Evidence Cleanup
 
-Completed:
-
-- Updated README version badge and current milestone
-- Updated service URLs for Grafana and Streamlit dashboard access
-- Updated Telegram documentation with readiness endpoint and live testing notes
-- Updated observability documentation to reflect Prometheus and Grafana
-- Added screenshot evidence folder references
-- Updated changelog and roadmap to reflect current project state
-- Bumped release metadata to `1.4.3`
-
----
+- Updated README version references and milestone status.
+- Cleaned documentation around demo evidence, ports, and screenshots.
+- Updated changelog and roadmap.
+- Bumped release metadata to `1.4.3`.
 
 ### v1.4.2 — Telegram API Live Integration Hardening
 
-Completed:
-
-- Added Telegram readiness endpoint
-- Added safe boolean credential readiness reporting
-- Added empty Telegram message validation
-- Added Telegram HTTP status error handling
-- Added Telegram request/network error handling
-- Added Telegram rejected-message handling
-- Added `TelegramNotificationError`
-- Updated fixture sync notification handling for failed Telegram API calls
-- Expanded Telegram service tests
-- Expanded notification route tests
-- Verified real Telegram Bot API message delivery locally
-- Full backend test suite passing: `114 passed`
-
----
+- Added Telegram readiness/status checks.
+- Hardened Telegram live delivery behavior.
+- Improved notification safety and test coverage.
+- Bumped release metadata to `1.4.2`.
 
 ### v1.4.1 — Grafana Dashboard Polish
 
-Completed:
-
-- Added Grafana service to Docker Compose
-- Added Grafana provisioning for Prometheus datasource
-- Added provisioned World Cup overview dashboard
-- Added backend target status panel
-- Added scrape sample and scrape duration panels
-- Added Python runtime metrics panels
-- Added backend memory and CPU panels
-- Added Python garbage collection panels
-- Added backend metrics inventory panel
-- Updated local dashboard access to use host port `18501`
-- Verified Grafana locally through Docker Compose
-- Verified Prometheus target health
-- Captured v1.4.1 demo screenshots
-
----
+- Improved Grafana dashboard provisioning.
+- Added Prometheus datasource provisioning.
+- Polished local monitoring demo workflow.
+- Captured monitoring demo evidence.
 
 ### v1.4.0 — Monitoring and Observability Foundation
 
-Completed:
+- Added Prometheus metrics endpoint.
+- Added Prometheus service.
+- Added Grafana service.
+- Added monitoring configuration tests.
 
-- Added `prometheus-client` dependency
-- Added `backend/app/services/metrics_service.py`
-- Added `backend/app/routes/metrics.py`
-- Added `GET /metrics` endpoint
-- Added HTTP request count metrics
-- Added HTTP request duration metrics
-- Added fixture sync run metrics
-- Added fixture sync created/updated/newly-completed metrics
-- Added player stats sync metrics
-- Added notification result metrics
-- Added AI summary request metrics
-- Added `/metrics` link to the root API response
-- Added Prometheus service to `docker-compose.yml`
-- Added `monitoring/prometheus.yml`
-- Added persistent `worldcup_prometheus_data` volume
-- Added metrics endpoint tests
-- Added monitoring configuration tests
-- Validated backend Docker image build
-- Validated dashboard Docker image build
-- Validated Docker Compose configuration
-- Full backend test suite passing: `105 passed`
+### Earlier milestones
+
+The project also includes earlier milestones for:
+
+- project foundation
+- fixture API
+- provider integration
+- match completion detection
+- Telegram notifications
+- interactive dashboard
+- API filters
+- local Llama summaries
+- standings engine
+- team insights
+- player statistics
+
+See `docs/changelog.md` and `docs/roadmap.md` for the full milestone history.
 
 ---
 
 ## 📊 Version History
 
-| Version | Description | Status |
+| Version | Summary | Status |
 |---|---|---|
-| v0.1.0 | Project foundation with Docker, FastAPI, Streamlit, PostgreSQL, pytest, and CI | Completed |
+| v0.1.0 | Project foundation | Completed |
 | v0.1.1 | README and documentation polish | Completed |
-| v0.2.0 | Football API integration foundation with fixture database, sample sync, dashboard table, and endpoint tests | Completed |
-| v0.3.0 | Real football API provider layer, provider client, fixture sync service, provider sync endpoint, and mocked tests | Completed |
-| v0.4.0 | Match completion detection during fixture sync with response fields and tests | Completed |
-| v0.5.0 | Telegram notification service, test endpoint, completed fixture notification helper, and sync wiring | Completed |
-| v0.6.0 | Interactive dashboard with fixture cards, summary stats, static assets, dashboard route, filtering UI, and tests | Completed |
-| v0.7.0 | API-level fixture filters, dashboard query integration, team search, group/status filters, and expanded tests | Completed |
-| v0.8.0 | Local Llama/Ollama summary agent with AI endpoints and dashboard summary button | Completed |
-| v1.0.0 | AI summary quality, deterministic summaries, and dashboard polish | Completed |
-| v1.1.0 | Group standings engine, standings API, dashboard standings table, and standings-aware AI summary | Completed |
-| v1.1.1 | README and project documentation refresh | Completed |
+| v0.2.0 | Football API integration foundation | Completed |
+| v0.3.0 | Real football API provider layer | Completed |
+| v0.4.0 | Match completion detection | Completed |
+| v0.5.0 | Telegram notifications | Completed |
+| v0.6.0 | Interactive dashboard | Completed |
+| v0.7.0 | API-level fixture filters | Completed |
+| v0.8.0 | Local Llama summary agent | Completed |
+| v1.0.0 | AI summary quality and dashboard polish | Completed |
+| v1.1.0 | Group standings engine | Completed |
+| v1.1.1 | README and documentation refresh | Completed |
 | v1.1.2 | Version and container workflow cleanup | Completed |
 | v1.2.0 | Team insights and group analytics | Completed |
 | v1.3.0 | Player-level statistics foundation | Completed |
-| v1.4.0 | Monitoring and observability foundation with Prometheus metrics and Docker Compose monitoring service | Completed |
-| v1.4.1 | Grafana dashboard polish with provisioned Prometheus datasource and dashboard panels | Completed |
-| v1.4.2 | Telegram API live integration hardening with readiness endpoint and real bot delivery validation | Completed |
-| v1.4.3 | Documentation and demo evidence cleanup for README, changelog, roadmap, ports, and screenshots | Completed |
-| v1.5.0 | Portfolio release polish | Planned |
+| v1.4.0 | Monitoring and observability foundation | Completed |
+| v1.4.1 | Grafana dashboard polish | Completed |
+| v1.4.2 | Telegram API live integration hardening | Completed |
+| v1.4.3 | Documentation and demo evidence cleanup | Completed |
+| v1.5.0 | Portfolio release polish | Completed |
 
 ---
 
 ## 🧭 Roadmap Summary
 
-Next planned milestones:
+Recommended future milestones:
 
-- **v1.5.0 — Portfolio Release Polish**
-- **v1.6.0 — Real Match Data Sync Improvement**
-- **v1.7.0 — AI Insights Upgrade**
-- **v1.8.0 — Portfolio Demo Polish**
+| Version | Theme |
+|---|---|
+| v1.6.0 | Real match data sync improvement |
+| v1.7.0 | AI insights upgrade |
+| v1.8.0 | Portfolio demo polish |
 
-See the full roadmap in:
-
-```text
-docs/roadmap.md
-```
+The next major technical step is likely deeper provider-data reliability and richer real-data workflows.
 
 ---
 
 ## 📌 Project Status
 
-Current status:
-
 ```text
-v1.4.3 — Documentation and Demo Evidence Cleanup
+Current version: v1.5.0 — Portfolio Release Polish
+Current test baseline: 114 passed
+Runtime: Docker Compose local stack
+Main demo services: FastAPI, dashboard, PostgreSQL, Prometheus, Grafana
+Optional integrations: API-Football, Telegram, Ollama / Local Llama
 ```
 
-The backend now supports fixture sync, fixture filtering, completed-match detection, Telegram notification workflows, real Telegram Bot API delivery testing, group standings, dashboard standings, group insights, dashboard insight cards, player statistics, dashboard player stat cards, Prometheus metrics, Docker Compose Prometheus monitoring, provisioned Grafana dashboards, deterministic AI summaries, standings-aware and insights-aware tournament summaries, and Local Llama health checks.
-
-Sample fixtures and sample player statistics remain available as safe fallbacks for local development, public GitHub users, and testing without provider, Telegram, or external AI credentials.
+This project is now positioned as a portfolio-ready DevOps/backend/observability showcase.

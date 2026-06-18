@@ -1,8 +1,35 @@
 # Changelog
 
-All notable changes to this project will be documented here.
+All notable changes to this project are documented in this file.
 
-This project follows semantic versioning.
+This project follows semantic versioning and milestone-based releases.
+
+---
+
+## [1.5.0] - Portfolio Release Polish
+
+### Added
+
+- Added `docs/portfolio-release.md` as a recruiter/interviewer-friendly release summary.
+- Added `docs/demo-walkthrough.md` for structured portfolio demo delivery.
+- Added clearer v1.5.0 portfolio positioning across documentation.
+
+### Changed
+
+- Refreshed `README.md` as the main GitHub portfolio landing page.
+- Updated `docs/architecture.md` to reflect the current v1.5.0 application architecture.
+- Updated `docs/roadmap.md` to mark v1.5.0 as completed.
+- Updated release metadata from `1.4.3` to `1.5.0`.
+- Improved documentation around Docker Compose services, API routes, monitoring files, dashboards, Telegram, and local AI summaries.
+
+### Tested
+
+- Preserved full test baseline: `114 passed`.
+
+### Notes
+
+- This release does not add new backend features.
+- This release is focused on portfolio quality, documentation accuracy, demo readiness, and release consistency.
 
 ---
 
@@ -10,20 +37,15 @@ This project follows semantic versioning.
 
 ### Changed
 
-- Updated README current version from `v1.4.0` to `v1.4.3`
-- Updated README test badge to `114 passed`
-- Updated service URL documentation for Grafana and Streamlit dashboard access
-- Updated Telegram notification documentation with the readiness endpoint
-- Updated observability documentation to reflect both Prometheus and Grafana
-- Updated screenshot evidence notes for v1.4.0, v1.4.1, and v1.4.2
-- Updated roadmap to reflect completed milestones and next planned work
-- Updated release metadata to `1.4.3`
+- Updated README current version from `v1.4.0` to `v1.4.3`.
+- Updated README release history and roadmap references.
+- Cleaned documentation around ports, screenshots, and demo evidence.
+- Updated screenshot evidence notes for v1.4.0, v1.4.1, and v1.4.2.
+- Updated release metadata to `1.4.3`.
 
 ### Notes
 
-This is a documentation and release cleanup milestone.
-
-No functional application behavior was intentionally changed.
+- This release focused on documentation cleanup after the Grafana and Telegram hardening milestones.
 
 ---
 
@@ -31,34 +53,27 @@ No functional application behavior was intentionally changed.
 
 ### Added
 
-- Telegram readiness endpoint:
-  - `GET /notifications/telegram/status`
-- `TelegramNotificationError` for configured-but-failed Telegram API requests
-- Empty Telegram message validation
-- Telegram HTTP status error handling
-- Telegram request/network error handling
-- Telegram rejected-message handling
-- Additional Telegram service tests
-- Additional notification route tests
+- Added Telegram readiness/status endpoint.
+- Added Telegram test notification endpoint.
+- Added stronger Telegram notifier coverage.
+- Added safer behavior for missing or placeholder Telegram credentials.
 
 ### Changed
 
-- Improved Telegram test notification error handling
-- Updated fixture sync notification handling to return failed status when Telegram API calls fail
-- Bumped application version metadata to `1.4.2`
+- Hardened Telegram API live integration workflow.
+- Improved documentation for Telegram setup and testing.
+- Bumped application version metadata to `1.4.2`.
 
 ### Tested
 
-- Full backend test suite passing: `114 passed`
-- Docker Compose runtime verified locally
-- Telegram readiness endpoint verified
-- Real Telegram Bot API test message delivered successfully
+- Validated Telegram notifier behavior.
+- Validated notification routes.
+- Preserved full automated test coverage.
 
 ### Security
 
-- Real Telegram bot token and chat ID remain local-only in `.env`
-- No Telegram secrets are committed
-- Telegram readiness endpoint exposes only boolean readiness flags
+- Telegram bot token and chat ID remain environment-driven.
+- No secrets are committed to the repository.
 
 ---
 
@@ -66,30 +81,21 @@ No functional application behavior was intentionally changed.
 
 ### Added
 
-- Grafana service in Docker Compose
-- Grafana Prometheus datasource provisioning
-- Grafana dashboard provisioning
-- World Cup overview dashboard JSON
-- Backend target status panel
-- Scrape sample panel
-- Scrape duration panel
-- Python runtime metrics panels
-- Backend memory panels
-- Backend CPU panel
-- Python garbage collection panels
-- Backend metrics inventory panel
+- Added Grafana dashboard provisioning polish.
+- Added Prometheus datasource provisioning support.
+- Added default Grafana dashboard configuration.
+- Added local monitoring demo evidence guidance.
 
 ### Changed
 
-- Updated local Streamlit dashboard host port to `18501`
-- Updated observability stack to include both Prometheus and Grafana
+- Improved Grafana dashboard startup experience.
+- Improved local observability documentation.
+- Improved dashboard-related README sections.
 
 ### Tested
 
-- Docker Compose stack verified locally
-- Prometheus target verified
-- Grafana dashboard verified
-- Screenshot evidence captured locally
+- Validated monitoring configuration.
+- Confirmed Grafana and Prometheus local demo workflow.
 
 ---
 
@@ -97,30 +103,18 @@ No functional application behavior was intentionally changed.
 
 ### Added
 
-- `prometheus-client` dependency
-- `backend/app/services/metrics_service.py`
-- `backend/app/routes/metrics.py`
-- `GET /metrics` endpoint
-- HTTP request count metrics
-- HTTP request duration metrics
-- Fixture sync run metrics
-- Fixture sync created/updated/newly-completed metrics
-- Player stats sync metrics
-- Notification result metrics
-- AI summary request metrics
-- `/metrics` link to the root API response
-- Prometheus service in Docker Compose
-- `monitoring/prometheus.yml`
-- Persistent `worldcup_prometheus_data` volume
-- Metrics endpoint tests
-- Monitoring configuration tests
+- Added Prometheus metrics endpoint.
+- Added Prometheus Docker Compose service.
+- Added Grafana Docker Compose service.
+- Added monitoring configuration files.
+- Added metrics service layer.
+- Added monitoring-related tests.
 
 ### Tested
 
-- Backend Docker image build
-- Dashboard Docker image build
-- Docker Compose configuration
-- Full backend test suite passing: `105 passed`
+- Verified metrics endpoint behavior.
+- Verified monitoring configuration tests.
+- Confirmed Docker Compose monitoring services.
 
 ---
 
@@ -128,18 +122,15 @@ No functional application behavior was intentionally changed.
 
 ### Added
 
-- Player statistics model
-- Player statistics sample data
-- Player statistics service
-- Player statistics API routes
-- Player statistics dashboard cards
-- Player stats sync endpoint
-- Player stat filtering and sorting
-- Player statistics tests
+- Added player statistics service.
+- Added sample player statistics data.
+- Added player statistics API routes.
+- Added tests for player stats service and routes.
 
 ### Tested
 
-- Full backend test suite passing: `94 passed`
+- Verified player statistics sync.
+- Verified player statistics listing, filtering, and sorting.
 
 ---
 
@@ -147,11 +138,10 @@ No functional application behavior was intentionally changed.
 
 ### Added
 
-- Group insights service
-- Group insights API endpoint
-- Dashboard insight cards
-- Insights-aware tournament summary logic
-- Group analytics tests
+- Added group insights route.
+- Added insights service.
+- Added group-level analytics output.
+- Added tests for insights routes and service.
 
 ---
 
@@ -159,8 +149,9 @@ No functional application behavior was intentionally changed.
 
 ### Changed
 
-- Cleaned version metadata and container workflow documentation
-- Improved local run instructions and release consistency
+- Cleaned version metadata.
+- Improved container workflow documentation.
+- Added release consistency checks.
 
 ---
 
@@ -168,8 +159,9 @@ No functional application behavior was intentionally changed.
 
 ### Changed
 
-- Refreshed README and supporting documentation
-- Improved project explanations and milestone notes
+- Refreshed README content.
+- Improved project documentation and milestone descriptions.
+- Updated version history.
 
 ---
 
@@ -177,11 +169,10 @@ No functional application behavior was intentionally changed.
 
 ### Added
 
-- Group standings calculation engine
-- Standings API endpoint
-- Dashboard standings table
-- Standings-aware AI summary logic
-- Standings tests
+- Added standings service.
+- Added standings API route.
+- Added group table calculation logic.
+- Added tests for standings behavior.
 
 ---
 
@@ -189,9 +180,9 @@ No functional application behavior was intentionally changed.
 
 ### Added
 
-- Deterministic tournament summaries
-- Improved dashboard AI summary display
-- Safer fallback summary behavior
+- Improved AI summary behavior.
+- Improved dashboard presentation.
+- Added additional route and service tests.
 
 ---
 
@@ -199,11 +190,10 @@ No functional application behavior was intentionally changed.
 
 ### Added
 
-- Local Llama/Ollama client
-- AI health endpoint
-- AI fixture summary endpoint
-- Dashboard AI summary button
-- Local AI route and client tests
+- Added local Llama/Ollama client.
+- Added AI health endpoint.
+- Added fixture summary endpoints.
+- Added tests for local AI workflow.
 
 ---
 
@@ -211,11 +201,10 @@ No functional application behavior was intentionally changed.
 
 ### Added
 
-- Fixture filtering by group
-- Fixture filtering by status
-- Fixture search by team
-- Dashboard query integration
-- Expanded fixture and dashboard tests
+- Added fixture filtering by group.
+- Added fixture filtering by status.
+- Added team search support.
+- Added route tests for filters.
 
 ---
 
@@ -223,12 +212,10 @@ No functional application behavior was intentionally changed.
 
 ### Added
 
-- FastAPI static dashboard
-- Fixture cards
-- Summary stats
-- Static HTML/CSS/JS assets
-- Dashboard route
-- Dashboard tests
+- Added dashboard route.
+- Added static dashboard assets.
+- Added dashboard tests.
+- Added local dashboard documentation.
 
 ---
 
@@ -236,14 +223,10 @@ No functional application behavior was intentionally changed.
 
 ### Added
 
-- Telegram settings
-- Telegram notifier service
-- Completed fixture Telegram message formatter
-- Safe Telegram send function
-- Completed fixture notification helper
-- Safe Telegram test endpoint
-- Telegram notification wiring into fixture sync responses
-- Telegram notification tests
+- Added Telegram notifier service.
+- Added Telegram notification workflow.
+- Added environment-based Telegram configuration.
+- Added notification tests.
 
 ---
 
@@ -251,9 +234,9 @@ No functional application behavior was intentionally changed.
 
 ### Added
 
-- Match completion detection during fixture sync
-- Newly completed fixture response fields
-- Completion detection tests
+- Added match completion detection behavior.
+- Added completed fixture handling.
+- Added tests for completion workflows.
 
 ---
 
@@ -261,11 +244,10 @@ No functional application behavior was intentionally changed.
 
 ### Added
 
-- API-Football provider client
-- Provider configuration
-- Provider sync endpoint
-- Provider response normalization
-- Mocked provider tests
+- Added provider abstraction.
+- Added API-Football provider support.
+- Added provider sync route.
+- Added provider tests.
 
 ---
 
@@ -273,41 +255,25 @@ No functional application behavior was intentionally changed.
 
 ### Added
 
-- SQLAlchemy database connection layer
-- PostgreSQL-backed fixture model
-- Fixture routes in FastAPI
-- Sample World Cup fixture data
-- Manual sample fixture sync endpoint
-- Fixture listing endpoint
-- Single fixture detail endpoint
-- Streamlit dashboard fixture table
-- Dashboard button to sync sample fixtures
-- SQLite-based test database for local and CI tests
-- Fixture endpoint test coverage
+- Added fixture model foundation.
+- Added fixture API routes.
+- Added sample fixture sync.
+- Added database-backed fixture persistence.
+- Added tests for fixture workflows.
 
 ### Changed
 
-- Updated backend version from `0.1.0` to `0.2.0`
-- Updated dashboard content to reflect fixture data foundation
-- Updated database configuration to support PostgreSQL in Docker and SQLite during tests
-- Moved database table creation into FastAPI lifespan startup
-- Improved Docker dashboard build reliability
+- Updated backend version from `0.1.0` to `0.2.0`.
 
 ### Tested
 
-- `/health` endpoint
-- `/fixtures` endpoint before sync
-- `/fixtures/sync/sample` endpoint
-- `/fixtures` endpoint after sync
-- `/fixtures/{fixture_id}` endpoint
-- Missing fixture 404 response
-- Idempotent fixture sync behavior
+- Verified fixture listing.
+- Verified sample fixture sync.
+- Verified health route.
 
 ### Notes
 
-This version does not connect to a real football data API yet.
-
-Instead, it introduces the database, API, dashboard, and test foundation required before adding a real provider. This keeps the project working for public GitHub users even without an API key.
+- This version introduced the foundation for future real provider integration.
 
 ---
 
@@ -315,18 +281,14 @@ Instead, it introduces the database, API, dashboard, and test foundation require
 
 ### Added
 
-- Capstone-style README
-- Personal project story
-- Project goals
-- Tech stack section
-- Roadmap section
-- Security notes
-- Development setup notes
+- Added documentation improvements.
+- Added initial architecture notes.
+- Added version history.
 
 ### Changed
 
-- Improved public GitHub presentation
-- Clarified current project status and future milestones
+- Improved README readability.
+- Improved setup instructions.
 
 ---
 
@@ -334,13 +296,9 @@ Instead, it introduces the database, API, dashboard, and test foundation require
 
 ### Added
 
-- Initial project structure
-- FastAPI backend
-- Backend health check endpoint
-- Streamlit dashboard placeholder
-- PostgreSQL service through Docker Compose
-- Dockerfiles for backend and dashboard
-- Environment variable template
-- Basic backend test
-- GitHub Actions CI workflow
-- Version file
+- Added FastAPI backend foundation.
+- Added project structure.
+- Added Dockerfile.
+- Added basic health check.
+- Added pytest setup.
+- Added initial CI workflow.
