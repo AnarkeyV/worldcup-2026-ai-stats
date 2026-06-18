@@ -1,3 +1,5 @@
+import time
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import or_
 from sqlalchemy.exc import SQLAlchemyError
@@ -12,6 +14,10 @@ from app.services.metrics_service import (
     record_notification_result,
 )
 from app.services.sample_data import SAMPLE_FIXTURES
+from app.services.sync_observability_service import (
+    get_fixture_sync_status,
+    record_fixture_sync_status,
+)
 from app.services.telegram_notifier import (
     TelegramNotificationError,
     send_completed_fixture_notifications,
@@ -161,6 +167,11 @@ def list_fixtures(
         ) from error
 
 
+@router.get("/sync/status")
+def get_fixture_sync_runtime_status():
+    return get_fixture_sync_status()
+
+
 @router.get("/{fixture_id}")
 def get_fixture(fixture_id: int, db: Session = Depends(get_db)):
     try:
@@ -183,12 +194,27 @@ def get_fixture(fixture_id: int, db: Session = Depends(get_db)):
 
 @router.post("/sync/sample")
 def sync_sample_fixtures(db: Session = Depends(get_db)):
+    source = "sample"
+    provider_name = "sample_data"
+    start_time = time.perf_counter()
+
     try:
         result = sync_fixtures(db, SAMPLE_FIXTURES)
+        duration_seconds = time.perf_counter() - start_time
+
         record_fixture_sync_metrics(
-            source="sample",
+            source=source,
+            provider=provider_name,
             status="success",
             result=result,
+            duration_seconds=duration_seconds,
+        )
+        record_fixture_sync_status(
+            source=source,
+            provider=provider_name,
+            status="success",
+            result=result,
+            duration_seconds=duration_seconds,
         )
 
         notification_result = notify_newly_completed_fixtures(
@@ -198,37 +224,66 @@ def sync_sample_fixtures(db: Session = Depends(get_db)):
 
         return {
             "message": "Sample fixtures synced successfully",
+            "provider": provider_name,
             "created": result["created"],
             "updated": result["updated"],
             "total_sample_fixtures": result["total_fixtures"],
             "newly_completed_count": result["newly_completed_count"],
             "newly_completed": result["newly_completed"],
+            "duration_seconds": duration_seconds,
             "notifications": notification_result,
         }
 
     except SQLAlchemyError as error:
         db.rollback()
+        duration_seconds = time.perf_counter() - start_time
+        error_message = f"Database error while syncing sample fixtures: {error}"
+
         record_fixture_sync_metrics(
-            source="sample",
+            source=source,
+            provider=provider_name,
             status="error",
+            duration_seconds=duration_seconds,
+        )
+        record_fixture_sync_status(
+            source=source,
+            provider=provider_name,
+            status="error",
+            duration_seconds=duration_seconds,
+            error=error_message,
         )
 
         raise HTTPException(
             status_code=503,
-            detail=f"Database error while syncing sample fixtures: {error}",
+            detail=error_message,
         ) from error
 
 
 @router.post("/sync/provider")
 def sync_provider_fixtures(db: Session = Depends(get_db)):
+    source = "provider"
+    provider_name = "api_football"
+    start_time = time.perf_counter()
+
     try:
         provider = ApiFootballProvider()
         fixtures = provider.get_world_cup_fixtures()
         result = sync_fixtures(db, fixtures)
+        duration_seconds = time.perf_counter() - start_time
+
         record_fixture_sync_metrics(
-            source="provider",
+            source=source,
+            provider=provider_name,
             status="success",
             result=result,
+            duration_seconds=duration_seconds,
+        )
+        record_fixture_sync_status(
+            source=source,
+            provider=provider_name,
+            status="success",
+            result=result,
+            duration_seconds=duration_seconds,
         )
 
         notification_result = notify_newly_completed_fixtures(
@@ -238,45 +293,82 @@ def sync_provider_fixtures(db: Session = Depends(get_db)):
 
         return {
             "message": "Provider fixtures synced successfully",
-            "provider": "api_football",
+            "provider": provider_name,
             "created": result["created"],
             "updated": result["updated"],
             "total_provider_fixtures": result["total_fixtures"],
             "newly_completed_count": result["newly_completed_count"],
             "newly_completed": result["newly_completed"],
+            "duration_seconds": duration_seconds,
             "notifications": notification_result,
         }
 
     except ValueError as error:
+        duration_seconds = time.perf_counter() - start_time
+        error_message = str(error)
+
         record_fixture_sync_metrics(
-            source="provider",
+            source=source,
+            provider=provider_name,
             status="error",
+            duration_seconds=duration_seconds,
+        )
+        record_fixture_sync_status(
+            source=source,
+            provider=provider_name,
+            status="error",
+            duration_seconds=duration_seconds,
+            error=error_message,
         )
 
         raise HTTPException(
             status_code=400,
-            detail=str(error),
+            detail=error_message,
         ) from error
 
     except ApiFootballProviderError as error:
+        duration_seconds = time.perf_counter() - start_time
+        error_message = str(error)
+
         record_fixture_sync_metrics(
-            source="provider",
+            source=source,
+            provider=provider_name,
             status="error",
+            duration_seconds=duration_seconds,
+        )
+        record_fixture_sync_status(
+            source=source,
+            provider=provider_name,
+            status="error",
+            duration_seconds=duration_seconds,
+            error=error_message,
         )
 
         raise HTTPException(
             status_code=502,
-            detail=str(error),
+            detail=error_message,
         ) from error
 
     except SQLAlchemyError as error:
         db.rollback()
+        duration_seconds = time.perf_counter() - start_time
+        error_message = f"Database error while syncing provider fixtures: {error}"
+
         record_fixture_sync_metrics(
-            source="provider",
+            source=source,
+            provider=provider_name,
             status="error",
+            duration_seconds=duration_seconds,
+        )
+        record_fixture_sync_status(
+            source=source,
+            provider=provider_name,
+            status="error",
+            duration_seconds=duration_seconds,
+            error=error_message,
         )
 
         raise HTTPException(
             status_code=503,
-            detail=f"Database error while syncing provider fixtures: {error}",
+            detail=error_message,
         ) from error

@@ -1,3 +1,6 @@
+import time
+from typing import Any
+
 from prometheus_client import Counter, Gauge, Histogram
 
 from app.config import settings
@@ -45,6 +48,30 @@ FIXTURE_SYNC_NEWLY_COMPLETED_TOTAL = Counter(
     ["source"],
 )
 
+FIXTURE_SYNC_DURATION_SECONDS = Histogram(
+    "worldcup_fixture_sync_duration_seconds",
+    "Fixture sync duration in seconds.",
+    ["source", "provider", "status"],
+)
+
+FIXTURE_SYNC_FETCHED_TOTAL = Counter(
+    "worldcup_fixture_sync_fetched_total",
+    "Total fixtures fetched from the sync source before database upsert.",
+    ["source", "provider"],
+)
+
+FIXTURE_SYNC_LAST_RUN_TIMESTAMP_SECONDS = Gauge(
+    "worldcup_fixture_sync_last_run_timestamp_seconds",
+    "Unix timestamp of the last fixture sync run.",
+    ["source", "provider", "status"],
+)
+
+FIXTURE_SYNC_LAST_SUCCESS_TIMESTAMP_SECONDS = Gauge(
+    "worldcup_fixture_sync_last_success_timestamp_seconds",
+    "Unix timestamp of the last successful fixture sync run.",
+    ["source", "provider"],
+)
+
 PLAYER_STATS_SYNC_RUNS_TOTAL = Counter(
     "worldcup_player_stats_sync_runs_total",
     "Total player stats sync runs.",
@@ -74,6 +101,34 @@ AI_SUMMARY_REQUESTS_TOTAL = Counter(
     "Total AI summary requests.",
     ["summary_type", "status"],
 )
+
+
+def _safe_metric_value(value: Any) -> float:
+    try:
+        if value is None:
+            return 0.0
+
+        numeric_value = float(value)
+
+        if numeric_value < 0:
+            return 0.0
+
+        return numeric_value
+
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _safe_label(value: str | None, fallback: str = "unknown") -> str:
+    if value is None:
+        return fallback
+
+    cleaned_value = str(value).strip()
+
+    if not cleaned_value:
+        return fallback
+
+    return cleaned_value
 
 
 def initialize_app_info_metric() -> None:
@@ -113,20 +168,60 @@ def record_http_request_metrics(
     ).observe(duration_seconds)
 
 
-def record_fixture_sync_metrics(source: str, status: str, result: dict | None = None) -> None:
+def record_fixture_sync_metrics(
+    source: str,
+    status: str,
+    result: dict | None = None,
+    provider: str | None = None,
+    duration_seconds: float | None = None,
+) -> None:
+    source_label = _safe_label(source)
+    status_label = _safe_label(status)
+    provider_label = _safe_label(provider)
+
+    run_timestamp = time.time()
+
     FIXTURE_SYNC_RUNS_TOTAL.labels(
-        source=source,
-        status=status,
+        source=source_label,
+        status=status_label,
     ).inc()
+
+    FIXTURE_SYNC_LAST_RUN_TIMESTAMP_SECONDS.labels(
+        source=source_label,
+        provider=provider_label,
+        status=status_label,
+    ).set(run_timestamp)
+
+    if duration_seconds is not None:
+        FIXTURE_SYNC_DURATION_SECONDS.labels(
+            source=source_label,
+            provider=provider_label,
+            status=status_label,
+        ).observe(_safe_metric_value(duration_seconds))
+
+    if status_label == "success":
+        FIXTURE_SYNC_LAST_SUCCESS_TIMESTAMP_SECONDS.labels(
+            source=source_label,
+            provider=provider_label,
+        ).set(run_timestamp)
 
     if result is None:
         return
 
-    FIXTURE_SYNC_CREATED_TOTAL.labels(source=source).inc(result.get("created", 0))
-    FIXTURE_SYNC_UPDATED_TOTAL.labels(source=source).inc(result.get("updated", 0))
+    FIXTURE_SYNC_CREATED_TOTAL.labels(source=source_label).inc(
+        _safe_metric_value(result.get("created", 0))
+    )
+    FIXTURE_SYNC_UPDATED_TOTAL.labels(source=source_label).inc(
+        _safe_metric_value(result.get("updated", 0))
+    )
     FIXTURE_SYNC_NEWLY_COMPLETED_TOTAL.labels(
-        source=source,
-    ).inc(result.get("newly_completed_count", 0))
+        source=source_label,
+    ).inc(_safe_metric_value(result.get("newly_completed_count", 0)))
+
+    FIXTURE_SYNC_FETCHED_TOTAL.labels(
+        source=source_label,
+        provider=provider_label,
+    ).inc(_safe_metric_value(result.get("total_fixtures", 0)))
 
 
 def record_player_stats_sync_metrics(
