@@ -92,6 +92,7 @@ def test_grafana_dashboard_uses_fixture_sync_metrics():
     assert "worldcup_fixture_sync_updated_total" in text
     assert "worldcup_fixture_sync_newly_completed_total" in text
     assert "worldcup_fixture_sync_last_success_timestamp_seconds" in text
+    assert "worldcup_fixture_sync_last_success_timestamp_seconds * 1000" in text
 
 
 def test_grafana_provisioning_files_exist():

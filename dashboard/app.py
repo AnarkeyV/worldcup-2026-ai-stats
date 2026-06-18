@@ -19,11 +19,11 @@ st.caption("AI-assisted match reports, team stats, and player breakdowns.")
 
 st.markdown(
     """
-    This dashboard is currently in early development.
+    This companion dashboard is used for quick local runtime checks.
 
     Current milestone:
 
-    **v0.2.0 — Football API Integration Foundation**
+    **v1.7.0 — Provider Sync Observability & Runtime Demo**
 
     For now, the dashboard can load sample World Cup fixture data into PostgreSQL
     and display it through the FastAPI backend.

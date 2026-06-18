@@ -292,7 +292,7 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "worldcup_fixture_sync_last_success_timestamp_seconds",
+          "expr": "worldcup_fixture_sync_last_success_timestamp_seconds * 1000",
           "legendFormat": "{{source}} {{provider}}",
           "range": true,
           "refId": "A"
