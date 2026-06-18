@@ -1,4 +1,5 @@
 from types import SimpleNamespace
+from app.services.sync_observability_service import reset_fixture_sync_status
 
 from app.routes.ai import (
     build_deterministic_fixture_summary,
@@ -291,3 +292,116 @@ def test_ai_single_fixture_summary_returns_404_for_missing_fixture(client, monke
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Fixture not found."
+
+
+def test_ai_insights_empty_before_sync(client):
+    reset_fixture_sync_status()
+    response = client.get("/ai/insights")
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["status"] == "ok"
+    assert data["mode"] == "fallback"
+    assert data["provider"] == "rules_based_ai_insights"
+    assert data["model"] == "rules_based_v1"
+    assert data["filters"] == {
+        "group_name": None,
+        "team": None,
+        "limit": 5,
+    }
+    assert data["metadata"]["fixture_count"] == 0
+    assert data["metadata"]["completed_count"] == 0
+    assert data["metadata"]["sync_status"] == "not_started"
+
+    titles = [insight["title"] for insight in data["insights"]]
+
+    assert "No fixture data available" in titles
+    assert "Provider sync runtime status" in titles
+
+
+def test_ai_insights_after_sample_sync(client):
+    sync_response = client.post("/fixtures/sync/sample")
+
+    assert sync_response.status_code == 200
+
+    response = client.get("/ai/insights")
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["status"] == "ok"
+    assert data["mode"] == "fallback"
+    assert data["metadata"]["fixture_count"] == 4
+    assert data["metadata"]["completed_count"] == 4
+    assert data["metadata"]["teams_analyzed"] == 8
+    assert data["metadata"]["groups_analyzed"] == 4
+    assert data["metadata"]["sync_status"] == "success"
+
+    titles = [insight["title"] for insight in data["insights"]]
+
+    assert "Fixture data available" in titles
+    assert "Completed results detected" in titles
+    assert "Group leaders available" in titles
+    assert "Strongest attacks identified" in titles
+    assert "Provider sync runtime status" in titles
+
+    summary = data["summary"].lower()
+
+    assert "4 fixtures are available for ai insights" in summary
+    assert "4 completed" in summary
+    assert "latest provider sync completed successfully" in summary
+
+
+def test_ai_insights_can_filter_by_group_name(client):
+    sync_response = client.post("/fixtures/sync/sample")
+
+    assert sync_response.status_code == 200
+
+    response = client.get("/ai/insights?group_name=Group A&limit=3")
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["filters"] == {
+        "group_name": "Group A",
+        "team": None,
+        "limit": 3,
+    }
+    assert data["metadata"]["fixture_count"] == 1
+    assert data["metadata"]["completed_count"] == 1
+    assert data["metadata"]["teams_analyzed"] == 2
+    assert data["metadata"]["groups_analyzed"] == 1
+    assert len(data["insights"]) == 3
+    assert "for Group A" in data["summary"]
+
+
+def test_ai_insights_can_filter_by_team_name_or_code(client):
+    sync_response = client.post("/fixtures/sync/sample")
+
+    assert sync_response.status_code == 200
+
+    response_by_name = client.get("/ai/insights?team=Mexico")
+    response_by_code = client.get("/ai/insights?team=MEX")
+
+    assert response_by_name.status_code == 200
+    assert response_by_code.status_code == 200
+
+    data_by_name = response_by_name.json()
+    data_by_code = response_by_code.json()
+
+    assert data_by_name["metadata"]["fixture_count"] == 1
+    assert data_by_code["metadata"]["fixture_count"] == 1
+    assert data_by_name["metadata"]["completed_count"] == 1
+    assert data_by_code["metadata"]["completed_count"] == 1
+    assert "for Mexico" in data_by_name["summary"]
+    assert "for MEX" in data_by_code["summary"]
+
+
+def test_ai_insights_rejects_invalid_limit(client):
+    response = client.get("/ai/insights?limit=0")
+
+    assert response.status_code == 422

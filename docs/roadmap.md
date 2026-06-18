@@ -11,13 +11,13 @@ Each milestone is designed to add a clear capability, preserve test coverage, an
 Current version:
 
 ```text
-v1.7.0 — Provider Sync Observability & Runtime Demo
+v1.8.0 — AI Insights Upgrade
 ```
 
 Current test baseline:
 
 ```text
-138 passed
+149 passed
 ```
 
 Current runtime model:
@@ -318,7 +318,7 @@ Delivered:
 
 ---
 
-### v1.7.0 — Provider Sync Observability & Runtime Demo
+### v1.6.0 — Real Match Data Sync Improvement
 
 Status: Completed
 
@@ -333,33 +333,44 @@ Delivered:
 - case-insensitive completed status detection
 - provider route tests for mocked success and provider failure
 - release metadata bumped to `1.6.0`
+- full test baseline expanded to `123 passed`
+
+---
+
+### v1.7.0 — Provider Sync Observability & Runtime Demo
+
+Status: Completed
+
+Delivered:
+
+- fixture sync runtime status tracking
+- `GET /fixtures/sync/status`
+- provider sync runtime panel in the static dashboard
+- fixture sync duration, fetched count, last run, and last success Prometheus metrics
+- provider sync observability panels in Grafana
+- dedicated v1.7.0 runtime demo guide
 - full test baseline expanded to `138 passed`
 
 ---
 
-## Planned Milestones
-
 ### v1.8.0 — AI Insights Upgrade
 
-Goal:
+Status: Completed
 
-Improve the AI layer from basic fixture summaries into richer football analysis.
+Delivered:
 
-Potential scope:
-
-- standings-aware summaries
-- team form summaries
-- group qualification scenario summaries
-- player-stat-aware insights
-- better prompt templates
-- more structured fallback responses
-- AI response tests
-
-Why it matters:
-
-This would make the AI component more meaningful and more closely tied to the football analytics domain.
+- `GET /ai/insights` structured AI insights endpoint
+- deterministic `ai_insights_service.py` service layer
+- fallback-safe fixture, result, standings, and sync-status insight generation
+- group and team filtering for AI insights
+- Structured AI Insights panel in the static dashboard
+- AI insights service, route, and dashboard test coverage
+- release metadata bumped to `1.8.0`
+- full test baseline expanded to `149 passed`
 
 ---
+
+## Planned Milestones
 
 ### v1.9.0 — Portfolio Demo Polish
 
@@ -385,7 +396,7 @@ This would help turn the project from a strong technical repo into a polished pu
 
 ## Longer-Term Ideas
 
-Potential future ideas beyond v1.8.0:
+Potential future ideas beyond v1.9.0:
 
 - cloud deployment
 - authentication

@@ -112,6 +112,7 @@ button:disabled {
 .fixtures-section,
 .standings-section,
 .ai-summary-panel,
+.ai-insights-panel,
 .sync-runtime-panel,
 .insights-section,
 .player-stats-section {
@@ -343,6 +344,92 @@ button:disabled {
     border-color: rgba(239, 68, 68, 0.65);
 }
 
+.ai-insights-panel {
+    border-radius: 1.5rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    background:
+        linear-gradient(135deg, rgba(34, 197, 94, 0.14), rgba(14, 165, 233, 0.1)),
+        rgba(17, 24, 39, 0.88);
+}
+
+.ai-insights-heading {
+    display: flex;
+    justify-content: space-between;
+    gap: 1.5rem;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+.ai-insights-heading h2 {
+    margin: 0;
+    font-size: 1.6rem;
+}
+
+.ai-insights-heading p {
+    margin: 0.35rem 0 0;
+    color: var(--muted);
+    line-height: 1.6;
+}
+
+.ai-insights-summary {
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background: rgba(2, 6, 23, 0.65);
+    color: var(--muted);
+    line-height: 1.6;
+}
+
+.ai-insights-summary.success {
+    color: var(--text);
+    border-color: rgba(34, 197, 94, 0.5);
+}
+
+.ai-insights-summary.error {
+    color: #fecaca;
+    border-color: rgba(239, 68, 68, 0.65);
+}
+
+.ai-insights-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.ai-insight-card {
+    background: #ffffff;
+    color: #111827;
+    border-radius: 1.1rem;
+    padding: 1.1rem;
+    border: 1px solid #e5e7eb;
+}
+
+.ai-insight-category {
+    display: block;
+    color: #64748b;
+    font-size: 0.78rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.55rem;
+}
+
+.ai-insight-card strong {
+    display: block;
+    font-size: 1.05rem;
+    line-height: 1.35;
+    word-break: break-word;
+}
+
+.ai-insight-card p {
+    margin: 0.75rem 0 0;
+    color: #64748b;
+    font-size: 0.88rem;
+    line-height: 1.45;
+}
+
 .controls-panel {
     display: grid;
     grid-template-columns: 1.5fr 1fr 1fr auto;
@@ -440,6 +527,7 @@ select:focus {
     display: block;
     font-size: 1.05rem;
     line-height: 1.35;
+    word-break: break-word;
 }
 
 .insight-card p,
@@ -477,11 +565,12 @@ select:focus {
 }
 
 .standings-table th {
-    background: #f8fafc;
     color: #475569;
     font-size: 0.78rem;
+    font-weight: 900;
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    background: #f8fafc;
 }
 
 .standings-table tbody tr:last-child td {
@@ -490,6 +579,10 @@ select:focus {
 
 .standings-table tbody tr:hover {
     background: #f8fafc;
+}
+
+.team-cell {
+    font-weight: 900;
 }
 
 .fixtures-grid {
@@ -581,38 +674,45 @@ select:focus {
     color: #475569;
 }
 
-.fixture-ai-actions {
+.fixture-ai-panel {
     margin-top: 1rem;
+    border-top: 1px solid #e5e7eb;
+    padding-top: 1rem;
+}
+
+.fixture-ai-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: center;
+    margin-bottom: 0.75rem;
 }
 
 .fixture-ai-button {
-    width: 100%;
-    padding: 0.7rem 1rem;
-    font-size: 0.85rem;
+    padding: 0.65rem 0.95rem;
+    font-size: 0.82rem;
 }
 
 .fixture-ai-summary {
-    margin-top: 0.85rem;
     border: 1px solid #e5e7eb;
-    border-radius: 0.9rem;
-    padding: 0.85rem;
+    border-radius: 0.85rem;
     background: #f8fafc;
     color: #64748b;
-    font-size: 0.9rem;
-    line-height: 1.5;
+    line-height: 1.55;
+    padding: 0.85rem;
     white-space: pre-wrap;
 }
 
 .fixture-ai-summary.success {
-    border-color: rgba(34, 197, 94, 0.4);
+    color: #111827;
+    border-color: rgba(34, 197, 94, 0.35);
     background: rgba(34, 197, 94, 0.08);
-    color: #14532d;
 }
 
 .fixture-ai-summary.error {
-    border-color: rgba(239, 68, 68, 0.45);
-    background: rgba(239, 68, 68, 0.08);
     color: #991b1b;
+    border-color: rgba(239, 68, 68, 0.35);
+    background: rgba(239, 68, 68, 0.08);
 }
 
 .empty-state {
@@ -631,7 +731,8 @@ select:focus {
 @media (max-width: 1100px) {
     .sync-runtime-grid,
     .player-stats-grid,
-    .insights-grid {
+    .insights-grid,
+    .ai-insights-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
@@ -646,7 +747,8 @@ select:focus {
     .fixtures-grid,
     .sync-runtime-grid,
     .player-stats-grid,
-    .insights-grid {
+    .insights-grid,
+    .ai-insights-grid {
         grid-template-columns: 1fr;
     }
 
@@ -656,12 +758,14 @@ select:focus {
 
     .ai-summary-panel,
     .ai-summary-heading,
+    .ai-insights-heading,
     .sync-runtime-heading {
         flex-direction: column;
     }
 
     .sync-runtime-actions,
     .ai-summary-panel button,
+    .ai-insights-heading button,
     .ai-health-badge,
     .sync-status-badge,
     #refresh-sync-status {

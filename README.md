@@ -1,7 +1,7 @@
 # ⚽ World Cup 2026 AI Stats Dashboard
 
-![Version](https://img.shields.io/badge/version-v1.7.0-purple)
-![Tests](https://img.shields.io/badge/tests-138%20passed-brightgreen)
+![Version](https://img.shields.io/badge/version-v1.8.0-purple)
+![Tests](https://img.shields.io/badge/tests-149%20passed-brightgreen)
 ![Backend](https://img.shields.io/badge/backend-FastAPI-blue)
 ![Dashboard](https://img.shields.io/badge/dashboard-Streamlit%20%2B%20Static%20UI-orange)
 ![Database](https://img.shields.io/badge/database-PostgreSQL-blue)
@@ -11,7 +11,7 @@
 
 ## 📌 Current Version
 
-**v1.7.0 — Provider Sync Observability & Runtime Demo**
+**v1.8.0 — AI Insights Upgrade**
 
 World Cup 2026 AI Stats Dashboard is a portfolio-grade football analytics platform built around the FIFA World Cup 2026 use case.
 
@@ -24,13 +24,14 @@ The project combines:
 - team and group insights
 - player statistics
 - local AI summaries through Ollama / Llama
+- structured AI insights with deterministic fallback behavior
 - Telegram notification workflows
 - Prometheus metrics
 - Grafana dashboards
 - Docker Compose runtime orchestration
 - automated pytest coverage
 
-The current release makes fixture sync activity visible across the API, dashboard, Prometheus, and Grafana so provider/sample sync behavior is easier to demonstrate during portfolio and technical reviews.
+The current release upgrades the AI layer with structured, dashboard-ready insights generated from fixture data, standings context, and provider sync runtime state. It keeps the project local-first and demo-safe by using deterministic fallback behavior, so the AI insights panel works even when Ollama or a local model is unavailable.
 
 ---
 
@@ -50,7 +51,7 @@ The theme is the **FIFA World Cup 2026**, but the engineering ideas are broader:
 - Docker runtime workflow
 - monitoring and observability
 - notification integration
-- AI-assisted summaries
+- AI-assisted summaries and structured insights
 - release documentation
 - portfolio storytelling
 
@@ -65,7 +66,7 @@ The project is designed to show that I can:
 3. Use PostgreSQL as a persistent runtime database.
 4. Containerize services using Docker and Docker Compose.
 5. Integrate provider-based football data sync logic.
-6. Add AI-generated summaries using a local LLM workflow.
+6. Add AI-generated summaries and structured AI insights using a local-first workflow.
 7. Send Telegram notifications safely using configurable credentials.
 8. Expose Prometheus metrics for runtime monitoring.
 9. Provision Grafana dashboards through Docker-mounted configuration.
@@ -99,7 +100,7 @@ At a high level, the system runs as a multi-service Docker Compose application.
 | Routes:                                           |
 | /fixtures, /standings, /insights/groups           |
 | /players/stats, /ai/*, /notifications/*           |
-| /metrics, /health, /dashboard                     |
+| /ai/insights, /metrics, /health, /dashboard        |
 | /fixtures/sync/status                               |
 +----------------------+----------------------------+
                        |
@@ -140,7 +141,7 @@ Sample data service
 PostgreSQL fixtures table
       |
       v
-Fixtures, standings, insights, dashboard, metrics
+Fixtures, standings, insights, AI insights, dashboard, metrics
 ```
 
 ### Provider Fixture Sync Flow
@@ -199,6 +200,24 @@ Prometheus scrape + dashboard runtime panel
       v
 Grafana provider sync observability dashboard
 ```
+
+### Structured AI Insights Flow
+
+```text
+Fixtures + standings + provider sync runtime status
+      |
+      v
+Rules-based AI insights service
+      |
+      v
+GET /ai/insights
+      |
+      v
+Static dashboard Structured AI Insights panel
+```
+
+The structured AI insights layer is deterministic and offline-safe. It does not require Ollama to be running, which keeps demos reliable on both the MacBook development workflow and the Windows Docker/runtime host.
+
 
 ---
 
@@ -268,6 +287,28 @@ GET /insights/groups
 
 ---
 
+### Structured AI Insights
+
+The structured AI insights layer turns fixture, standings, and provider sync runtime context into dashboard-ready insight cards.
+
+It supports:
+
+- fixture availability insights
+- completed-result insights
+- group-leader insights
+- strongest-attack insights
+- provider sync runtime status insights
+- group and team filtering
+- deterministic fallback behavior for reliable demos
+
+Key endpoint:
+
+```text
+GET /ai/insights
+```
+
+---
+
 ### Player Statistics
 
 The player statistics module adds player-level data to the project.
@@ -288,15 +329,16 @@ GET  /players/stats
 
 ---
 
-### AI Summary Layer
+### AI Summary and Insights Layer
 
-The AI layer uses a local Llama/Ollama workflow for summary generation.
+The AI layer combines local Llama/Ollama readiness checks, deterministic fixture summaries, fixture-specific summaries, and structured AI insights.
 
 It supports:
 
 - AI health checks
-- fixture summary generation
+- tournament fixture summary generation
 - fixture-specific summary generation
+- structured AI insights from fixtures, standings, and sync runtime status
 - safer fallback behavior when the local model is unavailable
 
 Key endpoints:
@@ -305,6 +347,7 @@ Key endpoints:
 GET /ai/health
 GET /ai/fixtures/summary
 GET /ai/fixtures/{fixture_id}/summary
+GET /ai/insights
 ```
 
 ---
@@ -404,6 +447,7 @@ monitoring/grafana/provisioning/datasources/prometheus.yml
 │   │   │   ├── players.py
 │   │   │   └── standings.py
 │   │   ├── services/
+│   │   │   ├── ai_insights_service.py
 │   │   │   ├── fixture_sync_service.py
 │   │   │   ├── insights_service.py
 │   │   │   ├── local_llama_client.py
@@ -411,6 +455,7 @@ monitoring/grafana/provisioning/datasources/prometheus.yml
 │   │   │   ├── player_stats_service.py
 │   │   │   ├── sample_data.py
 │   │   │   ├── standings_service.py
+│   │   │   ├── sync_observability_service.py
 │   │   │   └── telegram_notifier.py
 │   │   └── static/
 │   │       ├── dashboard.css
@@ -429,7 +474,9 @@ monitoring/grafana/provisioning/datasources/prometheus.yml
 │   ├── changelog.md
 │   ├── demo-walkthrough.md
 │   ├── portfolio-release.md
-│   └── roadmap.md
+│   ├── roadmap.md
+│   ├── v1.7.0-provider-sync-observability-runtime-demo.md
+│   └── v1.8.0-ai-insights-upgrade.md
 ├── infra/
 │   └── docker-compose.yml
 ├── monitoring/
@@ -496,7 +543,7 @@ Then edit `.env` as needed.
 # App
 APP_NAME=World Cup 2026 AI Stats
 APP_ENV=development
-APP_VERSION=1.7.0
+APP_VERSION=1.8.0
 
 # Database
 POSTGRES_USER=worldcup
@@ -635,7 +682,7 @@ python -m pytest
 Current release baseline:
 
 ```text
-138 passed
+149 passed
 ```
 
 The test suite covers:
@@ -670,7 +717,7 @@ Expected response:
 {
   "status": "healthy",
   "service": "backend",
-  "version": "1.7.0"
+  "version": "1.8.0"
 }
 ```
 
@@ -760,7 +807,7 @@ This shows the latest sample/provider sync result, including status, source, pro
 curl -X POST http://localhost:8000/fixtures/sync/provider
 ```
 
-Provider sync requires a valid provider configuration and API key. In v1.6.0, provider payloads were normalized before database sync, including status cleanup, team-code fallback, incomplete fixture skipping, and clearer provider failure responses. In v1.7.0, that sync behavior is now visible through `/fixtures/sync/status`, Prometheus metrics, the static dashboard, and Grafana.
+Provider sync requires a valid provider configuration and API key. In v1.6.0, provider payloads were normalized before database sync, including status cleanup, team-code fallback, incomplete fixture skipping, and clearer provider failure responses. In v1.7.0, that sync behavior became visible through `/fixtures/sync/status`, Prometheus metrics, the static dashboard, and Grafana. In v1.8.0, the latest sync runtime status is also used as context for structured AI insights.
 
 ---
 
@@ -776,6 +823,24 @@ curl http://localhost:8000/standings
 
 ```bash
 curl http://localhost:8000/insights/groups
+```
+
+### Structured AI Insights
+
+```bash
+curl http://localhost:8000/ai/insights
+```
+
+Filter by group:
+
+```bash
+curl "http://localhost:8000/ai/insights?group_name=Group%20A"
+```
+
+Filter by team name or code:
+
+```bash
+curl "http://localhost:8000/ai/insights?team=Mexico"
 ```
 
 ---
@@ -841,9 +906,9 @@ Security notes:
 
 ---
 
-## 🤖 AI Summary Layer
+## 🤖 AI Summary and Structured Insights Layer
 
-The AI summary layer is built for local-first experimentation.
+The AI layer is built for local-first experimentation and reliable portfolio demos.
 
 It uses:
 
@@ -870,6 +935,14 @@ Generate summary for a specific fixture:
 ```bash
 curl http://localhost:8000/ai/fixtures/1/summary
 ```
+
+Generate structured AI insights:
+
+```bash
+curl http://localhost:8000/ai/insights
+```
+
+The `/ai/insights` endpoint is deterministic and fallback-safe. It can explain fixture availability, completed results, group leaders, strongest attacks, and provider sync runtime status without requiring Ollama to be running.
 
 If Ollama is not running, the backend should fail safely instead of breaking the full application.
 
@@ -934,7 +1007,7 @@ GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/var/lib/grafana/dashboards/worldcup-o
 
 This makes the local monitoring demo easier to open and explain.
 
-For v1.7.0, the provisioned dashboard is focused on provider sync observability and includes panels for:
+For v1.7.0 and later, the provisioned Grafana dashboard is focused on provider sync observability and includes panels for:
 
 - Fixture Sync Runs
 - Last Successful Fixture Sync
@@ -1037,10 +1110,10 @@ For portfolio and presentation evidence, screenshots can be stored locally using
 ```text
 ~/documents/world-cup-ai-stats-screenshots/v1.4.1-demo
 ~/documents/world-cup-ai-stats-screenshots/v1.4.2-demo
-~/documents/world-cup-ai-stats-screenshots/v1.7.0-provider-sync-observability
+~/documents/world-cup-ai-stats-screenshots/v1.8.0-ai-insights-upgrade
 ```
 
-Recommended screenshots for v1.7.0:
+Recommended screenshots for v1.8.0:
 
 - GitHub README top section
 - FastAPI `/docs`
@@ -1048,12 +1121,13 @@ Recommended screenshots for v1.7.0:
 - backend `/fixtures/sync/status` before sync
 - sample sync response
 - backend `/fixtures/sync/status` after sync
-- backend `/dashboard` showing Provider Sync Runtime
+- backend `/dashboard` showing Provider Sync Runtime and Structured AI Insights
+- backend `/ai/insights`
 - Streamlit dashboard
 - Prometheus `worldcup_fixture_sync_*` query
 - Grafana provider sync observability dashboard
 - Telegram readiness endpoint
-- pytest `138 passed`
+- pytest `149 passed`
 
 Avoid adding broken image references to the README unless screenshots are committed into the repo.
 
@@ -1064,16 +1138,27 @@ Avoid adding broken image references to the README unless screenshots are commit
 | Document | Purpose |
 |---|---|
 | `README.md` | Main portfolio landing page |
-| `docs/architecture.md` | Current v1.7.0 architecture |
+| `docs/architecture.md` | Current v1.8.0 architecture |
 | `docs/changelog.md` | Release history |
 | `docs/roadmap.md` | Completed and planned milestones |
 | `docs/portfolio-release.md` | Portfolio-facing release summary |
 | `docs/demo-walkthrough.md` | Interview/demo walkthrough |
 | `docs/v1.7.0-provider-sync-observability-runtime-demo.md` | v1.7.0 runtime observability demo guide |
+| `docs/v1.8.0-ai-insights-upgrade.md` | v1.8.0 AI insights upgrade guide |
 
 ---
 
 ## 🧾 Release History
+
+### v1.8.0 — AI Insights Upgrade
+
+- Added `GET /ai/insights` structured AI insights endpoint.
+- Added `backend/app/services/ai_insights_service.py` for deterministic, fallback-safe AI insight generation.
+- Added group and team filters for structured AI insights.
+- Added provider sync runtime status context to AI insights.
+- Added Structured AI Insights panel to the FastAPI static dashboard.
+- Added route, service, and dashboard tests for the AI insights upgrade.
+- Expanded full test baseline: `149 passed`.
 
 ### v1.7.0 — Provider Sync Observability & Runtime Demo
 
@@ -1083,7 +1168,7 @@ Avoid adding broken image references to the README unless screenshots are commit
 - Added Provider Sync Runtime panel to the FastAPI static dashboard.
 - Added provider sync observability panels to the provisioned Grafana dashboard.
 - Added dedicated v1.7.0 runtime demo guide.
-- Expanded full test baseline: `138 passed`.
+- Expanded full test baseline: `149 passed`.
 
 ### v1.6.0 — Real Match Data Sync Improvement
 
@@ -1105,7 +1190,7 @@ Avoid adding broken image references to the README unless screenshots are commit
 - Added a demo walkthrough for interviews and recruiter review.
 - Updated roadmap and changelog for release readiness.
 - Bumped release metadata to `1.5.0`.
-- Preserved full test baseline: `138 passed`.
+- Preserved full test baseline: `149 passed`.
 
 ### v1.4.3 — Documentation and Demo Evidence Cleanup
 
@@ -1181,6 +1266,7 @@ See `docs/changelog.md` and `docs/roadmap.md` for the full milestone history.
 | v1.5.0 | Portfolio release polish | Completed |
 | v1.6.0 | Real match data sync improvement | Completed |
 | v1.7.0 | Provider sync observability and runtime demo | Completed |
+| v1.8.0 | AI insights upgrade | Completed |
 
 ---
 
@@ -1190,21 +1276,21 @@ Recommended future milestones:
 
 | Version | Theme |
 |---|---|
-| v1.8.0 | AI insights upgrade |
 | v1.9.0 | Portfolio demo polish |
+| v2.0.0 | Optional persistent sync history or scheduled sync |
 
-The next major technical step after v1.7.0 is likely richer AI insight generation that can use standings, team context, player statistics, and completed fixture data more intelligently.
+The next major technical step after v1.8.0 is likely demo polish, including curated screenshots, a tighter walkthrough, and optional release evidence for GitHub and LinkedIn.
 
 ---
 
 ## 📌 Project Status
 
 ```text
-Current version: v1.7.0 — Provider Sync Observability & Runtime Demo
-Current test baseline: 138 passed
+Current version: v1.8.0 — AI Insights Upgrade
+Current test baseline: 149 passed
 Runtime: Docker Compose local stack
 Main demo services: FastAPI, dashboard, PostgreSQL, Prometheus, Grafana
 Optional integrations: API-Football, Telegram, Ollama / Local Llama
 ```
 
-This project is now positioned as a portfolio-ready DevOps/backend/observability showcase with stronger real provider data-sync reliability and clearer runtime observability.
+This project is now positioned as a portfolio-ready DevOps/backend/observability/AI showcase with stronger real provider data-sync reliability, clearer runtime observability, and structured AI insights that remain safe for local demos.

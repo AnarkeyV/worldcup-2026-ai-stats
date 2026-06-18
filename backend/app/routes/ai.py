@@ -1,7 +1,7 @@
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -11,6 +11,8 @@ from app.services.insights_service import build_group_insights
 from app.services.local_llama_client import LocalLlamaClient
 from app.services.metrics_service import record_ai_summary_request
 from app.services.standings_service import COMPLETED_STATUSES, build_group_standings
+from app.services.ai_insights_service import build_ai_insights
+from app.services.sync_observability_service import get_fixture_sync_status
 
 router = APIRouter(
     prefix="/ai",
@@ -440,6 +442,47 @@ def build_deterministic_tournament_summary(fixtures: list[Fixture]) -> str:
         return "No fixture summary is available yet."
 
     return "\n".join(f"- {line}" for line in lines)
+
+@router.get("/insights")
+def list_ai_insights(
+    group_name: str | None = Query(
+        default=None,
+        description="Filter AI insights by group name, for example: Group A",
+    ),
+    team: str | None = Query(
+        default=None,
+        description="Filter AI insights by team name or team code, for example: Mexico or MEX",
+    ),
+    limit: int = Query(
+        default=5,
+        ge=1,
+        le=10,
+        description="Maximum number of structured AI insights to return",
+    ),
+    db: Session = Depends(get_db),
+):
+    try:
+        fixtures = (
+            db.query(Fixture)
+            .order_by(Fixture.kickoff_time.asc())
+            .all()
+        )
+
+        sync_status = get_fixture_sync_status()
+
+        return build_ai_insights(
+            fixtures=fixtures,
+            group_name=group_name,
+            team=team,
+            sync_status=sync_status,
+            limit=limit,
+        )
+
+    except SQLAlchemyError as error:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Database error while generating AI insights: {error}",
+        ) from error
 
 
 @router.get("/health")

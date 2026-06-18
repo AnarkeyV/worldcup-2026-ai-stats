@@ -1,48 +1,62 @@
-# v1.5.0 Portfolio Release
+# Portfolio Release Summary
 
 ## Overview
 
-**v1.5.0 — Portfolio Release Polish** is the release that prepares World Cup 2026 AI Stats Dashboard for portfolio review, recruiter screening, technical interviews, and project walkthroughs.
+**World Cup 2026 AI Stats Dashboard** is a portfolio-grade DevOps/backend/observability project built around the FIFA World Cup 2026 use case.
 
-The project already includes backend APIs, dashboard views, database-backed fixture handling, standings, insights, player statistics, AI summaries, Telegram notifications, Prometheus metrics, and Grafana dashboards.
-
-This release focuses on making that work easier to understand and demonstrate.
-
----
-
-## Release Goal
-
-The goal of v1.5.0 is not to add another backend feature.
-
-The goal is to make the existing system look and feel like a serious portfolio project:
-
-- clear README
-- updated architecture documentation
-- accurate roadmap
-- accurate changelog
-- demo walkthrough
-- portfolio release summary
-- consistent version metadata
-- verified test baseline
-
----
-
-## Current Release Status
+The current release is:
 
 ```text
-Version: v1.5.0
-Release name: Portfolio Release Polish
-Test status: 138 passed
+Version: v1.8.0
+Release name: AI Insights Upgrade
+Test status: 149 passed
 Runtime: Docker Compose local stack
 Primary demo services: FastAPI, dashboard, PostgreSQL, Prometheus, Grafana
 Optional integrations: API-Football, Telegram, Ollama / Local Llama
 ```
 
+The project includes backend APIs, database-backed fixture handling, provider sync logic, standings, group insights, structured AI insights, player statistics, AI summaries, Telegram notifications, Prometheus metrics, and Grafana dashboards.
+
+---
+
+## Portfolio Goal
+
+The goal of this project is to show practical engineering range:
+
+- backend API design
+- service-layer organization
+- database-backed workflows
+- Docker Compose runtime operation
+- local-first AI integration
+- observability through Prometheus and Grafana
+- safe optional integrations
+- milestone-based release discipline
+- automated testing and documentation
+
+---
+
+## What v1.8.0 Adds
+
+v1.8.0 upgrades the AI story from simple summaries into structured insight generation.
+
+Delivered:
+
+- `GET /ai/insights`
+- deterministic `ai_insights_service.py`
+- fixture availability insights
+- completed result insights
+- group-leader insights
+- strongest-attack insights
+- provider sync runtime status insights
+- group and team filters
+- Structured AI Insights panel in the FastAPI static dashboard
+- focused tests for service, route, and dashboard behavior
+
+The structured insights are intentionally fallback-safe. They work without requiring Ollama to be running, which makes the project more reliable during live demos.
+
 ---
 
 ## What This Project Demonstrates
-
-This project demonstrates practical skills across several areas.
 
 ### Backend Engineering
 
@@ -70,13 +84,15 @@ This project demonstrates practical skills across several areas.
 - Grafana provisioning
 - dashboard JSON configuration
 - version-aware application metrics
+- provider sync runtime observability
 
 ### AI Integration
 
 - local-first LLM workflow
 - Ollama/Llama integration
 - AI health checking
-- safe fallback behavior
+- deterministic structured AI insights
+- fallback-safe demo behavior
 - football summary generation
 
 ### Notification Integration
@@ -93,6 +109,7 @@ This project demonstrates practical skills across several areas.
 - roadmap maintenance
 - version consistency tests
 - documentation-first portfolio polish
+- full test baseline: `149 passed`
 
 ---
 
@@ -100,37 +117,33 @@ This project demonstrates practical skills across several areas.
 
 ### 1. This is not just a simple API
 
-The project started with a backend foundation and grew into a complete local system with database, dashboards, AI summaries, notifications, and monitoring.
+The project started with a backend foundation and grew into a complete local system with database, dashboards, AI summaries, structured AI insights, notifications, metrics, and Grafana.
 
 ### 2. The project is milestone-driven
 
 Each release added a specific capability and was validated before moving on.
 
-Examples:
+Recent examples:
 
-- v0.5.0 added Telegram notifications.
-- v0.8.0 added local Llama summaries.
-- v1.1.0 added standings.
-- v1.3.0 added player statistics.
-- v1.4.0 added monitoring.
-- v1.4.1 polished Grafana.
-- v1.4.2 hardened Telegram live delivery.
 - v1.5.0 polished the project for portfolio release.
+- v1.6.0 improved real provider data sync reliability.
+- v1.7.0 added provider sync observability and runtime demo visibility.
+- v1.8.0 added structured AI insights.
 
 ### 3. The system is observable
 
 Prometheus and Grafana are included so the project can demonstrate runtime visibility, not just application features.
 
-### 4. The system is configurable
+### 4. The AI layer is demo-safe
 
-Secrets and external integrations are controlled through environment variables, keeping the repository safe for public sharing.
+The project supports local Llama/Ollama summaries, but the new `/ai/insights` endpoint is deterministic and can still work when Ollama is unavailable.
 
 ### 5. The project has automated tests
 
-The release baseline is:
+The current release baseline is:
 
 ```text
-114 passed
+149 passed
 ```
 
 That is useful in interviews because it shows the project is not only manually tested.
@@ -142,18 +155,19 @@ That is useful in interviews because it shows the project is not only manually t
 A strong demo flow is:
 
 1. Open GitHub README and explain the project purpose.
-2. Run or show `python -m pytest` with `138 passed`.
+2. Run or show `python -m pytest` with `149 passed`.
 3. Start Docker Compose.
 4. Open FastAPI `/health`.
 5. Open FastAPI `/docs`.
 6. Sync sample fixtures.
 7. Show `/fixtures`, `/standings`, and `/insights/groups`.
-8. Show player statistics.
-9. Show backend dashboard or Streamlit dashboard.
-10. Show Prometheus.
-11. Show Grafana.
-12. Show Telegram status endpoint.
-13. Explain optional AI summary support through Ollama.
+8. Show `/ai/insights`.
+9. Show player statistics.
+10. Show backend dashboard with Provider Sync Runtime and Structured AI Insights panels.
+11. Show Prometheus.
+12. Show Grafana.
+13. Show Telegram status endpoint.
+14. Explain optional local AI summary support through Ollama.
 
 ---
 
@@ -161,24 +175,24 @@ A strong demo flow is:
 
 World Cup 2026 AI Stats Dashboard is a FastAPI-based football analytics platform that demonstrates backend development, Dockerized runtime operations, database-backed workflows, local AI integration, Telegram notifications, and Prometheus/Grafana observability.
 
-The v1.5.0 release makes the project portfolio-ready by improving the README, refreshing architecture documentation, adding demo guidance, and keeping version/test status consistent.
+The v1.8.0 release strengthens the AI story by adding structured, fallback-safe insights that connect fixture data, standings, and provider sync runtime state to a dashboard-ready AI panel.
 
 ---
 
 ## Release Checklist
 
-Before publishing v1.5.0:
+Before publishing v1.8.0:
 
-- [ ] `VERSION` is `1.5.0`
-- [ ] `.env.example` has `APP_VERSION=1.5.0`
-- [ ] `backend/app/config.py` default version is `1.5.0`
-- [ ] README badge shows `v1.5.0`
-- [ ] `docs/changelog.md` includes v1.5.0
-- [ ] `docs/roadmap.md` marks v1.5.0 as completed
+- [ ] `VERSION` is `1.8.0`
+- [ ] `.env.example` has `APP_VERSION=1.8.0`
+- [ ] `backend/app/config.py` default version is `1.8.0`
+- [ ] README badge shows `v1.8.0`
+- [ ] `docs/changelog.md` includes v1.8.0
+- [ ] `docs/roadmap.md` marks v1.8.0 as completed
 - [ ] `docs/architecture.md` reflects current architecture
-- [ ] `docs/demo-walkthrough.md` exists
-- [ ] `docs/portfolio-release.md` exists
-- [ ] `python -m pytest` passes
+- [ ] `docs/demo-walkthrough.md` includes `/ai/insights`
+- [ ] `docs/v1.8.0-ai-insights-upgrade.md` exists
+- [ ] `python -m pytest` passes with `149 passed`
 - [ ] `git status` is clean after commit
 - [ ] branch is pushed
 - [ ] PR is created, reviewed, merged, and branch deleted
@@ -188,8 +202,8 @@ Before publishing v1.5.0:
 ## Suggested Release Commit
 
 ```bash
-git add VERSION .env.example backend/app/config.py README.md docs
-git commit -m "Polish portfolio release documentation for v1.5.0"
+git add README.md docs
+git commit -m "Document v1.8.0 AI insights upgrade"
 ```
 
 ---
@@ -197,16 +211,16 @@ git commit -m "Polish portfolio release documentation for v1.5.0"
 ## Suggested GitHub Release Note
 
 ```text
-v1.5.0 — Portfolio Release Polish
+v1.8.0 — AI Insights Upgrade
 
-This release prepares World Cup 2026 AI Stats Dashboard for portfolio review, recruiter screening, and interview demos.
+This release upgrades the AI layer with structured, fallback-safe insights for fixture data, standings context, and provider sync runtime status.
 
 Highlights:
-- Refreshed README as a portfolio landing page
-- Updated architecture documentation for the current system
-- Added portfolio release summary
-- Added demo walkthrough
-- Updated changelog and roadmap
-- Bumped release metadata to 1.5.0
-- Verified full test suite: 138 passed
+- Added GET /ai/insights
+- Added deterministic AI insights service
+- Added group and team filters for AI insights
+- Added Structured AI Insights panel to the static dashboard
+- Preserved Local Llama summary endpoints
+- Updated README, architecture, roadmap, changelog, and demo walkthrough
+- Verified full test suite: 149 passed
 ```
