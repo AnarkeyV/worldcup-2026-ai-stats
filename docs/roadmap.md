@@ -11,13 +11,13 @@ Each milestone is designed to add a clear capability, preserve test coverage, an
 Current version:
 
 ```text
-v1.6.0 — Real Match Data Sync Improvement
+v1.7.0 — Provider Sync Observability & Runtime Demo
 ```
 
 Current test baseline:
 
 ```text
-123 passed
+138 passed
 ```
 
 Current runtime model:
@@ -318,7 +318,7 @@ Delivered:
 
 ---
 
-### v1.6.0 — Real Match Data Sync Improvement
+### v1.7.0 — Provider Sync Observability & Runtime Demo
 
 Status: Completed
 
@@ -333,13 +333,13 @@ Delivered:
 - case-insensitive completed status detection
 - provider route tests for mocked success and provider failure
 - release metadata bumped to `1.6.0`
-- full test baseline expanded to `123 passed`
+- full test baseline expanded to `138 passed`
 
 ---
 
 ## Planned Milestones
 
-### v1.7.0 — AI Insights Upgrade
+### v1.8.0 — AI Insights Upgrade
 
 Goal:
 
@@ -361,7 +361,7 @@ This would make the AI component more meaningful and more closely tied to the fo
 
 ---
 
-### v1.8.0 — Portfolio Demo Polish
+### v1.9.0 — Portfolio Demo Polish
 
 Goal:
 
