@@ -3,6 +3,7 @@ const state = {
     visibleFixtures: [],
     standings: [],
     insights: null,
+    aiInsights: null,
     playerStats: null,
     fixtureSummaries: {},
     fixtureSyncStatus: null,
@@ -30,6 +31,10 @@ const elements = {
     standingsContainer: document.querySelector("#standings-container"),
     insightsMessage: document.querySelector("#insights-message"),
     insightsContainer: document.querySelector("#insights-container"),
+    aiInsightsMessage: document.querySelector("#ai-insights-message"),
+    aiInsightsSummary: document.querySelector("#ai-insights-summary"),
+    aiInsightsContainer: document.querySelector("#ai-insights-container"),
+    refreshAiInsights: document.querySelector("#refresh-ai-insights"),
     playerStatsMessage: document.querySelector("#player-stats-message"),
     playerStatsContainer: document.querySelector("#player-stats-container"),
     generateAiSummary: document.querySelector("#generate-ai-summary"),
@@ -152,6 +157,43 @@ async function fetchInsights(filters = {}) {
     throw new Error("Unable to load insights from available API endpoints.");
 }
 
+async function fetchAiInsights(filters = {}) {
+    const params = new URLSearchParams();
+
+    if (filters.group) {
+        params.set("group_name", filters.group);
+    }
+
+    if (filters.team) {
+        params.set("team", filters.team);
+    }
+
+    params.set("limit", "5");
+
+    const queryString = `?${params.toString()}`;
+
+    const possibleEndpoints = [
+        `/api/ai/insights${queryString}`,
+        `/ai/insights${queryString}`,
+    ];
+
+    for (const endpoint of possibleEndpoints) {
+        try {
+            const response = await fetch(endpoint);
+
+            if (!response.ok) {
+                continue;
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.warn(`Unable to fetch AI insights from ${endpoint}`, error);
+        }
+    }
+
+    throw new Error("Unable to load structured AI insights from available API endpoints.");
+}
+
 async function fetchPlayerStats(filters = {}, sortBy = "goals", limit = 5) {
     const queryString = buildPlayerStatsQueryString(filters, sortBy, limit);
 
@@ -210,6 +252,20 @@ async function refreshFixtureSyncStatus() {
     } catch (error) {
         console.error(error);
         setSyncStatusError("Unable to load fixture sync runtime status.");
+    }
+}
+
+async function refreshAiInsights() {
+    setAiInsightsLoading();
+
+    try {
+        const data = await fetchAiInsights(state.filters);
+
+        state.aiInsights = data;
+        renderAiInsights(data);
+    } catch (error) {
+        console.error(error);
+        setAiInsightsError("Unable to load structured AI insights.");
     }
 }
 
@@ -542,6 +598,7 @@ function setLoadingState() {
     elements.dashboardMessage.textContent = "Loading fixtures...";
     elements.standingsMessage.textContent = "Loading standings...";
     elements.insightsMessage.textContent = "Loading insights...";
+    elements.aiInsightsMessage.textContent = "Loading structured AI insights...";
     elements.playerStatsMessage.textContent = "Loading player statistics...";
 }
 
@@ -601,6 +658,70 @@ function renderInsights(insights) {
         `;
 
         elements.insightsContainer.appendChild(card);
+    });
+}
+
+function setAiInsightsLoading() {
+    elements.aiInsightsMessage.textContent = "Loading structured AI insights...";
+    elements.aiInsightsSummary.className = "ai-insights-summary";
+    elements.aiInsightsSummary.textContent = "Checking fixture, standings, and provider sync context.";
+    elements.aiInsightsContainer.innerHTML = "";
+}
+
+function setAiInsightsError(message) {
+    elements.aiInsightsMessage.textContent = message;
+    elements.aiInsightsSummary.className = "ai-insights-summary error";
+    elements.aiInsightsSummary.textContent =
+        "The dashboard could not load structured AI insights. Please check that the AI insights API is running.";
+    elements.aiInsightsContainer.innerHTML = `
+        <div class="empty-state">
+            Structured AI insights are currently unavailable.
+        </div>
+    `;
+}
+
+function renderAiInsights(aiInsights) {
+    elements.aiInsightsContainer.innerHTML = "";
+
+    if (!aiInsights || !Array.isArray(aiInsights.insights)) {
+        setAiInsightsError("Unable to load structured AI insights.");
+        return;
+    }
+
+    const mode = aiInsights.mode || "fallback";
+    const provider = aiInsights.provider || "rules_based_ai_insights";
+    const model = aiInsights.model || "rules_based_v1";
+    const fixtureCount = aiInsights.metadata?.fixture_count ?? 0;
+    const completedCount = aiInsights.metadata?.completed_count ?? 0;
+    const syncStatus = aiInsights.metadata?.sync_status || "unknown";
+
+    elements.aiInsightsMessage.textContent =
+        `Generated ${aiInsights.insights.length} structured insight${aiInsights.insights.length === 1 ? "" : "s"} using ${provider} (${model}).`;
+
+    elements.aiInsightsSummary.className = "ai-insights-summary success";
+    elements.aiInsightsSummary.textContent =
+        `${aiInsights.summary} Mode: ${mode}. Fixtures: ${fixtureCount}. Completed: ${completedCount}. Sync status: ${syncStatus}.`;
+
+    if (aiInsights.insights.length === 0) {
+        elements.aiInsightsContainer.innerHTML = `
+            <div class="empty-state">
+                No structured AI insights are available yet.
+            </div>
+        `;
+        return;
+    }
+
+    aiInsights.insights.forEach((insight) => {
+        const card = document.createElement("article");
+        card.className = "ai-insight-card";
+
+        card.innerHTML = `
+            <span class="ai-insight-category">${escapeHtml(insight.category || "insight")}</span>
+            <strong>${escapeHtml(insight.title || "AI Insight")}</strong>
+            <p>${escapeHtml(insight.message || "No insight message available.")}</p>
+        `;
+
+        elements.aiInsightsContainer.appendChild(card);
     });
 }
 
@@ -1063,6 +1184,7 @@ function bindEvents() {
 
     elements.generateAiSummary.addEventListener("click", generateAiSummary);
     elements.refreshSyncStatus.addEventListener("click", refreshFixtureSyncStatus);
+    elements.refreshAiInsights.addEventListener("click", refreshAiInsights);
 
     elements.fixturesContainer.addEventListener("click", (event) => {
         const button = event.target.closest("[data-fixture-summary-id]");
@@ -1083,22 +1205,25 @@ async function initializeDashboard() {
     refreshFixtureSyncStatus();
 
     try {
-        const [fixtures, standings, insights, playerStats] = await Promise.all([
-            fetchFixtures(),
-            fetchStandings(),
-            fetchInsights(),
-            fetchPlayerStatsSummary(),
+        const [fixtures, standings, insights, aiInsights, playerStats] = await Promise.all([
+        fetchFixtures(),
+        fetchStandings(),
+        fetchInsights(),
+        fetchAiInsights(),
+        fetchPlayerStatsSummary(),
         ]);
 
         state.allFixtures = fixtures;
         state.visibleFixtures = fixtures;
         state.standings = standings;
         state.insights = insights;
+        state.aiInsights = aiInsights;
         state.playerStats = playerStats;
 
         populateFilters(state.allFixtures);
         updateSummary(state.allFixtures, state.visibleFixtures);
         renderInsights(state.insights);
+        renderAiInsights(state.aiInsights);
         renderPlayerStats(state.playerStats);
         renderStandings(state.standings);
         renderFixtures(state.visibleFixtures);
@@ -1110,6 +1235,7 @@ async function initializeDashboard() {
                 The dashboard could not load fixture data. Please check that the API server is running.
             </div>
         `;
+        setAiInsightsError("Unable to load structured AI insights.");
         elements.standingsMessage.textContent = "Unable to load standings.";
         elements.standingsContainer.innerHTML = `
             <div class="empty-state">

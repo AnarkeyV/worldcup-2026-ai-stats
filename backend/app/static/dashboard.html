@@ -148,6 +148,28 @@
             </button>
         </section>
 
+                <section class="ai-insights-panel" aria-label="Structured AI insights">
+            <div class="ai-insights-heading">
+                <div>
+                    <p class="eyebrow">AI Insights Upgrade</p>
+                    <h2>Structured AI Insights</h2>
+                    <p id="ai-insights-message">
+                        Loading structured fixture, standings, and sync insights...
+                    </p>
+                </div>
+
+                <button id="refresh-ai-insights" type="button">
+                    Refresh AI Insights
+                </button>
+            </div>
+
+            <div id="ai-insights-summary" class="ai-insights-summary">
+                AI insights will appear after the dashboard checks fixture data.
+            </div>
+
+            <div id="ai-insights-container" class="ai-insights-grid" aria-live="polite"></div>
+        </section>
+
         <section class="controls-panel" aria-label="Dashboard filters">
             <div class="control-group">
                 <label for="team-search">Search team</label>
