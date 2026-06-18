@@ -13,7 +13,7 @@
             <p class="eyebrow">World Cup 2026 AI Stats</p>
             <h1>Interactive Dashboard</h1>
             <p class="subtitle">
-                Browse fixtures, filter matches, view group standings, explore team insights, track player statistics, and generate local AI summaries.
+                Browse fixtures, filter matches, view group standings, explore team insights, track player statistics, monitor provider sync runtime state, and generate local AI summaries.
             </p>
         </div>
 
@@ -43,6 +43,74 @@
                 <span class="summary-label">Visible Results</span>
                 <strong id="visible-fixtures">-</strong>
             </article>
+        </section>
+
+        <section class="sync-runtime-panel" aria-label="Provider sync runtime status">
+            <div class="sync-runtime-heading">
+                <div>
+                    <p class="eyebrow">Runtime Observability</p>
+                    <h2>Provider Sync Runtime</h2>
+                    <p id="provider-sync-message">
+                        Checking latest fixture sync status...
+                    </p>
+                </div>
+
+                <div class="sync-runtime-actions">
+                    <span id="sync-status-badge" class="sync-status-badge not-started">
+                        Not Started
+                    </span>
+
+                    <button id="refresh-sync-status" type="button">
+                        Refresh Sync Status
+                    </button>
+                </div>
+            </div>
+
+            <div id="fixture-sync-status-container" class="sync-runtime-grid" aria-live="polite">
+                <article class="sync-runtime-card">
+                    <span class="sync-runtime-label">Provider</span>
+                    <strong id="sync-provider">-</strong>
+                </article>
+
+                <article class="sync-runtime-card">
+                    <span class="sync-runtime-label">Last Run</span>
+                    <strong id="sync-last-run">-</strong>
+                </article>
+
+                <article class="sync-runtime-card">
+                    <span class="sync-runtime-label">Duration</span>
+                    <strong id="sync-duration">-</strong>
+                </article>
+
+                <article class="sync-runtime-card">
+                    <span class="sync-runtime-label">Fetched</span>
+                    <strong id="sync-total-fixtures">0</strong>
+                </article>
+
+                <article class="sync-runtime-card">
+                    <span class="sync-runtime-label">Created</span>
+                    <strong id="sync-created">0</strong>
+                </article>
+
+                <article class="sync-runtime-card">
+                    <span class="sync-runtime-label">Updated</span>
+                    <strong id="sync-updated">0</strong>
+                </article>
+
+                <article class="sync-runtime-card">
+                    <span class="sync-runtime-label">Newly Completed</span>
+                    <strong id="sync-newly-completed">0</strong>
+                </article>
+
+                <article class="sync-runtime-card">
+                    <span class="sync-runtime-label">Last Success</span>
+                    <strong id="sync-last-success">-</strong>
+                </article>
+            </div>
+
+            <div id="sync-error-message" class="sync-error-message">
+                No sync errors recorded.
+            </div>
         </section>
 
         <section class="ai-summary-panel" aria-label="AI fixture summary">
@@ -156,7 +224,7 @@
 
     <footer class="app-footer">
         <p>
-            v1.3.0 Player-Level Statistics Foundation · Powered by FastAPI
+            v1.7.0 Provider Sync Observability & Runtime Demo · Powered by FastAPI
         </p>
     </footer>
 

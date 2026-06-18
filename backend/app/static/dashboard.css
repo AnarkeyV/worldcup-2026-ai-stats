@@ -60,7 +60,7 @@ h1 {
 }
 
 .subtitle {
-    max-width: 46rem;
+    max-width: 50rem;
     color: var(--muted);
     font-size: 1.05rem;
     line-height: 1.6;
@@ -111,7 +111,10 @@ button:disabled {
 .controls-panel,
 .fixtures-section,
 .standings-section,
-.ai-summary-panel {
+.ai-summary-panel,
+.sync-runtime-panel,
+.insights-section,
+.player-stats-section {
     background: rgba(17, 24, 39, 0.88);
     border: 1px solid var(--border);
     box-shadow: var(--shadow);
@@ -133,6 +136,121 @@ button:disabled {
 .summary-card strong {
     display: block;
     font-size: 2rem;
+}
+
+.sync-runtime-panel {
+    border-radius: 1.5rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    background:
+        linear-gradient(135deg, rgba(56, 189, 248, 0.16), rgba(15, 23, 42, 0.88)),
+        rgba(17, 24, 39, 0.88);
+}
+
+.sync-runtime-heading {
+    display: flex;
+    justify-content: space-between;
+    gap: 1.5rem;
+    align-items: flex-start;
+    margin-bottom: 1.25rem;
+}
+
+.sync-runtime-heading h2 {
+    margin: 0;
+    font-size: 1.6rem;
+}
+
+.sync-runtime-heading p {
+    margin: 0.35rem 0 0;
+    color: var(--muted);
+    line-height: 1.6;
+}
+
+.sync-runtime-actions {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.sync-status-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 8rem;
+    border-radius: 999px;
+    padding: 0.55rem 0.85rem;
+    font-size: 0.78rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border: 1px solid var(--border);
+}
+
+.sync-status-badge.not-started {
+    color: #dbeafe;
+    background: rgba(59, 130, 246, 0.16);
+    border-color: rgba(96, 165, 250, 0.5);
+}
+
+.sync-status-badge.success {
+    color: #bbf7d0;
+    background: rgba(34, 197, 94, 0.16);
+    border-color: rgba(34, 197, 94, 0.5);
+}
+
+.sync-status-badge.error {
+    color: #fecaca;
+    background: rgba(239, 68, 68, 0.16);
+    border-color: rgba(239, 68, 68, 0.5);
+}
+
+.sync-runtime-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.sync-runtime-card {
+    background: #ffffff;
+    color: #111827;
+    border-radius: 1.1rem;
+    padding: 1.1rem;
+    border: 1px solid #e5e7eb;
+}
+
+.sync-runtime-label {
+    display: block;
+    color: #64748b;
+    font-size: 0.78rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.55rem;
+}
+
+.sync-runtime-card strong {
+    display: block;
+    font-size: 1.05rem;
+    line-height: 1.35;
+    word-break: break-word;
+}
+
+.sync-error-message {
+    margin-top: 1rem;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    border-radius: 1rem;
+    padding: 1rem;
+    background: rgba(2, 6, 23, 0.45);
+    color: var(--muted);
+    line-height: 1.6;
+}
+
+.sync-error-message.has-error {
+    border-color: rgba(239, 68, 68, 0.65);
+    background: rgba(239, 68, 68, 0.08);
+    color: #fecaca;
 }
 
 .ai-summary-panel {
@@ -259,12 +377,11 @@ select:focus {
 }
 
 .fixtures-section,
-.standings-section {
+.standings-section,
+.insights-section,
+.player-stats-section {
     border-radius: 1.5rem;
     padding: 1.5rem;
-}
-
-.standings-section {
     margin-bottom: 1.5rem;
 }
 
@@ -284,6 +401,53 @@ select:focus {
 .section-heading p {
     margin: 0.35rem 0 0;
     color: var(--muted);
+}
+
+.insights-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.player-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.insight-card,
+.player-stat-card {
+    background: #ffffff;
+    color: #111827;
+    border-radius: 1.1rem;
+    padding: 1.1rem;
+    border: 1px solid #e5e7eb;
+}
+
+.insight-label,
+.player-stat-label {
+    display: block;
+    color: #64748b;
+    font-size: 0.78rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.55rem;
+}
+
+.insight-card strong,
+.player-stat-card strong {
+    display: block;
+    font-size: 1.05rem;
+    line-height: 1.35;
+}
+
+.insight-card p,
+.player-stat-card p {
+    margin: 0.75rem 0 0;
+    color: #64748b;
+    font-size: 0.88rem;
+    line-height: 1.45;
 }
 
 .standings-container {
@@ -464,6 +628,14 @@ select:focus {
     padding: 2rem 1rem;
 }
 
+@media (max-width: 1100px) {
+    .sync-runtime-grid,
+    .player-stats-grid,
+    .insights-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
 @media (max-width: 900px) {
     .app-header {
         flex-direction: column;
@@ -471,7 +643,10 @@ select:focus {
     }
 
     .summary-grid,
-    .fixtures-grid {
+    .fixtures-grid,
+    .sync-runtime-grid,
+    .player-stats-grid,
+    .insights-grid {
         grid-template-columns: 1fr;
     }
 
@@ -480,130 +655,20 @@ select:focus {
     }
 
     .ai-summary-panel,
-    .ai-summary-heading {
+    .ai-summary-heading,
+    .sync-runtime-heading {
         flex-direction: column;
     }
 
+    .sync-runtime-actions,
     .ai-summary-panel button,
-    .ai-health-badge {
+    .ai-health-badge,
+    .sync-status-badge,
+    #refresh-sync-status {
         width: 100%;
     }
-}
 
-.insights-section {
-    border-radius: 1.5rem;
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-    background: rgba(17, 24, 39, 0.88);
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow);
-    backdrop-filter: blur(16px);
-}
-
-.insights-grid {
-    display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 1rem;
-}
-
-.insight-card {
-    background: #ffffff;
-    color: #111827;
-    border-radius: 1.1rem;
-    padding: 1.1rem;
-    border: 1px solid #e5e7eb;
-}
-
-.insight-label {
-    display: block;
-    color: #64748b;
-    font-size: 0.78rem;
-    font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 0.55rem;
-}
-
-.insight-card strong {
-    display: block;
-    font-size: 1.05rem;
-    line-height: 1.35;
-}
-
-.insight-card p {
-    margin: 0.75rem 0 0;
-    color: #64748b;
-    font-size: 0.88rem;
-    line-height: 1.45;
-}
-
-@media (max-width: 1100px) {
-    .insights-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-}
-
-@media (max-width: 900px) {
-    .insights-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
-.player-stats-section {
-    border-radius: 1.5rem;
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-    background: rgba(17, 24, 39, 0.88);
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow);
-    backdrop-filter: blur(16px);
-}
-
-.player-stats-grid {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 1rem;
-}
-
-.player-stat-card {
-    background: #ffffff;
-    color: #111827;
-    border-radius: 1.1rem;
-    padding: 1.1rem;
-    border: 1px solid #e5e7eb;
-}
-
-.player-stat-label {
-    display: block;
-    color: #64748b;
-    font-size: 0.78rem;
-    font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 0.55rem;
-}
-
-.player-stat-card strong {
-    display: block;
-    font-size: 1.05rem;
-    line-height: 1.35;
-}
-
-.player-stat-card p {
-    margin: 0.75rem 0 0;
-    color: #64748b;
-    font-size: 0.88rem;
-    line-height: 1.45;
-}
-
-@media (max-width: 1100px) {
-    .player-stats-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-}
-
-@media (max-width: 900px) {
-    .player-stats-grid {
-        grid-template-columns: 1fr;
+    .sync-runtime-actions {
+        align-items: stretch;
     }
 }

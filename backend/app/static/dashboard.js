@@ -5,6 +5,7 @@ const state = {
     insights: null,
     playerStats: null,
     fixtureSummaries: {},
+    fixtureSyncStatus: null,
     aiAvailable: false,
     filters: {
         team: "",
@@ -36,6 +37,18 @@ const elements = {
     aiSummaryOutput: document.querySelector("#ai-summary-output"),
     aiHealthBadge: document.querySelector("#ai-health-badge"),
     aiHealthDetails: document.querySelector("#ai-health-details"),
+    providerSyncMessage: document.querySelector("#provider-sync-message"),
+    syncStatusBadge: document.querySelector("#sync-status-badge"),
+    refreshSyncStatus: document.querySelector("#refresh-sync-status"),
+    syncProvider: document.querySelector("#sync-provider"),
+    syncLastRun: document.querySelector("#sync-last-run"),
+    syncDuration: document.querySelector("#sync-duration"),
+    syncTotalFixtures: document.querySelector("#sync-total-fixtures"),
+    syncCreated: document.querySelector("#sync-created"),
+    syncUpdated: document.querySelector("#sync-updated"),
+    syncNewlyCompleted: document.querySelector("#sync-newly-completed"),
+    syncLastSuccess: document.querySelector("#sync-last-success"),
+    syncErrorMessage: document.querySelector("#sync-error-message"),
 };
 
 async function fetchFixtures(filters = {}) {
@@ -62,6 +75,29 @@ async function fetchFixtures(filters = {}) {
     }
 
     throw new Error("Unable to load fixtures from available API endpoints.");
+}
+
+async function fetchFixtureSyncStatus() {
+    const possibleEndpoints = [
+        "/api/fixtures/sync/status",
+        "/fixtures/sync/status",
+    ];
+
+    for (const endpoint of possibleEndpoints) {
+        try {
+            const response = await fetch(endpoint);
+
+            if (!response.ok) {
+                continue;
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.warn(`Unable to fetch sync status from ${endpoint}`, error);
+        }
+    }
+
+    throw new Error("Unable to load fixture sync runtime status.");
 }
 
 async function fetchStandings(filters = {}) {
@@ -163,6 +199,20 @@ async function fetchPlayerStatsSummary(filters = {}) {
     };
 }
 
+async function refreshFixtureSyncStatus() {
+    setSyncStatusLoading();
+
+    try {
+        const data = await fetchFixtureSyncStatus();
+
+        state.fixtureSyncStatus = data;
+        renderFixtureSyncStatus(data);
+    } catch (error) {
+        console.error(error);
+        setSyncStatusError("Unable to load fixture sync runtime status.");
+    }
+}
+
 async function checkAiHealth() {
     setAiHealthChecking();
 
@@ -215,6 +265,60 @@ function setAiHealthUnavailable(data) {
     elements.aiHealthBadge.className = "ai-health-badge unavailable";
     elements.aiHealthBadge.textContent = "AI Offline";
     elements.aiHealthDetails.textContent = `${model} is not reachable. ${error}`;
+}
+
+function setSyncStatusLoading() {
+    elements.providerSyncMessage.textContent = "Checking latest fixture sync status...";
+    elements.syncStatusBadge.className = "sync-status-badge not-started";
+    elements.syncStatusBadge.textContent = "Checking";
+}
+
+function setSyncStatusError(message) {
+    elements.providerSyncMessage.textContent = message;
+    elements.syncStatusBadge.className = "sync-status-badge error";
+    elements.syncStatusBadge.textContent = "Error";
+    elements.syncErrorMessage.className = "sync-error-message has-error";
+    elements.syncErrorMessage.textContent = message;
+}
+
+function renderFixtureSyncStatus(data) {
+    const status = data.status || "not_started";
+    const source = data.source || "No source yet";
+    const provider = data.provider || "No provider yet";
+    const totalFixtures = formatNumber(data.total_fixtures);
+    const created = formatNumber(data.created);
+    const updated = formatNumber(data.updated);
+    const newlyCompleted = formatNumber(data.newly_completed_count);
+
+    elements.syncStatusBadge.className = `sync-status-badge ${getSyncStatusClass(status)}`;
+    elements.syncStatusBadge.textContent = formatSyncStatus(status);
+    elements.syncProvider.textContent = provider;
+    elements.syncLastRun.textContent = formatDateTime(data.last_run_at);
+    elements.syncDuration.textContent = formatDurationSeconds(data.duration_seconds);
+    elements.syncTotalFixtures.textContent = totalFixtures;
+    elements.syncCreated.textContent = created;
+    elements.syncUpdated.textContent = updated;
+    elements.syncNewlyCompleted.textContent = newlyCompleted;
+    elements.syncLastSuccess.textContent = formatDateTime(data.last_success_at);
+
+    if (status === "not_started") {
+        elements.providerSyncMessage.textContent =
+            "No fixture sync has been recorded yet. Run sample or provider sync to populate runtime data.";
+    } else if (status === "success") {
+        elements.providerSyncMessage.textContent =
+            `Last ${source} sync succeeded using ${provider}: ${totalFixtures} fetched, ${created} created, ${updated} updated.`;
+    } else {
+        elements.providerSyncMessage.textContent =
+            `Last ${source} sync failed using ${provider}. Check the error message below.`;
+    }
+
+    if (data.last_error) {
+        elements.syncErrorMessage.className = "sync-error-message has-error";
+        elements.syncErrorMessage.textContent = data.last_error;
+    } else {
+        elements.syncErrorMessage.className = "sync-error-message";
+        elements.syncErrorMessage.textContent = "No sync errors recorded.";
+    }
 }
 
 function buildFixtureQueryString(filters) {
@@ -835,6 +939,16 @@ function formatStatus(status) {
     return status.replaceAll("_", " ");
 }
 
+function formatSyncStatus(status) {
+    if (!status) {
+        return "Unknown";
+    }
+
+    return status
+        .replaceAll("_", " ")
+        .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
 function getStatusClass(status) {
     if (status === "complete") {
         return "status-complete";
@@ -851,9 +965,21 @@ function getStatusClass(status) {
     return "status-default";
 }
 
+function getSyncStatusClass(status) {
+    if (status === "success") {
+        return "success";
+    }
+
+    if (status === "error") {
+        return "error";
+    }
+
+    return "not-started";
+}
+
 function formatDateTime(value) {
     if (!value) {
-        return "Kickoff TBC";
+        return "-";
     }
 
     const date = new Date(value);
@@ -866,6 +992,24 @@ function formatDateTime(value) {
         dateStyle: "medium",
         timeStyle: "short",
     }).format(date);
+}
+
+function formatDurationSeconds(value) {
+    if (value === null || value === undefined) {
+        return "-";
+    }
+
+    const duration = Number(value);
+
+    if (Number.isNaN(duration)) {
+        return "-";
+    }
+
+    if (duration < 1) {
+        return `${Math.round(duration * 1000)} ms`;
+    }
+
+    return `${duration.toFixed(2)} s`;
 }
 
 function escapeHtml(value) {
@@ -918,6 +1062,7 @@ function bindEvents() {
     });
 
     elements.generateAiSummary.addEventListener("click", generateAiSummary);
+    elements.refreshSyncStatus.addEventListener("click", refreshFixtureSyncStatus);
 
     elements.fixturesContainer.addEventListener("click", (event) => {
         const button = event.target.closest("[data-fixture-summary-id]");
@@ -935,6 +1080,7 @@ async function initializeDashboard() {
     bindEvents();
     setLoadingState();
     checkAiHealth();
+    refreshFixtureSyncStatus();
 
     try {
         const [fixtures, standings, insights, playerStats] = await Promise.all([
@@ -985,4 +1131,4 @@ async function initializeDashboard() {
     }
 }
 
-initializeDashboard();
+document.addEventListener("DOMContentLoaded", initializeDashboard);
