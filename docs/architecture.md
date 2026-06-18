@@ -4,13 +4,13 @@
 
 World Cup 2026 AI Stats Dashboard is a containerized football analytics platform built around a FastAPI backend, PostgreSQL database, dashboard layer, local AI summary workflow, Telegram notification integration, and Prometheus/Grafana observability stack.
 
-This architecture document reflects the current **v1.6.0 — Real Match Data Sync Improvement** release.
+This architecture document reflects the current **v1.7.0 — Provider Sync Observability & Runtime Demo** release.
 
 The project is designed as a local-first portfolio system that can be explained clearly during interviews, recruiter reviews, and technical walkthroughs.
 
 ---
 
-## Current Architecture - v1.6.0
+## Current Architecture - v1.7.0
 
 ```text
 +--------------------------+
@@ -524,7 +524,7 @@ The project uses pytest as its test runner.
 Current baseline:
 
 ```text
-114 passed
+138 passed
 ```
 
 Test coverage areas include:
@@ -623,7 +623,7 @@ The project follows these security principles:
 
 ## Current Limitations
 
-The current v1.6.0 release is portfolio-ready and has a stronger provider sync layer, but it is still local-first.
+The current v1.7.0 release is portfolio-ready with a stronger provider sync layer and clearer runtime observability, but it is still local-first.
 
 Known limitations:
 

@@ -4,7 +4,7 @@
 
 This walkthrough explains how to demonstrate the World Cup 2026 AI Stats Dashboard project during a portfolio review, interview, or technical discussion.
 
-The demo is designed for the current **v1.6.0 — Real Match Data Sync Improvement** release.
+The demo is designed for the current **v1.7.0 — Provider Sync Observability & Runtime Demo** release.
 
 ---
 
@@ -37,7 +37,7 @@ python -m pytest
 Expected test result:
 
 ```text
-114 passed
+138 passed
 ```
 
 Confirm `.env` exists:
@@ -135,7 +135,7 @@ Say:
 
 ```text
 Before showing the runtime demo, I normally verify the release baseline.
-For v1.6.0, the current suite has 123 passing tests.
+For v1.7.0, the current suite has 138 passing tests.
 ```
 
 This demonstrates release discipline and confidence.
@@ -174,7 +174,7 @@ Expected idea:
 {
   "status": "healthy",
   "service": "backend",
-  "version": "1.6.0"
+  "version": "1.7.0"
 }
 ```
 
@@ -246,12 +246,71 @@ POST /fixtures/sync/provider
 Explain:
 
 ```text
-The v1.6.0 milestone improves real provider sync reliability. API-Football payloads are normalized before database writes, provider-native statuses are converted into app-friendly statuses, missing team codes get safe fallbacks, incomplete provider rows are skipped, and provider-side failures now return clear 502 responses.
+The v1.6.0 milestone improved real provider sync reliability. The v1.7.0 milestone makes that sync activity visible through API runtime status, dashboard panels, Prometheus metrics, and Grafana panels. API-Football payloads are normalized before database writes, provider-native statuses are converted into app-friendly statuses, missing team codes get safe fallbacks, incomplete provider rows are skipped, and provider-side failures now return clear 502 responses.
 ```
 
 Do not run live provider sync during a normal demo unless `.env` contains a valid API-Football key.
 
 ---
+
+## 6B. Show Provider Sync Runtime Status
+
+v1.7.0 adds a new runtime status endpoint:
+
+```text
+GET /fixtures/sync/status
+```
+
+Before running sync, show:
+
+```bash
+curl http://localhost:8000/fixtures/sync/status
+```
+
+Expected idea:
+
+```json
+{
+  "status": "not_started",
+  "source": null,
+  "provider": null,
+  "last_run_at": null,
+  "last_success_at": null,
+  "duration_seconds": null,
+  "total_fixtures": 0,
+  "created": 0,
+  "updated": 0,
+  "newly_completed_count": 0,
+  "newly_completed": [],
+  "last_error": null
+}
+```
+
+After running sample sync:
+
+```bash
+curl -X POST http://localhost:8000/fixtures/sync/sample
+curl http://localhost:8000/fixtures/sync/status
+```
+
+Expected fields:
+
+```text
+status: success
+source: sample
+provider: sample_data
+total_fixtures: 4
+duration_seconds: non-null number
+last_error: null
+```
+
+Explain:
+
+```text
+This is a simple runtime status endpoint for the latest sync result.
+It makes sample/provider sync easier to demonstrate without digging through logs.
+```
+
 
 ## 7. Show Standings
 
@@ -321,7 +380,7 @@ Explain:
 
 ```text
 The project includes both a backend-served static dashboard and a separate dashboard container.
-This gives multiple ways to demonstrate the system visually.
+For v1.7.0, the static dashboard includes a Provider Sync Runtime panel showing the latest sync status, provider, duration, fetched count, created count, updated count, newly completed count, and last error.
 ```
 
 ---
@@ -340,10 +399,26 @@ Useful Prometheus checks:
 up
 ```
 
+```promql
+worldcup_fixture_sync_runs_total
+```
+
+```promql
+worldcup_fixture_sync_fetched_total
+```
+
+```promql
+worldcup_fixture_sync_duration_seconds_count
+```
+
+```promql
+worldcup_fixture_sync_last_success_timestamp_seconds
+```
+
 Explain:
 
 ```text
-Prometheus scrapes the backend metrics endpoint and gives visibility into service health.
+Prometheus scrapes the backend metrics endpoint and gives visibility into both service health and fixture sync runtime activity.
 ```
 
 ---
@@ -368,6 +443,12 @@ Point out:
 - Prometheus datasource
 - provisioned dashboard
 - local observability workflow
+- Fixture Sync Runs
+- Last Successful Fixture Sync
+- Fixture Sync Duration
+- Fixtures Fetched by Sync Source
+- Fixtures Created vs Updated
+- Newly Completed Fixtures Detected
 
 ---
 
@@ -448,7 +529,7 @@ Docker Compose, Prometheus, Grafana, Telegram notifications, and local AI summar
 I built it milestone by milestone. It started as a simple backend and grew into a
 containerized, monitored, tested, and documented system.
 
-The current v1.6.0 release improves real provider fixture sync reliability. The app has 123 passing tests,
+The current v1.7.0 release adds provider sync observability and runtime demo visibility. The app has 138 passing tests,
 a Docker Compose runtime, API documentation, dashboard views, optional Telegram delivery,
 optional local Llama summaries, a provisioned Grafana monitoring dashboard, and a stronger API-Football sync layer.
 ```
@@ -482,24 +563,27 @@ docker compose ps
 Recommended screenshots for portfolio evidence:
 
 - README top section
-- `python -m pytest` showing `123 passed`
+- `python -m pytest` showing `138 passed`
 - Docker Compose containers running
 - `/health`
 - `/docs`
 - `/fixtures`
+- `/fixtures/sync/status` before sync
+- sample sync response
+- `/fixtures/sync/status` after sync
 - `/standings`
 - `/insights/groups`
 - `/players/stats`
-- static dashboard
+- static dashboard with Provider Sync Runtime panel
 - Streamlit dashboard
-- Prometheus targets
-- Grafana dashboard
+- Prometheus `worldcup_fixture_sync_*` query
+- Grafana provider sync observability dashboard
 - Telegram status endpoint
 
 Suggested local folder:
 
 ```text
-~/documents/world-cup-ai-stats-screenshots/v1.6.0-real-match-data-sync
+~/documents/world-cup-ai-stats-screenshots/v1.7.0-provider-sync-observability
 ```
 
 ---

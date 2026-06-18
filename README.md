@@ -1,7 +1,7 @@
 # ⚽ World Cup 2026 AI Stats Dashboard
 
-![Version](https://img.shields.io/badge/version-v1.6.0-purple)
-![Tests](https://img.shields.io/badge/tests-123%20passed-brightgreen)
+![Version](https://img.shields.io/badge/version-v1.7.0-purple)
+![Tests](https://img.shields.io/badge/tests-138%20passed-brightgreen)
 ![Backend](https://img.shields.io/badge/backend-FastAPI-blue)
 ![Dashboard](https://img.shields.io/badge/dashboard-Streamlit%20%2B%20Static%20UI-orange)
 ![Database](https://img.shields.io/badge/database-PostgreSQL-blue)
@@ -11,7 +11,7 @@
 
 ## 📌 Current Version
 
-**v1.6.0 — Real Match Data Sync Improvement**
+**v1.7.0 — Provider Sync Observability & Runtime Demo**
 
 World Cup 2026 AI Stats Dashboard is a portfolio-grade football analytics platform built around the FIFA World Cup 2026 use case.
 
@@ -30,7 +30,7 @@ The project combines:
 - Docker Compose runtime orchestration
 - automated pytest coverage
 
-The current release improves real provider fixture synchronization so API-Football data is normalized, safer to ingest, and easier to explain during portfolio and technical reviews.
+The current release makes fixture sync activity visible across the API, dashboard, Prometheus, and Grafana so provider/sample sync behavior is easier to demonstrate during portfolio and technical reviews.
 
 ---
 
@@ -100,6 +100,7 @@ At a high level, the system runs as a multi-service Docker Compose application.
 | /fixtures, /standings, /insights/groups           |
 | /players/stats, /ai/*, /notifications/*           |
 | /metrics, /health, /dashboard                     |
+| /fixtures/sync/status                               |
 +----------------------+----------------------------+
                        |
           +------------+-------------+
@@ -190,13 +191,13 @@ Configured chat
 FastAPI backend
       |
       v
-/metrics endpoint
+/metrics endpoint and /fixtures/sync/status
       |
       v
-Prometheus scrape
+Prometheus scrape + dashboard runtime panel
       |
       v
-Grafana provisioned dashboard
+Grafana provider sync observability dashboard
 ```
 
 ---
@@ -214,12 +215,14 @@ The fixtures module supports:
 - fetching a fixture by ID
 - syncing sample fixture data
 - syncing provider-backed fixture data
+- checking latest fixture sync runtime status
 
 Key endpoints:
 
 ```text
 GET  /fixtures
 GET  /fixtures/{fixture_id}
+GET  /fixtures/sync/status
 POST /fixtures/sync/sample
 POST /fixtures/sync/provider
 ```
@@ -331,10 +334,13 @@ POST /notifications/telegram/test
 The monitoring layer includes:
 
 - FastAPI `/metrics` endpoint
+- fixture sync runtime status endpoint
 - Prometheus scrape configuration
 - Grafana datasource provisioning
 - Grafana dashboard provisioning
+- provider sync observability dashboard panels
 - application info metric with version and environment labels
+- fixture sync duration, fetched count, last run, and last success metrics
 
 Key endpoint:
 
@@ -490,7 +496,7 @@ Then edit `.env` as needed.
 # App
 APP_NAME=World Cup 2026 AI Stats
 APP_ENV=development
-APP_VERSION=1.6.0
+APP_VERSION=1.7.0
 
 # Database
 POSTGRES_USER=worldcup
@@ -629,7 +635,7 @@ python -m pytest
 Current release baseline:
 
 ```text
-114 passed
+138 passed
 ```
 
 The test suite covers:
@@ -664,7 +670,7 @@ Expected response:
 {
   "status": "healthy",
   "service": "backend",
-  "version": "1.6.0"
+  "version": "1.7.0"
 }
 ```
 
@@ -681,6 +687,7 @@ GET  /metrics
 
 GET  /fixtures
 GET  /fixtures/{fixture_id}
+GET  /fixtures/sync/status
 POST /fixtures/sync/sample
 POST /fixtures/sync/provider
 
@@ -739,13 +746,21 @@ curl "http://localhost:8000/fixtures?team=Mexico"
 curl -X POST http://localhost:8000/fixtures/sync/sample
 ```
 
+### Check Fixture Sync Runtime Status
+
+```bash
+curl http://localhost:8000/fixtures/sync/status
+```
+
+This shows the latest sample/provider sync result, including status, source, provider, duration, fetched count, created count, updated count, newly completed count, and last error.
+
 ### Sync Provider Fixtures
 
 ```bash
 curl -X POST http://localhost:8000/fixtures/sync/provider
 ```
 
-Provider sync requires a valid provider configuration and API key. In v1.6.0, provider payloads are normalized before database sync, including status cleanup, team-code fallback, incomplete fixture skipping, and clearer provider failure responses.
+Provider sync requires a valid provider configuration and API key. In v1.6.0, provider payloads were normalized before database sync, including status cleanup, team-code fallback, incomplete fixture skipping, and clearer provider failure responses. In v1.7.0, that sync behavior is now visible through `/fixtures/sync/status`, Prometheus metrics, the static dashboard, and Grafana.
 
 ---
 
@@ -887,6 +902,10 @@ The monitoring layer is useful for demonstrating:
 - request latency
 - HTTP status patterns
 - application version labels
+- fixture sync runtime status
+- provider sync duration
+- fixture fetched/created/updated counts
+- last successful sync timestamp
 - runtime observability readiness
 
 ---
@@ -914,6 +933,15 @@ GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/var/lib/grafana/dashboards/worldcup-o
 ```
 
 This makes the local monitoring demo easier to open and explain.
+
+For v1.7.0, the provisioned dashboard is focused on provider sync observability and includes panels for:
+
+- Fixture Sync Runs
+- Last Successful Fixture Sync
+- Fixture Sync Duration
+- Fixtures Fetched by Sync Source
+- Fixtures Created vs Updated
+- Newly Completed Fixtures Detected
 
 ---
 
@@ -1009,20 +1037,23 @@ For portfolio and presentation evidence, screenshots can be stored locally using
 ```text
 ~/documents/world-cup-ai-stats-screenshots/v1.4.1-demo
 ~/documents/world-cup-ai-stats-screenshots/v1.4.2-demo
-~/documents/world-cup-ai-stats-screenshots/v1.6.0-real-match-data-sync
+~/documents/world-cup-ai-stats-screenshots/v1.7.0-provider-sync-observability
 ```
 
-Recommended screenshots for v1.6.0:
+Recommended screenshots for v1.7.0:
 
 - GitHub README top section
 - FastAPI `/docs`
 - backend `/health`
-- backend `/dashboard`
+- backend `/fixtures/sync/status` before sync
+- sample sync response
+- backend `/fixtures/sync/status` after sync
+- backend `/dashboard` showing Provider Sync Runtime
 - Streamlit dashboard
-- Prometheus targets
-- Grafana dashboard
+- Prometheus `worldcup_fixture_sync_*` query
+- Grafana provider sync observability dashboard
 - Telegram readiness endpoint
-- pytest `123 passed`
+- pytest `138 passed`
 
 Avoid adding broken image references to the README unless screenshots are committed into the repo.
 
@@ -1033,15 +1064,26 @@ Avoid adding broken image references to the README unless screenshots are commit
 | Document | Purpose |
 |---|---|
 | `README.md` | Main portfolio landing page |
-| `docs/architecture.md` | Current v1.6.0 architecture |
+| `docs/architecture.md` | Current v1.7.0 architecture |
 | `docs/changelog.md` | Release history |
 | `docs/roadmap.md` | Completed and planned milestones |
 | `docs/portfolio-release.md` | Portfolio-facing release summary |
 | `docs/demo-walkthrough.md` | Interview/demo walkthrough |
+| `docs/v1.7.0-provider-sync-observability-runtime-demo.md` | v1.7.0 runtime observability demo guide |
 
 ---
 
 ## 🧾 Release History
+
+### v1.7.0 — Provider Sync Observability & Runtime Demo
+
+- Added `/fixtures/sync/status` runtime status endpoint.
+- Added in-memory latest fixture sync status tracking.
+- Added fixture sync duration, fetched count, last run, and last success Prometheus metrics.
+- Added Provider Sync Runtime panel to the FastAPI static dashboard.
+- Added provider sync observability panels to the provisioned Grafana dashboard.
+- Added dedicated v1.7.0 runtime demo guide.
+- Expanded full test baseline: `138 passed`.
 
 ### v1.6.0 — Real Match Data Sync Improvement
 
@@ -1063,7 +1105,7 @@ Avoid adding broken image references to the README unless screenshots are commit
 - Added a demo walkthrough for interviews and recruiter review.
 - Updated roadmap and changelog for release readiness.
 - Bumped release metadata to `1.5.0`.
-- Preserved full test baseline: `114 passed`.
+- Preserved full test baseline: `138 passed`.
 
 ### v1.4.3 — Documentation and Demo Evidence Cleanup
 
@@ -1138,6 +1180,7 @@ See `docs/changelog.md` and `docs/roadmap.md` for the full milestone history.
 | v1.4.3 | Documentation and demo evidence cleanup | Completed |
 | v1.5.0 | Portfolio release polish | Completed |
 | v1.6.0 | Real match data sync improvement | Completed |
+| v1.7.0 | Provider sync observability and runtime demo | Completed |
 
 ---
 
@@ -1147,21 +1190,21 @@ Recommended future milestones:
 
 | Version | Theme |
 |---|---|
-| v1.7.0 | AI insights upgrade |
-| v1.8.0 | Portfolio demo polish |
+| v1.8.0 | AI insights upgrade |
+| v1.9.0 | Portfolio demo polish |
 
-The next major technical step is likely richer AI insight generation that can use standings, team context, player statistics, and completed fixture data more intelligently.
+The next major technical step after v1.7.0 is likely richer AI insight generation that can use standings, team context, player statistics, and completed fixture data more intelligently.
 
 ---
 
 ## 📌 Project Status
 
 ```text
-Current version: v1.6.0 — Real Match Data Sync Improvement
-Current test baseline: 123 passed
+Current version: v1.7.0 — Provider Sync Observability & Runtime Demo
+Current test baseline: 138 passed
 Runtime: Docker Compose local stack
 Main demo services: FastAPI, dashboard, PostgreSQL, Prometheus, Grafana
 Optional integrations: API-Football, Telegram, Ollama / Local Llama
 ```
 
-This project is now positioned as a portfolio-ready DevOps/backend/observability showcase with a stronger real provider data-sync layer.
+This project is now positioned as a portfolio-ready DevOps/backend/observability showcase with stronger real provider data-sync reliability and clearer runtime observability.

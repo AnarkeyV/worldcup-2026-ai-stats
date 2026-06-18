@@ -17,6 +17,33 @@ def test_dashboard_page_loads():
     assert "fixtures-container" in response.text
 
 
+def test_dashboard_page_includes_provider_sync_runtime_panel():
+    response = client.get("/dashboard")
+
+    assert response.status_code == 200
+    assert "Provider Sync Runtime" in response.text
+    assert "Runtime Observability" in response.text
+    assert 'id="provider-sync-message"' in response.text
+    assert 'id="sync-status-badge"' in response.text
+    assert 'id="fixture-sync-status-container"' in response.text
+    assert 'id="refresh-sync-status"' in response.text
+
+
+def test_dashboard_page_includes_provider_sync_runtime_metric_elements():
+    response = client.get("/dashboard")
+
+    assert response.status_code == 200
+    assert 'id="sync-provider"' in response.text
+    assert 'id="sync-last-run"' in response.text
+    assert 'id="sync-duration"' in response.text
+    assert 'id="sync-total-fixtures"' in response.text
+    assert 'id="sync-created"' in response.text
+    assert 'id="sync-updated"' in response.text
+    assert 'id="sync-newly-completed"' in response.text
+    assert 'id="sync-last-success"' in response.text
+    assert 'id="sync-error-message"' in response.text
+
+
 def test_dashboard_page_includes_ai_summary_panel_elements():
     response = client.get("/dashboard")
 
@@ -78,6 +105,17 @@ def test_static_dashboard_css_loads():
     assert "fixture-ai-button" in response.text
 
 
+def test_static_dashboard_css_includes_provider_sync_runtime_styles():
+    response = client.get("/static/dashboard.css")
+
+    assert response.status_code == 200
+    assert "sync-runtime-panel" in response.text
+    assert "sync-runtime-grid" in response.text
+    assert "sync-runtime-card" in response.text
+    assert "sync-status-badge" in response.text
+    assert "sync-error-message" in response.text
+
+
 def test_static_dashboard_css_includes_ai_health_badge_styles():
     response = client.get("/static/dashboard.css")
 
@@ -127,6 +165,18 @@ def test_static_dashboard_js_loads():
     assert "generateSingleFixtureSummary" in response.text
     assert "/ai/fixtures/summary" in response.text
     assert "/ai/fixtures/${fixtureId}/summary" in response.text
+
+
+def test_dashboard_js_includes_provider_sync_runtime_logic():
+    response = client.get("/static/dashboard.js")
+
+    assert response.status_code == 200
+    assert "fetchFixtureSyncStatus" in response.text
+    assert "refreshFixtureSyncStatus" in response.text
+    assert "renderFixtureSyncStatus" in response.text
+    assert "/fixtures/sync/status" in response.text
+    assert "formatDurationSeconds" in response.text
+    assert "getSyncStatusClass" in response.text
 
 
 def test_dashboard_js_includes_fixture_summary_button_logic():

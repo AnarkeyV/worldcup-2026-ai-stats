@@ -6,6 +6,36 @@ This project follows semantic versioning and milestone-based releases.
 
 ---
 
+## [1.7.0] - Provider Sync Observability and Runtime Demo
+
+### Added
+
+- Added fixture sync runtime status tracking for the latest sample or provider sync run.
+- Added `GET /fixtures/sync/status` for demo-friendly sync visibility.
+- Added Prometheus metrics for fixture sync duration, fetched count, last run timestamp, and last successful sync timestamp.
+- Added Provider Sync Runtime panel to the FastAPI static dashboard.
+- Added provider sync observability panels to the provisioned Grafana dashboard.
+- Added `docs/v1.7.0-provider-sync-observability-runtime-demo.md` as a dedicated runtime demo guide.
+
+### Changed
+
+- Updated the static dashboard footer and content to reflect v1.7.0.
+- Updated the Grafana dashboard title to `World Cup 2026 AI Stats - Provider Sync Observability`.
+- Improved monitoring configuration tests to validate Grafana dashboard JSON and provider sync panels.
+
+### Tested
+
+- Expanded full test baseline from `123 passed` to `138 passed`.
+- Added tests for fixture sync runtime status, dashboard sync panel coverage, and Grafana provider sync observability.
+
+### Notes
+
+- Runtime sync status is intentionally stored in process memory for local demo clarity.
+- Sync status resets when the backend process or container restarts.
+- A future milestone can persist sync run history in PostgreSQL.
+
+---
+
 ## [1.6.0] - Real Match Data Sync Improvement
 
 ### Added

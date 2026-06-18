@@ -15,7 +15,7 @@
       }
     ]
   },
-  "description": "Grafana dashboard for the World Cup 2026 AI Stats monitoring stack. This version focuses on metrics currently exposed by the FastAPI backend and Prometheus scrape target.",
+  "description": "Grafana dashboard for the World Cup 2026 AI Stats monitoring stack. v1.7.0 adds provider sync observability panels for runtime demos.",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -177,31 +177,22 @@
         "type": "prometheus",
         "uid": "Prometheus"
       },
-      "description": "How long Prometheus takes to scrape the backend metrics endpoint.",
+      "description": "Total fixture sync runs grouped by source and status.",
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "thresholds"
+            "mode": "palette-classic"
           },
-          "decimals": 3,
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 0.5
-              },
-              {
-                "color": "red",
-                "value": 1
               }
             ]
           },
-          "unit": "s"
+          "unit": "short"
         },
         "overrides": []
       },
@@ -236,13 +227,13 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "scrape_duration_seconds{job=\"worldcup-backend\"}",
-          "legendFormat": "Scrape duration",
+          "expr": "sum by (source, status) (worldcup_fixture_sync_runs_total)",
+          "legendFormat": "{{source}} {{status}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Scrape Duration",
+      "title": "Fixture Sync Runs",
       "type": "stat"
     },
     {
@@ -250,24 +241,13 @@
         "type": "prometheus",
         "uid": "Prometheus"
       },
-      "description": "Backend Python runtime metadata exposed by the Prometheus Python client.",
+      "description": "Unix timestamp of the latest successful fixture sync, grouped by source and provider.",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "thresholds"
           },
-          "mappings": [
-            {
-              "options": {
-                "1": {
-                  "color": "green",
-                  "index": 0,
-                  "text": "Available"
-                }
-              },
-              "type": "value"
-            }
-          ],
+          "decimals": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -277,7 +257,7 @@
               }
             ]
           },
-          "unit": "short"
+          "unit": "dateTimeAsIso"
         },
         "overrides": []
       },
@@ -289,7 +269,7 @@
       },
       "id": 4,
       "options": {
-        "colorMode": "background",
+        "colorMode": "value",
         "graphMode": "none",
         "justifyMode": "center",
         "orientation": "horizontal",
@@ -312,13 +292,13 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "python_info{job=\"worldcup-backend\"}",
-          "legendFormat": "Python runtime",
+          "expr": "worldcup_fixture_sync_last_success_timestamp_seconds * 1000",
+          "legendFormat": "{{source}} {{provider}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Python Runtime Metrics",
+      "title": "Last Successful Fixture Sync",
       "type": "stat"
     },
     {
@@ -326,7 +306,7 @@
         "type": "prometheus",
         "uid": "Prometheus"
       },
-      "description": "Resident memory used by the FastAPI backend process.",
+      "description": "Fixture sync duration histogram count by source, provider, and status.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -365,6 +345,7 @@
               "mode": "off"
             }
           },
+          "decimals": 3,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -374,7 +355,7 @@
               }
             ]
           },
-          "unit": "bytes"
+          "unit": "s"
         },
         "overrides": []
       },
@@ -397,8 +378,8 @@
         },
         "tooltip": {
           "hideZeros": false,
-          "mode": "single",
-          "sort": "none"
+          "mode": "multi",
+          "sort": "desc"
         }
       },
       "pluginVersion": "11.4.0",
@@ -409,13 +390,13 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "process_resident_memory_bytes{job=\"worldcup-backend\"}",
-          "legendFormat": "Resident memory",
+          "expr": "worldcup_fixture_sync_duration_seconds_sum / ignoring(le) worldcup_fixture_sync_duration_seconds_count",
+          "legendFormat": "{{source}} {{provider}} {{status}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Backend Resident Memory",
+      "title": "Fixture Sync Duration",
       "type": "timeseries"
     },
     {
@@ -423,7 +404,7 @@
         "type": "prometheus",
         "uid": "Prometheus"
       },
-      "description": "Virtual memory allocated by the backend process.",
+      "description": "Total fixtures fetched from each sync source before database upsert.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -471,7 +452,7 @@
               }
             ]
           },
-          "unit": "bytes"
+          "unit": "short"
         },
         "overrides": []
       },
@@ -494,8 +475,8 @@
         },
         "tooltip": {
           "hideZeros": false,
-          "mode": "single",
-          "sort": "none"
+          "mode": "multi",
+          "sort": "desc"
         }
       },
       "pluginVersion": "11.4.0",
@@ -506,13 +487,13 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "process_virtual_memory_bytes{job=\"worldcup-backend\"}",
-          "legendFormat": "Virtual memory",
+          "expr": "worldcup_fixture_sync_fetched_total",
+          "legendFormat": "{{source}} {{provider}} fetched",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Backend Virtual Memory",
+      "title": "Fixtures Fetched by Sync Source",
       "type": "timeseries"
     },
     {
@@ -520,7 +501,7 @@
         "type": "prometheus",
         "uid": "Prometheus"
       },
-      "description": "Backend CPU usage based on process CPU seconds.",
+      "description": "Fixtures created and updated during sync runs.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -535,7 +516,7 @@
             "barAlignment": 0,
             "barWidthFactor": 0.6,
             "drawStyle": "line",
-            "fillOpacity": 15,
+            "fillOpacity": 20,
             "gradientMode": "opacity",
             "hideFrom": {
               "legend": false,
@@ -559,7 +540,6 @@
               "mode": "off"
             }
           },
-          "decimals": 4,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -592,8 +572,8 @@
         },
         "tooltip": {
           "hideZeros": false,
-          "mode": "single",
-          "sort": "none"
+          "mode": "multi",
+          "sort": "desc"
         }
       },
       "pluginVersion": "11.4.0",
@@ -604,13 +584,24 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "rate(process_cpu_seconds_total{job=\"worldcup-backend\"}[5m])",
-          "legendFormat": "Backend CPU",
+          "expr": "worldcup_fixture_sync_created_total",
+          "legendFormat": "{{source}} created",
           "range": true,
           "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Prometheus"
+          },
+          "editorMode": "code",
+          "expr": "worldcup_fixture_sync_updated_total",
+          "legendFormat": "{{source}} updated",
+          "range": true,
+          "refId": "B"
         }
       ],
-      "title": "Backend CPU Usage",
+      "title": "Fixtures Created vs Updated",
       "type": "timeseries"
     },
     {
@@ -618,7 +609,104 @@
         "type": "prometheus",
         "uid": "Prometheus"
       },
-      "description": "Python garbage collection activity by generation.",
+      "description": "Newly completed fixtures detected during sync runs. This supports the notification workflow demo.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 13
+      },
+      "id": 8,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "11.4.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Prometheus"
+          },
+          "editorMode": "code",
+          "expr": "worldcup_fixture_sync_newly_completed_total",
+          "legendFormat": "{{source}} newly completed",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Newly Completed Fixtures Detected",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "description": "Total HTTP requests handled by FastAPI grouped by method, path, and status code.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -657,7 +745,7 @@
               "mode": "off"
             }
           },
-          "decimals": 0,
+          "decimals": 2,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -667,21 +755,22 @@
               }
             ]
           },
-          "unit": "short"
+          "unit": "reqps"
         },
         "overrides": []
       },
       "gridPos": {
         "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 13
+        "w": 24,
+        "x": 0,
+        "y": 21
       },
-      "id": 8,
+      "id": 9,
       "options": {
         "legend": {
           "calcs": [
-            "lastNotNull"
+            "lastNotNull",
+            "max"
           ],
           "displayMode": "list",
           "placement": "bottom",
@@ -701,13 +790,13 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "python_gc_collections_total{job=\"worldcup-backend\"}",
-          "legendFormat": "Generation {{generation}}",
+          "expr": "rate(worldcup_http_requests_total[5m])",
+          "legendFormat": "{{method}} {{path}} {{status_code}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Python GC Collections",
+      "title": "Backend HTTP Request Rate",
       "type": "timeseries"
     },
     {
@@ -745,9 +834,9 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 21
+        "y": 29
       },
-      "id": 9,
+      "id": 10,
       "options": {
         "cellHeight": "sm",
         "footer": {
@@ -801,6 +890,7 @@
     "fastapi",
     "prometheus",
     "grafana",
+    "provider-sync",
     "local-dev"
   ],
   "templating": {
@@ -812,8 +902,8 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "World Cup 2026 AI Stats - Observability Overview",
+  "title": "World Cup 2026 AI Stats - Provider Sync Observability",
   "uid": "worldcup-2026-overview",
-  "version": 2,
+  "version": 3,
   "weekStart": ""
 }
