@@ -241,12 +241,30 @@
             </div>
 
             <div id="fixtures-container" class="fixtures-grid" aria-live="polite"></div>
+
+            <aside
+                id="match-detail-panel"
+                class="match-detail-panel"
+                aria-label="Selected match detail"
+            >
+                <div class="match-detail-heading">
+                    <div>
+                        <p class="eyebrow">Match Detail Dashboard</p>
+                        <h3 id="match-detail-title">Select a fixture</h3>
+                    </div>
+                    <span id="match-detail-status" class="status-pill status-default">Waiting</span>
+                </div>
+
+                <div id="selected-match-detail" class="selected-match-detail" aria-live="polite">
+                    Click any fixture card to open scoreline, venue, kickoff, group, stage, AI summary, and provider-backed match context.
+                </div>
+            </aside>
         </section>
     </main>
 
     <footer class="app-footer">
         <p>
-            v1.8.0 AI Insights Upgrade · Powered by FastAPI
+            v1.10.0 Match Detail Dashboard · Powered by FastAPI
         </p>
     </footer>
 

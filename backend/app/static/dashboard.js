@@ -861,9 +861,15 @@ function renderFixtures(fixtures) {
     fixtures.forEach((fixture) => {
         const card = document.createElement("article");
         card.className = "fixture-card";
+        card.tabIndex = 0;
 
         const fixtureId = fixture.id;
         const savedSummary = state.fixtureSummaries[fixtureId];
+        const matchLabel = `${fixture.home_team || "Home team"} vs ${fixture.away_team || "Away team"}`;
+
+        card.dataset.fixtureCardId = fixtureId;
+        card.setAttribute("role", "button");
+        card.setAttribute("aria-label", `Open match detail for ${matchLabel}`);
 
         card.innerHTML = `
             <div class="fixture-meta">
@@ -896,6 +902,8 @@ function renderFixtures(fixtures) {
                 </span>
             </div>
 
+            <div class="fixture-card-hint">Click card for match detail dashboard</div>
+
             <div class="fixture-ai-actions">
                 <button
                     class="fixture-ai-button"
@@ -916,6 +924,148 @@ function renderFixtures(fixtures) {
 
         elements.fixturesContainer.appendChild(card);
     });
+}
+
+function getMatchDetailElements() {
+    return {
+        panel: document.querySelector("#match-detail-panel"),
+        title: document.querySelector("#match-detail-title"),
+        status: document.querySelector("#match-detail-status"),
+        detail: document.querySelector("#selected-match-detail"),
+    };
+}
+
+function formatMatchScoreline(fixture) {
+    const homeScore = formatScore(fixture.home_score);
+    const awayScore = formatScore(fixture.away_score);
+
+    return `${homeScore} - ${awayScore}`;
+}
+
+function renderProviderAvailabilityNote() {
+    return `
+        <div class="match-detail-note">
+            <strong>Provider detail status:</strong>
+            Zafronix fixture sync is available for core match records. Detailed timelines,
+            lineups, cards, formations, and per-match statistics will appear here when those
+            fields are added to the local data model.
+        </div>
+    `;
+}
+
+function renderFixtureDetail(fixture) {
+    const matchDetail = getMatchDetailElements();
+
+    if (!matchDetail.panel || !matchDetail.title || !matchDetail.status || !matchDetail.detail) {
+        return;
+    }
+
+    const fixtureId = fixture.id;
+    const homeTeam = fixture.home_team || "Home team";
+    const awayTeam = fixture.away_team || "Away team";
+    const savedSummary = state.fixtureSummaries[fixtureId];
+
+    matchDetail.title.textContent = `${homeTeam} vs ${awayTeam}`;
+    matchDetail.status.className = `status-pill ${getStatusClass(fixture.status)}`;
+    matchDetail.status.textContent = formatStatus(fixture.status);
+    matchDetail.panel.scrollIntoView({ behavior: "smooth", block: "start" });
+
+    matchDetail.detail.innerHTML = `
+        <div class="match-detail-scoreboard">
+            <div class="match-detail-team">
+                <span>${escapeHtml(homeTeam)}</span>
+                <small>${escapeHtml(fixture.home_team_code || "HOME")}</small>
+            </div>
+            <strong>${escapeHtml(formatMatchScoreline(fixture))}</strong>
+            <div class="match-detail-team">
+                <span>${escapeHtml(awayTeam)}</span>
+                <small>${escapeHtml(fixture.away_team_code || "AWAY")}</small>
+            </div>
+        </div>
+
+        <div class="match-detail-grid">
+            <div>
+                <span>Kickoff</span>
+                <strong>${escapeHtml(formatDateTime(fixture.kickoff_time))}</strong>
+            </div>
+            <div>
+                <span>Venue</span>
+                <strong>${escapeHtml(fixture.venue || "Venue not available yet")}</strong>
+            </div>
+            <div>
+                <span>Competition</span>
+                <strong>${escapeHtml(fixture.competition || "FIFA World Cup 2026")}</strong>
+            </div>
+            <div>
+                <span>Stage / Group</span>
+                <strong>${escapeHtml(fixture.group_name || fixture.stage || "Not available yet")}</strong>
+            </div>
+        </div>
+
+        <div class="match-detail-context">
+            <h4>Match context</h4>
+            <p>
+                This detail view uses the current fixture record from the backend and keeps the
+                dashboard mobile-friendly for live checks from Telegram or Cloudflare links.
+            </p>
+        </div>
+
+        <div class="match-detail-context">
+            <h4>AI match summary</h4>
+            <p>${escapeHtml(savedSummary || "No match summary generated yet. Use the Generate Match Summary button on the fixture card.")}</p>
+        </div>
+
+        <div class="match-detail-placeholder-grid">
+            <div>
+                <h4>Stats</h4>
+                <p>Shots, possession, expected goals, and other match stats are not stored yet.</p>
+            </div>
+            <div>
+                <h4>Events</h4>
+                <p>Goals, cards, substitutions, and timeline events are not stored yet.</p>
+            </div>
+            <div>
+                <h4>Lineups</h4>
+                <p>Starting lineups and formations are not stored yet.</p>
+            </div>
+        </div>
+
+        ${renderProviderAvailabilityNote()}
+    `;
+}
+
+async function selectFixture(fixtureId) {
+    const fixtureFromState = state.visibleFixtures.find((fixture) => String(fixture.id) === String(fixtureId))
+        || state.allFixtures.find((fixture) => String(fixture.id) === String(fixtureId));
+
+    if (fixtureFromState) {
+        renderFixtureDetail(fixtureFromState);
+    }
+
+    try {
+        const response = await fetch(`/fixtures/${fixtureId}`);
+
+        if (!response.ok) {
+            throw new Error("Unable to load fixture detail.");
+        }
+
+        const fixture = await response.json();
+        renderFixtureDetail(fixture);
+    } catch (error) {
+        console.error(error);
+
+        if (!fixtureFromState) {
+            const matchDetail = getMatchDetailElements();
+
+            if (matchDetail.detail) {
+                matchDetail.detail.innerHTML = `
+                    <div class="match-detail-note error">
+                        Unable to load this match detail. Please check that the backend API is running.
+                    </div>
+                `;
+            }
+        }
+    }
 }
 
 async function generateAiSummary() {
@@ -1196,12 +1346,34 @@ function bindEvents() {
     elements.fixturesContainer.addEventListener("click", (event) => {
         const button = event.target.closest("[data-fixture-summary-id]");
 
-        if (!button) {
+        if (button) {
+            const fixtureId = button.dataset.fixtureSummaryId;
+            generateSingleFixtureSummary(fixtureId, button);
             return;
         }
 
-        const fixtureId = button.dataset.fixtureSummaryId;
-        generateSingleFixtureSummary(fixtureId, button);
+        const fixtureCard = event.target.closest("[data-fixture-card-id]");
+
+        if (!fixtureCard) {
+            return;
+        }
+
+        selectFixture(fixtureCard.dataset.fixtureCardId);
+    });
+
+    elements.fixturesContainer.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== " ") {
+            return;
+        }
+
+        const fixtureCard = event.target.closest("[data-fixture-card-id]");
+
+        if (!fixtureCard) {
+            return;
+        }
+
+        event.preventDefault();
+        selectFixture(fixtureCard.dataset.fixtureCardId);
     });
 }
 

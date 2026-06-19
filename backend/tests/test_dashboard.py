@@ -250,3 +250,37 @@ def test_root_includes_dashboard_ai_summary_standings_insights_and_player_stats_
     assert response.json()["standings"] == "/standings"
     assert response.json()["group_insights"] == "/insights/groups"
     assert response.json()["player_stats"] == "/players/stats"
+
+def test_dashboard_page_includes_match_detail_panel():
+    response = client.get("/dashboard")
+
+    assert response.status_code == 200
+    assert "Match Detail Dashboard" in response.text
+    assert 'id="match-detail-panel"' in response.text
+    assert 'id="match-detail-title"' in response.text
+    assert 'id="match-detail-status"' in response.text
+    assert 'id="selected-match-detail"' in response.text
+
+
+def test_static_dashboard_css_includes_match_detail_styles():
+    response = client.get("/static/dashboard.css")
+
+    assert response.status_code == 200
+    assert "match-detail-panel" in response.text
+    assert "match-detail-scoreboard" in response.text
+    assert "match-detail-grid" in response.text
+    assert "match-detail-placeholder-grid" in response.text
+    assert "fixture-card-hint" in response.text
+
+
+def test_dashboard_js_includes_match_detail_logic():
+    response = client.get("/static/dashboard.js")
+
+    assert response.status_code == 200
+    assert "data-fixture-card-id" in response.text
+    assert "selectFixture" in response.text
+    assert "renderFixtureDetail" in response.text
+    assert "getMatchDetailElements" in response.text
+    assert "/fixtures/${fixtureId}" in response.text
+    assert "Match context" in response.text
+
