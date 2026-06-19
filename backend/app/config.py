@@ -14,6 +14,10 @@ class Settings(BaseSettings):
     api_football_world_cup_league_id: int = 1
     api_football_season: int = 2026
 
+    zafronix_base_url: str = "https://api.zafronix.com/fifa/worldcup/v1"
+    zafronix_api_key: str = ""
+    zafronix_world_cup_year: int = 2026
+
     telegram_bot_token: str = ""
     telegram_chat_id: str = ""
 

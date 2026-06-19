@@ -7,7 +7,9 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.fixture import Fixture
-from app.providers.api_football import ApiFootballProvider, ApiFootballProviderError
+from app.providers.api_football import ApiFootballProviderError
+from app.providers.factory import get_configured_football_provider
+from app.providers.zafronix import ZafronixProviderError
 from app.services.fixture_sync_service import sync_fixtures
 from app.services.metrics_service import (
     record_fixture_sync_metrics,
@@ -262,11 +264,11 @@ def sync_sample_fixtures(db: Session = Depends(get_db)):
 @router.post("/sync/provider")
 def sync_provider_fixtures(db: Session = Depends(get_db)):
     source = "provider"
-    provider_name = "api_football"
+    provider_name = "unknown"
     start_time = time.perf_counter()
 
     try:
-        provider = ApiFootballProvider()
+        provider_name, provider = get_configured_football_provider()
         fixtures = provider.get_world_cup_fixtures()
         result = sync_fixtures(db, fixtures)
         duration_seconds = time.perf_counter() - start_time
@@ -326,7 +328,7 @@ def sync_provider_fixtures(db: Session = Depends(get_db)):
             detail=error_message,
         ) from error
 
-    except ApiFootballProviderError as error:
+    except (ApiFootballProviderError, ZafronixProviderError) as error:
         duration_seconds = time.perf_counter() - start_time
         error_message = str(error)
 

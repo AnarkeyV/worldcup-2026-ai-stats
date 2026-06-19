@@ -123,6 +123,16 @@ class ApiFootballProvider(FootballProvider):
                 "API-Football returned an invalid payload."
             )
 
+        provider_errors = payload.get("errors")
+
+        if provider_errors:
+            error_message = self._format_provider_errors(provider_errors)
+
+            if error_message:
+                raise ApiFootballProviderError(
+                    f"API-Football provider error: {error_message}"
+                )
+
         fixtures = payload.get("response", [])
 
         if not isinstance(fixtures, list):
@@ -131,6 +141,32 @@ class ApiFootballProvider(FootballProvider):
             )
 
         return fixtures
+
+    def _format_provider_errors(self, provider_errors: Any) -> str | None:
+        if isinstance(provider_errors, dict):
+            messages = [
+                str(value).strip()
+                for value in provider_errors.values()
+                if str(value).strip()
+            ]
+
+            return "; ".join(messages) or None
+
+        if isinstance(provider_errors, list):
+            messages = [
+                str(value).strip()
+                for value in provider_errors
+                if str(value).strip()
+            ]
+
+            return "; ".join(messages) or None
+
+        cleaned_errors = str(provider_errors).strip()
+
+        if cleaned_errors and cleaned_errors not in ("[]", "{}"):
+            return cleaned_errors
+
+        return None
 
     def _normalize_fixture(self, item: dict) -> dict | None:
         if not isinstance(item, dict):
