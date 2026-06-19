@@ -261,7 +261,11 @@ def test_sync_provider_fixtures_with_mocked_provider(client, monkeypatch):
                 }
             ]
 
-    monkeypatch.setattr(fixtures_routes, "ApiFootballProvider", MockProvider)
+    monkeypatch.setattr(
+        fixtures_routes,
+        "get_configured_football_provider",
+        lambda: ("api_football", MockProvider()),
+    )
 
     response = client.post("/fixtures/sync/provider")
 
@@ -297,7 +301,11 @@ def test_sync_provider_fixtures_returns_502_when_provider_fails(client, monkeypa
                 "API-Football request failed: network unavailable"
             )
 
-    monkeypatch.setattr(fixtures_routes, "ApiFootballProvider", MockProvider)
+    monkeypatch.setattr(
+        fixtures_routes,
+        "get_configured_football_provider",
+        lambda: ("api_football", MockProvider()),
+    )
 
     response = client.post("/fixtures/sync/provider")
 

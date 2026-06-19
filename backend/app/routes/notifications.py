@@ -28,11 +28,17 @@ def get_telegram_notification_status():
     chat_id_configured = bool(settings.telegram_chat_id) and (
         settings.telegram_chat_id != "replace_me"
     )
+    public_dashboard_url = (settings.public_dashboard_url or "").strip()
+    dashboard_link_configured = bool(public_dashboard_url) and (
+        public_dashboard_url != "replace_me"
+    )
 
     return {
         "channel": "telegram",
         "bot_token_configured": bot_token_configured,
         "chat_id_configured": chat_id_configured,
+        "dashboard_link_configured": dashboard_link_configured,
+        "public_dashboard_url": public_dashboard_url,
         "ready": bot_token_configured and chat_id_configured,
     }
 

@@ -81,7 +81,11 @@ def test_provider_fixture_sync_updates_runtime_status(client, monkeypatch):
                 }
             ]
 
-    monkeypatch.setattr(fixtures_routes, "ApiFootballProvider", MockProvider)
+    monkeypatch.setattr(
+        fixtures_routes,
+        "get_configured_football_provider",
+        lambda: ("api_football", MockProvider()),
+    )
 
     sync_response = client.post("/fixtures/sync/provider")
 
@@ -114,7 +118,11 @@ def test_provider_fixture_sync_error_updates_runtime_status(client, monkeypatch)
         def get_world_cup_fixtures(self):
             raise ApiFootballProviderError("provider unavailable for demo")
 
-    monkeypatch.setattr(fixtures_routes, "ApiFootballProvider", MockProvider)
+    monkeypatch.setattr(
+        fixtures_routes,
+        "get_configured_football_provider",
+        lambda: ("api_football", MockProvider()),
+    )
 
     sync_response = client.post("/fixtures/sync/provider")
 

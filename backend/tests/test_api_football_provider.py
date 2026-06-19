@@ -261,3 +261,31 @@ def test_api_football_provider_rejects_invalid_payload(monkeypatch):
         match="API-Football returned an invalid fixture list.",
     ):
         provider.get_world_cup_fixtures()
+
+def test_api_football_provider_reports_provider_errors(monkeypatch):
+    def fake_get(url, headers, params, timeout):
+        class FakeResponse:
+            def raise_for_status(self):
+                return None
+
+            def json(self):
+                return {
+                    "errors": {
+                        "plan": "Free plans do not have access to this season."
+                    },
+                    "response": [],
+                }
+
+        return FakeResponse()
+
+    monkeypatch.setattr("app.providers.api_football.httpx.get", fake_get)
+
+    provider = ApiFootballProvider()
+    provider.api_key = "test-key"
+
+    with pytest.raises(
+        ApiFootballProviderError,
+        match="Free plans do not have access to this season",
+    ):
+        provider.get_world_cup_fixtures()
+

@@ -21,6 +21,8 @@ def test_get_telegram_notification_status_without_credentials(client, monkeypatc
         "channel": "telegram",
         "bot_token_configured": False,
         "chat_id_configured": False,
+        "dashboard_link_configured": True,
+        "public_dashboard_url": "http://localhost:8000/dashboard",
         "ready": False,
     }
 
@@ -61,6 +63,7 @@ def test_send_test_telegram_notification_success(client, monkeypatch):
     def fake_send_telegram_message(message: str):
         assert "🏁 Match Completed" in message
         assert "Mexico 2 - 0 South Africa" in message
+        assert '📊 <a href="http://localhost:8000/dashboard">Open dashboard</a>' in message
 
         return {
             "ok": True,
