@@ -25,6 +25,18 @@ class FakeLlamaClient:
         }
 
 
+class ContradictoryLlamaClient(FakeLlamaClient):
+    def generate_summary(self, prompt: str):
+        return {
+            "provider": "local_llama",
+            "model": "llama3.2:1b",
+            "summary": (
+                "Mexico is scheduled to play South Africa. "
+                "The match will be live and has a kickoff time of TBC."
+            ),
+        }
+
+
 def make_completed_fixture(
     *,
     fixture_id=1,
@@ -406,3 +418,47 @@ def test_ai_insights_rejects_invalid_limit(client):
     response = client.get("/ai/insights?limit=0")
 
     assert response.status_code == 422
+
+def test_ai_fixture_summary_rejects_contradictory_live_tournament_summary(client, monkeypatch):
+    monkeypatch.setattr("app.routes.ai.LocalLlamaClient", lambda: ContradictoryLlamaClient())
+
+    sync_response = client.post("/fixtures/sync/sample")
+    assert sync_response.status_code == 200
+
+    response = client.get("/ai/fixtures/summary")
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["mode"] == "fallback"
+    assert data["provider"] == "deterministic_tournament_summary"
+    assert data["model"] == "rules_based_v3"
+    assert "contradicted completed fixture data" in data["fallback_reason"].lower()
+    assert "mexico defeated south africa" in data["summary"].lower()
+    assert "scheduled to play" not in data["summary"].lower()
+
+
+def test_ai_single_fixture_summary_rejects_contradictory_live_summary(client, monkeypatch):
+    monkeypatch.setattr("app.routes.ai.LocalLlamaClient", lambda: ContradictoryLlamaClient())
+
+    sync_response = client.post("/fixtures/sync/sample")
+    assert sync_response.status_code == 200
+
+    fixtures_response = client.get("/fixtures")
+    assert fixtures_response.status_code == 200
+    fixture_id = fixtures_response.json()["fixtures"][0]["id"]
+
+    response = client.get(f"/ai/fixtures/{fixture_id}/summary")
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["mode"] == "fallback"
+    assert data["provider"] == "deterministic_fixture_summary"
+    assert data["model"] == "rules_based_v2"
+    assert "contradicted completed fixture data" in data["fallback_reason"].lower()
+    assert "mexico defeated south africa" in data["summary"].lower()
+    assert "scheduled to play" not in data["summary"].lower()
+

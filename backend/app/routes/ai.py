@@ -122,7 +122,21 @@ def build_fixture_context(fixtures: list[Fixture]) -> str:
     return "\n".join(lines)
 
 
-def build_summary_prompt(fixture_context: str) -> str:
+def build_summary_prompt(
+    fixture_context: str,
+    verified_summary: str | None = None,
+) -> str:
+    verified_section = ""
+
+    if verified_summary:
+        verified_section = f"""
+Verified factual summary:
+{verified_summary}
+
+Use the verified factual summary as the safest source of truth.
+You may rewrite it more naturally, but you must not change match status, teams, scores, dates, venues, or winners.
+""".strip()
+
     return f"""
 You are an assistant for a World Cup 2026 stats dashboard.
 
@@ -139,9 +153,9 @@ Status meaning:
 - MATCH_STATE=UPCOMING_NOT_PLAYED means the match has not been played yet.
 
 Strict rules:
-- For COMPLETED_FINAL matches, say the match is complete, finished, or final.
+- For COMPLETED_FINAL matches, say the match is complete, finished, final, or already played.
 - For COMPLETED_FINAL matches, use the provided FINAL_SCORE or RESULT_SENTENCE.
-- For COMPLETED_FINAL matches, never say scheduled, upcoming, set to kick off, will play, or has not started.
+- For COMPLETED_FINAL matches, never say scheduled, upcoming, set to kick off, will play, will be live, has not started, or kickoff is TBC.
 - For UPCOMING_NOT_PLAYED matches, say the match is upcoming or scheduled.
 - For UPCOMING_NOT_PLAYED matches, never invent a final score or winner.
 - For LIVE_NOW matches, say the match is live.
@@ -154,6 +168,9 @@ Output style:
 - Write 2 to 5 short bullet points.
 - Each bullet must be based on the provided fixture data.
 - Do not include internal labels such as MATCH_STATE, FINAL_SCORE, or RESULT_SENTENCE in the final answer.
+- Avoid saying "Fixture ID" unless it is necessary for clarity.
+
+{verified_section}
 
 Fixture data:
 {fixture_context}
@@ -235,6 +252,47 @@ def build_result_text(fixture: Fixture) -> str:
         f"{fixture.home_team} and {fixture.away_team} drew "
         f"{fixture.home_score}-{fixture.away_score}"
     )
+
+
+def validate_live_summary(summary: str, fixtures: list[Fixture]) -> None:
+    """
+    Reject live local AI output that contradicts known fixture state.
+
+    Local models are useful for natural language, but the deterministic fixture
+    data remains the source of truth. If a completed match is described as
+    future, scheduled, live, not started, or TBC, the caller should fall back to
+    the deterministic summary.
+    """
+    normalized_summary = (summary or "").strip().lower()
+
+    if not normalized_summary:
+        raise RuntimeError("Local Llama returned an empty summary.")
+
+    has_completed_fixture = any(is_completed_fixture(fixture) for fixture in fixtures)
+
+    if not has_completed_fixture:
+        return
+
+    forbidden_completed_phrases = [
+        "scheduled to",
+        "scheduled for",
+        "upcoming",
+        "set to kick off",
+        "will play",
+        "will be live",
+        "has not started",
+        "has not been played",
+        "kickoff time is tbc",
+        "kickoff time of tbc",
+        "kickoff is tbc",
+        "time still to be confirmed",
+    ]
+
+    for phrase in forbidden_completed_phrases:
+        if phrase in normalized_summary:
+            raise RuntimeError(
+                f"Local Llama summary contradicted completed fixture data: {phrase}"
+            )
 
 
 def build_deterministic_fixture_summary(fixture: Fixture) -> str:
@@ -513,11 +571,16 @@ def summarize_fixtures(
                 detail="No fixtures available to summarize.",
             )
 
+        deterministic_summary = build_deterministic_tournament_summary(fixtures)
         fixture_context = build_fixture_context(fixtures)
-        prompt = build_summary_prompt(fixture_context)
+        prompt = build_summary_prompt(
+            fixture_context=fixture_context,
+            verified_summary=deterministic_summary,
+        )
 
         try:
             ai_result = llama_client.generate_summary(prompt)
+            validate_live_summary(ai_result["summary"], fixtures)
 
             record_ai_summary_request(
                 summary_type="tournament",
@@ -535,8 +598,6 @@ def summarize_fixtures(
             }
 
         except (RuntimeError, ValueError) as error:
-            summary = build_deterministic_tournament_summary(fixtures)
-
             record_ai_summary_request(
                 summary_type="tournament",
                 status="success",
@@ -547,7 +608,7 @@ def summarize_fixtures(
                 "mode": "fallback",
                 "provider": "deterministic_tournament_summary",
                 "model": "rules_based_v3",
-                "summary": summary,
+                "summary": deterministic_summary,
                 "fallback_reason": str(error),
             }
 
@@ -586,11 +647,16 @@ def summarize_fixture_by_id(
                 detail="Fixture not found.",
             )
 
+        deterministic_summary = build_deterministic_fixture_summary(fixture)
         fixture_context = build_fixture_context([fixture])
-        prompt = build_summary_prompt(fixture_context)
+        prompt = build_summary_prompt(
+            fixture_context=fixture_context,
+            verified_summary=deterministic_summary,
+        )
 
         try:
             ai_result = llama_client.generate_summary(prompt)
+            validate_live_summary(ai_result["summary"], [fixture])
 
             record_ai_summary_request(
                 summary_type="fixture",
@@ -608,8 +674,6 @@ def summarize_fixture_by_id(
             }
 
         except (RuntimeError, ValueError) as error:
-            summary = build_deterministic_fixture_summary(fixture)
-
             record_ai_summary_request(
                 summary_type="fixture",
                 status="success",
@@ -620,7 +684,7 @@ def summarize_fixture_by_id(
                 "mode": "fallback",
                 "provider": "deterministic_fixture_summary",
                 "model": "rules_based_v2",
-                "summary": summary,
+                "summary": deterministic_summary,
                 "fallback_reason": str(error),
             }
 
