@@ -78,7 +78,7 @@ def test_ai_fixture_summary_requires_fixtures(client, monkeypatch):
     assert response.json()["detail"] == "No fixtures available to summarize."
 
 
-def test_ai_fixture_summary_returns_deterministic_tournament_summary(client, monkeypatch):
+def test_ai_fixture_summary_returns_live_local_llama_summary(client, monkeypatch):
     monkeypatch.setattr("app.routes.ai.LocalLlamaClient", lambda: FakeLlamaClient())
 
     sync_response = client.post("/fixtures/sync/sample")
@@ -91,34 +91,18 @@ def test_ai_fixture_summary_returns_deterministic_tournament_summary(client, mon
     data = response.json()
 
     assert data["fixture_count"] == 4
-    assert data["provider"] == "deterministic_tournament_summary"
-    assert data["model"] == "rules_based_v3"
-    assert isinstance(data["summary"], str)
-
-    summary = data["summary"].lower()
-
-    assert "4 fixtures have been completed" in summary
-    assert "mexico defeated south africa" in summary
-    assert "united states defeated paraguay" in summary
-    assert "current group leaders based on completed fixtures include" in summary
-    assert "mexico (group a, 3 pts, +2 gd)" in summary
-    assert "united states (group d, 3 pts, +3 gd)" in summary
-    assert "france (group i, 3 pts, +2 gd)" in summary
-    assert "argentina (group j, 3 pts, +3 gd)" in summary
-    assert "strongest attacks based on completed fixtures include" in summary
-    assert "united states (group d, 4 gf)" in summary
-    assert "argentina (group j, 3 gf)" in summary
-    assert "best defences based on completed fixtures include" in summary
-    assert "argentina (group j, 0 ga)" in summary
-    assert "mexico (group a, 0 ga)" in summary
-    assert "unbeaten teams include" in summary
-    assert "upcoming" not in summary
+    assert data["mode"] == "live"
+    assert data["provider"] == "local_llama"
+    assert data["model"] == "llama3.2:1b"
+    assert data["fallback_provider"] == "deterministic_tournament_summary"
+    assert data["fallback_model"] == "rules_based_v3"
+    assert data["summary"] == "This is a test AI summary for the fixture data."
 
 
-def test_ai_fixture_summary_does_not_depend_on_llama_generation(client, monkeypatch):
+def test_ai_fixture_summary_falls_back_when_llama_generation_fails(client, monkeypatch):
     class BrokenLlamaClient(FakeLlamaClient):
         def generate_summary(self, prompt: str):
-            raise RuntimeError("Llama should not be called for tournament summary.")
+            raise RuntimeError("Local Llama unavailable during tournament summary.")
 
     monkeypatch.setattr("app.routes.ai.LocalLlamaClient", lambda: BrokenLlamaClient())
 
@@ -131,8 +115,17 @@ def test_ai_fixture_summary_does_not_depend_on_llama_generation(client, monkeypa
 
     data = response.json()
 
+    assert data["fixture_count"] == 4
+    assert data["mode"] == "fallback"
     assert data["provider"] == "deterministic_tournament_summary"
     assert data["model"] == "rules_based_v3"
+    assert "Local Llama unavailable" in data["fallback_reason"]
+
+    summary = data["summary"].lower()
+
+    assert "4 fixtures have been completed" in summary
+    assert "mexico defeated south africa" in summary
+    assert "upcoming" not in summary
 
 
 def test_deterministic_tournament_summary_includes_standings_leaders():
@@ -211,7 +204,7 @@ def test_deterministic_tournament_summary_includes_group_analytics():
     assert "unbeaten teams include" in summary
 
 
-def test_ai_single_fixture_summary_returns_deterministic_summary(client, monkeypatch):
+def test_ai_single_fixture_summary_returns_live_local_llama_summary(client, monkeypatch):
     monkeypatch.setattr("app.routes.ai.LocalLlamaClient", lambda: FakeLlamaClient())
 
     sync_response = client.post("/fixtures/sync/sample")
@@ -230,15 +223,20 @@ def test_ai_single_fixture_summary_returns_deterministic_summary(client, monkeyp
     data = response.json()
 
     assert data["fixture_id"] == fixture_id
-    assert data["provider"] == "deterministic_fixture_summary"
-    assert data["model"] == "rules_based_v2"
-    assert isinstance(data["summary"], str)
-    assert fixture["home_team"] in data["summary"]
-    assert fixture["away_team"] in data["summary"]
+    assert data["mode"] == "live"
+    assert data["provider"] == "local_llama"
+    assert data["model"] == "llama3.2:1b"
+    assert data["fallback_provider"] == "deterministic_fixture_summary"
+    assert data["fallback_model"] == "rules_based_v2"
+    assert data["summary"] == "This is a test AI summary for the fixture data."
 
 
-def test_ai_single_completed_fixture_summary_is_factual(client, monkeypatch):
-    monkeypatch.setattr("app.routes.ai.LocalLlamaClient", lambda: FakeLlamaClient())
+def test_ai_single_completed_fixture_summary_falls_back_to_factual_summary(client, monkeypatch):
+    class BrokenLlamaClient(FakeLlamaClient):
+        def generate_summary(self, prompt: str):
+            raise RuntimeError("Local Llama unavailable during fixture summary.")
+
+    monkeypatch.setattr("app.routes.ai.LocalLlamaClient", lambda: BrokenLlamaClient())
 
     sync_response = client.post("/fixtures/sync/sample")
     assert sync_response.status_code == 200
@@ -256,7 +254,10 @@ def test_ai_single_completed_fixture_summary_is_factual(client, monkeypatch):
     data = response.json()
     summary = data["summary"].lower()
 
+    assert data["mode"] == "fallback"
     assert data["provider"] == "deterministic_fixture_summary"
+    assert data["model"] == "rules_based_v2"
+    assert "Local Llama unavailable" in data["fallback_reason"]
     assert "complete" in summary
     assert str(completed_fixture["home_score"]) in data["summary"]
     assert str(completed_fixture["away_score"]) in data["summary"]

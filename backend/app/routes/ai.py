@@ -493,6 +493,7 @@ def ai_health(llama_client: LocalLlamaClient = Depends(get_llama_client)):
 @router.get("/fixtures/summary")
 def summarize_fixtures(
     db: Session = Depends(get_db),
+    llama_client: LocalLlamaClient = Depends(get_llama_client),
 ):
     try:
         fixtures = (
@@ -512,19 +513,43 @@ def summarize_fixtures(
                 detail="No fixtures available to summarize.",
             )
 
-        summary = build_deterministic_tournament_summary(fixtures)
+        fixture_context = build_fixture_context(fixtures)
+        prompt = build_summary_prompt(fixture_context)
 
-        record_ai_summary_request(
-            summary_type="tournament",
-            status="success",
-        )
+        try:
+            ai_result = llama_client.generate_summary(prompt)
 
-        return {
-            "fixture_count": len(fixtures),
-            "provider": "deterministic_tournament_summary",
-            "model": "rules_based_v3",
-            "summary": summary,
-        }
+            record_ai_summary_request(
+                summary_type="tournament",
+                status="success",
+            )
+
+            return {
+                "fixture_count": len(fixtures),
+                "mode": "live",
+                "provider": ai_result.get("provider", "local_llama"),
+                "model": ai_result.get("model", getattr(llama_client, "model", "unknown")),
+                "summary": ai_result["summary"],
+                "fallback_provider": "deterministic_tournament_summary",
+                "fallback_model": "rules_based_v3",
+            }
+
+        except (RuntimeError, ValueError) as error:
+            summary = build_deterministic_tournament_summary(fixtures)
+
+            record_ai_summary_request(
+                summary_type="tournament",
+                status="success",
+            )
+
+            return {
+                "fixture_count": len(fixtures),
+                "mode": "fallback",
+                "provider": "deterministic_tournament_summary",
+                "model": "rules_based_v3",
+                "summary": summary,
+                "fallback_reason": str(error),
+            }
 
     except HTTPException:
         raise
@@ -545,6 +570,7 @@ def summarize_fixtures(
 def summarize_fixture_by_id(
     fixture_id: int,
     db: Session = Depends(get_db),
+    llama_client: LocalLlamaClient = Depends(get_llama_client),
 ):
     try:
         fixture = db.query(Fixture).filter(Fixture.id == fixture_id).first()
@@ -560,19 +586,43 @@ def summarize_fixture_by_id(
                 detail="Fixture not found.",
             )
 
-        summary = build_deterministic_fixture_summary(fixture)
+        fixture_context = build_fixture_context([fixture])
+        prompt = build_summary_prompt(fixture_context)
 
-        record_ai_summary_request(
-            summary_type="fixture",
-            status="success",
-        )
+        try:
+            ai_result = llama_client.generate_summary(prompt)
 
-        return {
-            "fixture_id": fixture.id,
-            "provider": "deterministic_fixture_summary",
-            "model": "rules_based_v2",
-            "summary": summary,
-        }
+            record_ai_summary_request(
+                summary_type="fixture",
+                status="success",
+            )
+
+            return {
+                "fixture_id": fixture.id,
+                "mode": "live",
+                "provider": ai_result.get("provider", "local_llama"),
+                "model": ai_result.get("model", getattr(llama_client, "model", "unknown")),
+                "summary": ai_result["summary"],
+                "fallback_provider": "deterministic_fixture_summary",
+                "fallback_model": "rules_based_v2",
+            }
+
+        except (RuntimeError, ValueError) as error:
+            summary = build_deterministic_fixture_summary(fixture)
+
+            record_ai_summary_request(
+                summary_type="fixture",
+                status="success",
+            )
+
+            return {
+                "fixture_id": fixture.id,
+                "mode": "fallback",
+                "provider": "deterministic_fixture_summary",
+                "model": "rules_based_v2",
+                "summary": summary,
+                "fallback_reason": str(error),
+            }
 
     except HTTPException:
         raise
