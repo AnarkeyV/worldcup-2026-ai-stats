@@ -37,11 +37,12 @@ $Settings = New-ScheduledTaskSettingsSet `
     -DontStopIfGoingOnBatteries `
     -StartWhenAvailable `
     -MultipleInstances IgnoreNew `
+    -Hidden `
     -ExecutionTimeLimit (New-TimeSpan -Minutes 30)
 
 $StartupAction = New-ScheduledTaskAction `
     -Execute $PowerShellExe `
-    -Argument "-NoProfile -ExecutionPolicy Bypass -File `"$StartupScript`"" `
+    -Argument "-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$StartupScript`"" `
     -WorkingDirectory $ProjectDir
 
 $StartupTrigger = New-ScheduledTaskTrigger -AtLogOn
@@ -59,7 +60,7 @@ Register-ScheduledTask `
 
 $WatchdogAction = New-ScheduledTaskAction `
     -Execute $PowerShellExe `
-    -Argument "-NoProfile -ExecutionPolicy Bypass -File `"$WatchdogScript`"" `
+    -Argument "-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$WatchdogScript`"" `
     -WorkingDirectory $ProjectDir
 
 $WatchdogTrigger = New-ScheduledTaskTrigger `
