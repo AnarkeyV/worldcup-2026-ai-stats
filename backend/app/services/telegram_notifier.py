@@ -1,3 +1,5 @@
+from html import escape
+
 import httpx
 
 from app.config import settings
@@ -9,18 +11,20 @@ class TelegramNotificationError(RuntimeError):
 
 def build_dashboard_link_text() -> str:
     """
-    Build a safe dashboard link block for Telegram messages.
+    Build a clickable dashboard link block for Telegram messages.
 
-    The URL is intentionally public-facing configuration so Telegram alerts can
-    open the dashboard from mobile when PUBLIC_DASHBOARD_URL points to a
-    Cloudflare Tunnel or another reachable URL.
+    PUBLIC_DASHBOARD_URL should point to a mobile-reachable URL, such as a
+    Cloudflare Tunnel URL. localhost is useful for desktop testing, but it will
+    not open the Windows dashboard from a phone.
     """
     dashboard_url = (settings.public_dashboard_url or "").strip()
 
     if not dashboard_url or dashboard_url == "replace_me":
         return ""
 
-    return f"\n\n📊 Open dashboard:\n{dashboard_url}"
+    safe_dashboard_url = escape(dashboard_url, quote=True)
+
+    return f'\n\n📊 <a href="{safe_dashboard_url}">Open dashboard</a>'
 
 
 def build_completed_fixture_message(fixture: dict) -> str:
@@ -33,13 +37,13 @@ def build_completed_fixture_message(fixture: dict) -> str:
     Returns:
         str: Human-readable Telegram message.
     """
-    home_team = fixture["home_team"]
-    away_team = fixture["away_team"]
-    home_score = fixture.get("home_score", "?")
-    away_score = fixture.get("away_score", "?")
-    competition = fixture.get("competition", "FIFA World Cup 2026")
-    stage = fixture.get("stage", "Match")
-    venue = fixture.get("venue") or "Venue TBC"
+    home_team = escape(str(fixture["home_team"]))
+    away_team = escape(str(fixture["away_team"]))
+    home_score = escape(str(fixture.get("home_score", "?")))
+    away_score = escape(str(fixture.get("away_score", "?")))
+    competition = escape(str(fixture.get("competition", "FIFA World Cup 2026")))
+    stage = escape(str(fixture.get("stage", "Match")))
+    venue = escape(str(fixture.get("venue") or "Venue TBC"))
 
     dashboard_link = build_dashboard_link_text()
 
@@ -80,6 +84,7 @@ def send_telegram_message(message: str) -> dict:
             json={
                 "chat_id": settings.telegram_chat_id,
                 "text": message,
+                "parse_mode": "HTML",
                 "disable_web_page_preview": True,
             },
             timeout=20.0,
