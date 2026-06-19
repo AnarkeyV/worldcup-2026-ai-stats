@@ -7,16 +7,16 @@ $ErrorActionPreference = "Stop"
 
 $StartupScript = Join-Path $ProjectDir "scripts\windows\start-worldcup-runtime.ps1"
 $WatchdogScript = Join-Path $ProjectDir "scripts\windows\watch-worldcup-runtime.ps1"
+$StartupLauncher = Join-Path $ProjectDir "scripts\windows\start-worldcup-runtime-hidden.vbs"
+$WatchdogLauncher = Join-Path $ProjectDir "scripts\windows\watch-worldcup-runtime-hidden.vbs"
 
-if (-not (Test-Path $StartupScript)) {
-    throw "Startup script not found: $StartupScript"
+foreach ($Path in @($StartupScript, $WatchdogScript, $StartupLauncher, $WatchdogLauncher)) {
+    if (-not (Test-Path $Path)) {
+        throw "Required runtime script not found: $Path"
+    }
 }
 
-if (-not (Test-Path $WatchdogScript)) {
-    throw "Watchdog script not found: $WatchdogScript"
-}
-
-$PowerShellExe = Join-Path $env:SystemRoot "System32\WindowsPowerShell\v1.0\powershell.exe"
+$WScriptExe = Join-Path $env:SystemRoot "System32\wscript.exe"
 
 $StartupTaskName = "WorldCup Runtime Startup"
 $WatchdogTaskName = "WorldCup Runtime Watchdog"
@@ -41,8 +41,8 @@ $Settings = New-ScheduledTaskSettingsSet `
     -ExecutionTimeLimit (New-TimeSpan -Minutes 30)
 
 $StartupAction = New-ScheduledTaskAction `
-    -Execute $PowerShellExe `
-    -Argument "-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$StartupScript`"" `
+    -Execute $WScriptExe `
+    -Argument "`"$StartupLauncher`"" `
     -WorkingDirectory $ProjectDir
 
 $StartupTrigger = New-ScheduledTaskTrigger -AtLogOn
@@ -59,8 +59,8 @@ Register-ScheduledTask `
     -Force | Out-Null
 
 $WatchdogAction = New-ScheduledTaskAction `
-    -Execute $PowerShellExe `
-    -Argument "-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$WatchdogScript`"" `
+    -Execute $WScriptExe `
+    -Argument "`"$WatchdogLauncher`"" `
     -WorkingDirectory $ProjectDir
 
 $WatchdogTrigger = New-ScheduledTaskTrigger `
@@ -88,4 +88,4 @@ Get-ScheduledTask | Where-Object {
 } | Select-Object TaskName, State, TaskPath
 
 Write-Host ""
-Write-Host "Done. The startup task runs at Windows logon. The watchdog task runs every 15 minutes."
+Write-Host "Done. The startup task runs at Windows logon. The watchdog task runs every 15 minutes without opening a visible PowerShell window."
