@@ -7,6 +7,22 @@ class TelegramNotificationError(RuntimeError):
     """Raised when Telegram is configured but the Telegram API request fails."""
 
 
+def build_dashboard_link_text() -> str:
+    """
+    Build a safe dashboard link block for Telegram messages.
+
+    The URL is intentionally public-facing configuration so Telegram alerts can
+    open the dashboard from mobile when PUBLIC_DASHBOARD_URL points to a
+    Cloudflare Tunnel or another reachable URL.
+    """
+    dashboard_url = (settings.public_dashboard_url or "").strip()
+
+    if not dashboard_url or dashboard_url == "replace_me":
+        return ""
+
+    return f"\n\n📊 Open dashboard:\n{dashboard_url}"
+
+
 def build_completed_fixture_message(fixture: dict) -> str:
     """
     Build a Telegram message for a completed fixture.
@@ -25,12 +41,15 @@ def build_completed_fixture_message(fixture: dict) -> str:
     stage = fixture.get("stage", "Match")
     venue = fixture.get("venue") or "Venue TBC"
 
+    dashboard_link = build_dashboard_link_text()
+
     return (
         "🏁 Match Completed\n\n"
         f"{competition}\n"
         f"{stage}\n\n"
         f"{home_team} {home_score} - {away_score} {away_team}\n\n"
         f"Venue: {venue}"
+        f"{dashboard_link}"
     )
 
 

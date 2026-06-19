@@ -9,7 +9,12 @@ from app.services.telegram_notifier import (
 )
 
 
-def test_build_completed_fixture_message():
+def test_build_completed_fixture_message(monkeypatch):
+    monkeypatch.setattr(
+        "app.services.telegram_notifier.settings.public_dashboard_url",
+        "https://worldcup.example.com/dashboard",
+    )
+
     fixture = {
         "competition": "FIFA World Cup 2026",
         "stage": "Group Stage",
@@ -27,6 +32,31 @@ def test_build_completed_fixture_message():
     assert "Group Stage" in message
     assert "Mexico 2 - 0 South Africa" in message
     assert "Venue: Estadio Azteca" in message
+    assert "📊 Open dashboard:" in message
+    assert "https://worldcup.example.com/dashboard" in message
+
+
+def test_build_completed_fixture_message_without_dashboard_link(monkeypatch):
+    monkeypatch.setattr(
+        "app.services.telegram_notifier.settings.public_dashboard_url",
+        "",
+    )
+
+    fixture = {
+        "competition": "FIFA World Cup 2026",
+        "stage": "Group Stage",
+        "home_team": "Mexico",
+        "away_team": "South Africa",
+        "home_score": 2,
+        "away_score": 0,
+        "venue": "Estadio Azteca",
+    }
+
+    message = build_completed_fixture_message(fixture)
+
+    assert "🏁 Match Completed" in message
+    assert "Mexico 2 - 0 South Africa" in message
+    assert "📊 Open dashboard:" not in message
 
 
 def test_send_telegram_message_without_message(monkeypatch):

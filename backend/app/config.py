@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     telegram_bot_token: str = ""
     telegram_chat_id: str = ""
 
+    public_dashboard_url: str = "http://localhost:8000/dashboard"
+
     llama_base_url: str = "http://127.0.0.1:11434"
     llama_model: str = "llama3.2:1b"
     llama_timeout_seconds: int = 60
