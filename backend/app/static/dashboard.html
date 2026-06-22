@@ -5,7 +5,7 @@
     <title>World Cup 2026 AI Stats Dashboard</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <link rel="stylesheet" href="/static/dashboard.css?v=1.11.0-ui1">
+    <link rel="stylesheet" href="/static/dashboard.css?v=1.11.0-ui2">
 </head>
 <body>
     <header class="app-header">
@@ -13,7 +13,7 @@
             <p class="eyebrow">World Cup 2026 AI Stats</p>
             <h1>Interactive Dashboard</h1>
             <p class="subtitle">
-                Browse fixtures by group, view compact standings, open provider-backed match events, statistics, and lineups, monitor provider sync runtime state, and generate local AI summaries.
+                Browse fixtures by completed, live, or upcoming status, narrow them by group, open provider-backed match events, statistics, and lineups, monitor provider sync runtime state, and generate local AI summaries.
             </p>
         </div>
 
@@ -35,7 +35,7 @@
             </article>
 
             <article class="summary-card">
-                <span class="summary-label">Scheduled</span>
+                <span class="summary-label">Upcoming</span>
                 <strong id="scheduled-fixtures">-</strong>
             </article>
 
@@ -232,11 +232,27 @@
             <div id="standings-container" class="standings-container" aria-live="polite"></div>
         </section>
 
-        <section class="fixtures-section">
+        <section class="fixtures-section" aria-label="Fixture browser">
             <div class="section-heading fixture-browser-heading">
                 <div>
                     <h2>Fixtures</h2>
                     <p id="dashboard-message">Loading fixtures...</p>
+                </div>
+            </div>
+
+            <div
+                id="fixture-status-tabs"
+                class="fixture-status-tabs"
+                role="tablist"
+                aria-label="Browse fixtures by status"
+            >
+                <span class="fixture-status-tabs-loading">Loading match categories...</span>
+            </div>
+
+            <div class="fixture-group-browser-heading">
+                <div>
+                    <span class="fixture-browser-label">Match groups</span>
+                    <p id="fixture-browser-message">Choose a match status, then a group.</p>
                 </div>
             </div>
 
@@ -249,25 +265,27 @@
                 <span class="fixture-group-tabs-loading">Loading groups...</span>
             </div>
 
-            <div id="fixtures-container" class="fixtures-grid" aria-live="polite"></div>
-
-            <aside
-                id="match-detail-panel"
-                class="match-detail-panel"
-                aria-label="Selected match detail"
-            >
-                <div class="match-detail-heading">
-                    <div>
-                        <p class="eyebrow">Match Detail Dashboard</p>
-                        <h3 id="match-detail-title">Select a fixture</h3>
+            <div class="fixture-browser-layout">
+                <aside
+                    id="match-detail-panel"
+                    class="match-detail-panel"
+                    aria-label="Selected match detail"
+                >
+                    <div class="match-detail-heading">
+                        <div>
+                            <p class="eyebrow">Match Detail Dashboard</p>
+                            <h3 id="match-detail-title">Select a fixture</h3>
+                        </div>
+                        <span id="match-detail-status" class="status-pill status-default">Waiting</span>
                     </div>
-                    <span id="match-detail-status" class="status-pill status-default">Waiting</span>
-                </div>
 
-                <div id="selected-match-detail" class="selected-match-detail" aria-live="polite">
-                    Select a fixture to open provider-backed score, event timeline, team statistics, and lineups.
-                </div>
-            </aside>
+                    <div id="selected-match-detail" class="selected-match-detail" aria-live="polite">
+                        Select a fixture to open provider-backed score, event timeline, team statistics, and lineups.
+                    </div>
+                </aside>
+
+                <div id="fixtures-container" class="fixtures-grid" aria-live="polite"></div>
+            </div>
         </section>
     </main>
 
@@ -277,6 +295,6 @@
         </p>
     </footer>
 
-    <script src="/static/dashboard.js?v=1.11.0-ui1"></script>
+    <script src="/static/dashboard.js?v=1.11.0-ui2"></script>
 </body>
 </html>

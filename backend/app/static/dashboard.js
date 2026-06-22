@@ -7,7 +7,9 @@ const state = {
     fixtureSummaries: {},
     fixtureSyncStatus: null,
     aiAvailable: false,
+    fixtureStatusScope: "completed",
     fixtureScope: "all",
+    fixtureBrowserFixtures: [],
     selectedFixture: null,
     selectedFixtureDetail: null,
     selectedFixtureId: null,
@@ -58,7 +60,9 @@ const elements = {
     syncNewlyCompleted: document.querySelector("#sync-newly-completed"),
     syncLastSuccess: document.querySelector("#sync-last-success"),
     syncErrorMessage: document.querySelector("#sync-error-message"),
+    fixtureStatusTabs: document.querySelector("#fixture-status-tabs"),
     fixtureGroupTabs: document.querySelector("#fixture-group-tabs"),
+    fixtureBrowserMessage: document.querySelector("#fixture-browser-message"),
     matchDetailPanel: document.querySelector("#match-detail-panel"),
 };
 
@@ -545,6 +549,61 @@ function getFixtureGroups(fixtures) {
     )].sort((left, right) => left.localeCompare(right, undefined, { numeric: true }));
 }
 
+const COMPLETED_FIXTURE_STATUSES = new Set([
+    "complete",
+    "completed",
+    "finished",
+    "final",
+    "ft",
+    "full-time",
+    "full time",
+    "full_time",
+    "match finished",
+]);
+
+const LIVE_FIXTURE_STATUSES = new Set([
+    "live",
+    "in_play",
+    "in play",
+    "halftime",
+    "half-time",
+    "ht",
+    "1h",
+    "2h",
+]);
+
+function normalizeFixtureStatus(fixture) {
+    return String(fixture?.status || "")
+        .trim()
+        .toLowerCase()
+        .replaceAll("_", " ");
+}
+
+function getFixtureStatusCategory(fixture) {
+    const status = normalizeFixtureStatus(fixture);
+
+    if (COMPLETED_FIXTURE_STATUSES.has(status)) {
+        return "completed";
+    }
+
+    if (LIVE_FIXTURE_STATUSES.has(status) || status.includes("live") || status.includes("in play")) {
+        return "live";
+    }
+
+    return "upcoming";
+}
+
+function getFixtureStatusCounts(fixtures) {
+    return fixtures.reduce((counts, fixture) => {
+        counts[getFixtureStatusCategory(fixture)] += 1;
+        return counts;
+    }, {
+        completed: 0,
+        live: 0,
+        upcoming: 0,
+    });
+}
+
 function getFixtureScopeFromGroup(groupName) {
     return groupName ? `group:${groupName}` : "all";
 }
@@ -565,12 +624,120 @@ function isKnockoutFixture(fixture) {
     return Boolean(stage) && !stage.includes("group");
 }
 
+function getFixturesForStatus(fixtures, statusScope = state.fixtureStatusScope) {
+    return fixtures.filter((fixture) => getFixtureStatusCategory(fixture) === statusScope);
+}
+
 function filterFixturesForScope(fixtures) {
+    const statusFixtures = getFixturesForStatus(fixtures);
+
     if (state.fixtureScope === "knockout") {
-        return fixtures.filter(isKnockoutFixture);
+        return statusFixtures.filter(isKnockoutFixture);
     }
 
-    return fixtures;
+    const groupName = getGroupNameFromScope(state.fixtureScope);
+
+    if (groupName) {
+        return statusFixtures.filter((fixture) => fixture.group_name === groupName);
+    }
+
+    return statusFixtures;
+}
+
+function getFixtureDisplayGroup(fixture) {
+    return fixture.group_name || fixture.stage || "Other matches";
+}
+
+function getAvailableFixtureStatusScopes(fixtures) {
+    const counts = getFixtureStatusCounts(fixtures);
+
+    return ["completed", "live", "upcoming"].filter((scope) => counts[scope] > 0);
+}
+
+function ensureFixtureBrowserSelection(fixtures) {
+    const availableStatuses = getAvailableFixtureStatusScopes(fixtures);
+
+    if (!availableStatuses.length) {
+        state.fixtureStatusScope = "completed";
+        state.fixtureScope = "all";
+        return;
+    }
+
+    if (!availableStatuses.includes(state.fixtureStatusScope)) {
+        state.fixtureStatusScope = availableStatuses.includes("completed")
+            ? "completed"
+            : availableStatuses[0];
+        state.fixtureScope = "all";
+    }
+
+    const statusFixtures = getFixturesForStatus(fixtures);
+    const selectedGroup = getGroupNameFromScope(state.fixtureScope);
+    const availableGroups = getFixtureGroups(statusFixtures);
+    const hasSelectedGroup = selectedGroup && availableGroups.includes(selectedGroup);
+    const hasKnockoutFixtures = statusFixtures.some(isKnockoutFixture);
+
+    if (state.filters.group && availableGroups.includes(state.filters.group)) {
+        state.fixtureScope = getFixtureScopeFromGroup(state.filters.group);
+        return;
+    }
+
+    if (hasSelectedGroup || (state.fixtureScope === "knockout" && hasKnockoutFixtures)) {
+        return;
+    }
+
+    if (availableGroups.length > 0) {
+        state.fixtureScope = getFixtureScopeFromGroup(availableGroups[0]);
+    } else if (hasKnockoutFixtures) {
+        state.fixtureScope = "knockout";
+    } else {
+        state.fixtureScope = "all";
+    }
+}
+
+function renderFixtureStatusTabs(fixtures) {
+    if (!elements.fixtureStatusTabs) {
+        return;
+    }
+
+    const counts = getFixtureStatusCounts(fixtures);
+    const tabs = [
+        {
+            scope: "completed",
+            label: "Completed",
+            description: "Finished matches",
+        },
+        {
+            scope: "live",
+            label: "Live",
+            description: "Matches in progress",
+        },
+        {
+            scope: "upcoming",
+            label: "Upcoming",
+            description: "Scheduled or not started",
+        },
+    ];
+
+    elements.fixtureStatusTabs.innerHTML = tabs.map((tab) => {
+        const active = tab.scope === state.fixtureStatusScope;
+        const count = counts[tab.scope];
+
+        return `
+            <button
+                class="fixture-status-tab ${active ? "is-active" : ""} ${count === 0 ? "is-empty" : ""}"
+                type="button"
+                role="tab"
+                aria-selected="${active ? "true" : "false"}"
+                aria-label="${escapeHtml(tab.label)} matches: ${formatNumber(count)}"
+                data-fixture-status-scope="${escapeHtml(tab.scope)}"
+                ${count === 0 ? "disabled" : ""}
+            >
+                <span>${escapeHtml(tab.label)}</span>
+                <strong>${formatNumber(count)}</strong>
+                <small>${escapeHtml(tab.description)}</small>
+            </button>
+        `;
+    }).join("");
 }
 
 function renderFixtureGroupTabs(fixtures) {
@@ -578,21 +745,22 @@ function renderFixtureGroupTabs(fixtures) {
         return;
     }
 
-    const groups = getFixtureGroups(fixtures);
+    const statusFixtures = getFixturesForStatus(fixtures);
+    const groups = getFixtureGroups(statusFixtures);
     const tabs = [
         {
             scope: "all",
-            label: "All",
-            count: fixtures.length,
+            label: "All groups",
+            count: statusFixtures.length,
         },
         ...groups.map((group) => ({
             scope: getFixtureScopeFromGroup(group),
             label: group,
-            count: fixtures.filter((fixture) => fixture.group_name === group).length,
+            count: statusFixtures.filter((fixture) => fixture.group_name === group).length,
         })),
     ];
 
-    const knockoutFixtures = fixtures.filter(isKnockoutFixture);
+    const knockoutFixtures = statusFixtures.filter(isKnockoutFixture);
 
     if (knockoutFixtures.length > 0) {
         tabs.push({
@@ -600,6 +768,13 @@ function renderFixtureGroupTabs(fixtures) {
             label: "Knockout",
             count: knockoutFixtures.length,
         });
+    }
+
+    if (tabs.length === 1 && statusFixtures.length === 0) {
+        elements.fixtureGroupTabs.innerHTML = `
+            <span class="fixture-group-tabs-loading">No ${escapeHtml(state.fixtureStatusScope)} fixtures are available.</span>
+        `;
+        return;
     }
 
     elements.fixtureGroupTabs.innerHTML = tabs.map((tab) => {
@@ -620,32 +795,68 @@ function renderFixtureGroupTabs(fixtures) {
     }).join("");
 }
 
+function updateFixtureBrowserMessage(fixtures) {
+    if (!elements.fixtureBrowserMessage) {
+        return;
+    }
+
+    const label = state.fixtureStatusScope === "upcoming"
+        ? "upcoming"
+        : state.fixtureStatusScope;
+    const scopeLabel = state.fixtureScope === "all"
+        ? "all groups"
+        : state.fixtureScope === "knockout"
+            ? "the knockout stage"
+            : getGroupNameFromScope(state.fixtureScope);
+
+    elements.fixtureBrowserMessage.textContent =
+        `Showing ${fixtures.length} ${label} fixture${fixtures.length === 1 ? "" : "s"} for ${scopeLabel}.`;
+}
+
 function syncFixtureScopeFromGroupFilter() {
-    state.fixtureScope = getFixtureScopeFromGroup(state.filters.group);
+    state.fixtureScope = state.filters.group
+        ? getFixtureScopeFromGroup(state.filters.group)
+        : "all";
+}
+
+function setFixtureStatusScope(scope) {
+    state.fixtureStatusScope = scope;
+    state.fixtureScope = "all";
+    renderFixtureBrowser(state.fixtureBrowserFixtures, { selectFirst: true });
 }
 
 function setFixtureScope(scope) {
     state.fixtureScope = scope;
+    renderFixtureBrowser(state.fixtureBrowserFixtures, { selectFirst: true });
+}
 
-    if (scope.startsWith("group:")) {
-        const groupName = getGroupNameFromScope(scope);
-        state.filters.group = groupName;
-        elements.groupFilter.value = groupName;
-    } else {
-        state.filters.group = "";
-        elements.groupFilter.value = "";
+function renderFixtureBrowser(fixtures, options = {}) {
+    state.fixtureBrowserFixtures = Array.isArray(fixtures) ? fixtures : [];
+    ensureFixtureBrowserSelection(state.fixtureBrowserFixtures);
+
+    const browserFixtures = filterFixturesForScope(state.fixtureBrowserFixtures);
+
+    state.visibleFixtures = browserFixtures;
+    updateSummary(state.allFixtures, state.visibleFixtures);
+    renderFixtureStatusTabs(state.fixtureBrowserFixtures);
+    renderFixtureGroupTabs(state.fixtureBrowserFixtures);
+    updateFixtureBrowserMessage(browserFixtures);
+    renderFixtures(browserFixtures);
+
+    const selectionIsVisible = state.selectedFixtureId
+        && browserFixtures.some((fixture) => String(fixture.id) === String(state.selectedFixtureId));
+
+    if (options.selectFirst !== false && !selectionIsVisible && browserFixtures.length > 0) {
+        selectFixture(browserFixtures[0].id, { scroll: false });
     }
-
-    applyFilters();
 }
 
 function updateSummary(allFixtures, visibleFixtures) {
-    const completed = allFixtures.filter((fixture) => fixture.status === "complete").length;
-    const scheduled = allFixtures.filter((fixture) => fixture.status === "scheduled").length;
+    const statusCounts = getFixtureStatusCounts(allFixtures);
 
     elements.totalFixtures.textContent = allFixtures.length;
-    elements.completedFixtures.textContent = completed;
-    elements.scheduledFixtures.textContent = scheduled;
+    elements.completedFixtures.textContent = statusCounts.completed;
+    elements.scheduledFixtures.textContent = statusCounts.upcoming;
     elements.visibleFixtures.textContent = visibleFixtures.length;
 }
 
@@ -659,19 +870,19 @@ async function applyFilters() {
             fetchInsights(state.filters),
         ]);
 
-        state.visibleFixtures = filterFixturesForScope(fixtures);
         state.standings = standings;
         state.insights = insights;
 
-        updateSummary(state.allFixtures, state.visibleFixtures);
         renderInsights(state.insights);
         renderPlayerStats();
         renderStandings(state.standings);
-        renderFixtureGroupTabs(state.allFixtures);
-        renderFixtures(state.visibleFixtures);
+        renderFixtureBrowser(fixtures, { selectFirst: true });
     } catch (error) {
         console.error(error);
         elements.dashboardMessage.textContent = "Unable to apply filters.";
+        if (elements.fixtureBrowserMessage) {
+            elements.fixtureBrowserMessage.textContent = "Unable to load the selected fixture browser view.";
+        }
         elements.fixturesContainer.innerHTML = `
             <div class="empty-state">
                 The dashboard could not load filtered fixture data. Please check that the fixtures API is running.
@@ -926,35 +1137,21 @@ function renderStandings(standings) {
     elements.standingsContainer.appendChild(groupGrid);
 }
 
-function renderFixtures(fixtures) {
-    elements.fixturesContainer.innerHTML = "";
+function buildFixtureCardMarkup(fixture) {
+    const fixtureId = fixture.id;
+    const savedSummary = state.fixtureSummaries[fixtureId];
+    const matchLabel = `${fixture.home_team || "Home team"} vs ${fixture.away_team || "Away team"}`;
+    const selected = String(state.selectedFixtureId) === String(fixtureId);
 
-    if (fixtures.length === 0) {
-        elements.fixturesContainer.innerHTML = `
-            <div class="empty-state">
-                No fixtures match the selected filters.
-            </div>
-        `;
-        elements.dashboardMessage.textContent = "Try changing or resetting the filters.";
-        return;
-    }
-
-    elements.dashboardMessage.textContent = `Showing ${fixtures.length} fixture${fixtures.length === 1 ? "" : "s"}.`;
-
-    fixtures.forEach((fixture) => {
-        const card = document.createElement("article");
-        card.className = "fixture-card";
-        card.tabIndex = 0;
-
-        const fixtureId = fixture.id;
-        const savedSummary = state.fixtureSummaries[fixtureId];
-        const matchLabel = `${fixture.home_team || "Home team"} vs ${fixture.away_team || "Away team"}`;
-
-        card.dataset.fixtureCardId = fixtureId;
-        card.setAttribute("role", "button");
-        card.setAttribute("aria-label", `Open match detail for ${matchLabel}`);
-
-        card.innerHTML = `
+    return `
+        <article
+            class="fixture-card ${selected ? "is-selected" : ""}"
+            tabindex="0"
+            role="button"
+            aria-label="Open match detail for ${escapeHtml(matchLabel)}"
+            aria-pressed="${selected ? "true" : "false"}"
+            data-fixture-card-id="${escapeHtml(fixtureId)}"
+        >
             <div class="fixture-meta">
                 <span>${escapeHtml(fixture.competition || "World Cup 2026")}</span>
                 <span>${escapeHtml(fixture.group_name || fixture.stage || "Fixture")}</span>
@@ -985,13 +1182,13 @@ function renderFixtures(fixtures) {
                 </span>
             </div>
 
-            <div class="fixture-card-hint">Click card for match detail dashboard</div>
+            <div class="fixture-card-hint">Open match detail</div>
 
             <div class="fixture-ai-actions">
                 <button
                     class="fixture-ai-button"
                     type="button"
-                    data-fixture-summary-id="${fixtureId}"
+                    data-fixture-summary-id="${escapeHtml(fixtureId)}"
                 >
                     Generate Match Summary
                 </button>
@@ -999,13 +1196,83 @@ function renderFixtures(fixtures) {
 
             <div
                 class="fixture-ai-summary ${savedSummary ? "success" : ""}"
-                id="fixture-summary-${fixtureId}"
+                id="fixture-summary-${escapeHtml(fixtureId)}"
+                ${savedSummary ? "" : "hidden"}
             >
-                ${savedSummary ? escapeHtml(savedSummary) : "No match summary generated yet."}
+                ${savedSummary ? escapeHtml(savedSummary) : ""}
+            </div>
+        </article>
+    `;
+}
+
+function groupFixturesForDisplay(fixtures) {
+    return fixtures.reduce((groups, fixture) => {
+        const groupName = getFixtureDisplayGroup(fixture);
+
+        if (!groups[groupName]) {
+            groups[groupName] = [];
+        }
+
+        groups[groupName].push(fixture);
+        return groups;
+    }, {});
+}
+
+function renderFixtures(fixtures) {
+    elements.fixturesContainer.innerHTML = "";
+
+    if (fixtures.length === 0) {
+        elements.fixturesContainer.className = "fixtures-grid";
+        elements.fixturesContainer.innerHTML = `
+            <div class="empty-state">
+                No fixtures match the selected status and group.
             </div>
         `;
+        elements.dashboardMessage.textContent = "Choose another match status or group.";
+        return;
+    }
 
-        elements.fixturesContainer.appendChild(card);
+    const activeLabel = state.fixtureStatusScope === "upcoming"
+        ? "upcoming"
+        : state.fixtureStatusScope;
+    elements.dashboardMessage.textContent =
+        `Showing ${fixtures.length} ${activeLabel} fixture${fixtures.length === 1 ? "" : "s"}.`;
+
+    const renderAllGroups = state.fixtureScope === "all" && fixtures.length > 6;
+
+    if (!renderAllGroups) {
+        elements.fixturesContainer.className = "fixtures-grid";
+        elements.fixturesContainer.innerHTML = fixtures
+            .map((fixture) => buildFixtureCardMarkup(fixture))
+            .join("");
+        return;
+    }
+
+    const groups = groupFixturesForDisplay(fixtures);
+    const groupNames = Object.keys(groups).sort((left, right) =>
+        left.localeCompare(right, undefined, { numeric: true })
+    );
+
+    elements.fixturesContainer.className = "fixtures-grouped-sections";
+    elements.fixturesContainer.innerHTML = groupNames.map((groupName, index) => `
+        <details class="fixture-group-section" ${index === 0 ? "open" : ""}>
+            <summary>
+                <span>${escapeHtml(groupName)}</span>
+                <small>${formatNumber(groups[groupName].length)} match${groups[groupName].length === 1 ? "" : "es"}</small>
+            </summary>
+            <div class="fixture-group-fixtures">
+                ${groups[groupName].map((fixture) => buildFixtureCardMarkup(fixture)).join("")}
+            </div>
+        </details>
+    `).join("");
+}
+
+function syncSelectedFixtureCard() {
+    document.querySelectorAll("[data-fixture-card-id]").forEach((card) => {
+        const selected = String(card.dataset.fixtureCardId) === String(state.selectedFixtureId);
+
+        card.classList.toggle("is-selected", selected);
+        card.setAttribute("aria-pressed", selected ? "true" : "false");
     });
 }
 
@@ -1543,7 +1810,7 @@ function renderFixtureDetail(fixture, detail = null, options = {}) {
     `;
 }
 
-async function selectFixture(fixtureId) {
+async function selectFixture(fixtureId, options = {}) {
     const fixtureFromState = state.visibleFixtures.find((fixture) => String(fixture.id) === String(fixtureId))
         || state.allFixtures.find((fixture) => String(fixture.id) === String(fixtureId));
 
@@ -1555,10 +1822,11 @@ async function selectFixture(fixtureId) {
     state.selectedFixtureId = String(fixtureId);
     state.selectedFixtureDetail = null;
     state.activeMatchDetailTab = "overview";
+    syncSelectedFixtureCard();
 
     renderFixtureDetail(fixtureFromState, null, {
         isLoading: true,
-        scroll: true,
+        scroll: options.scroll === true,
     });
 
     try {
@@ -1626,6 +1894,7 @@ async function generateSingleFixtureSummary(fixtureId, button) {
 
     button.disabled = true;
     button.textContent = "Generating...";
+    summaryElement.hidden = false;
     summaryElement.className = "fixture-ai-summary";
     summaryElement.textContent = "Generating match summary...";
 
@@ -1751,15 +2020,17 @@ function formatSyncStatus(status) {
 }
 
 function getStatusClass(status) {
-    if (status === "complete") {
+    const category = getFixtureStatusCategory({ status });
+
+    if (category === "completed") {
         return "status-complete";
     }
 
-    if (status === "scheduled") {
+    if (category === "upcoming") {
         return "status-scheduled";
     }
 
-    if (status === "live") {
+    if (category === "live") {
         return "status-live";
     }
 
@@ -1855,6 +2126,7 @@ function bindEvents() {
         state.filters.team = "";
         state.filters.group = "";
         state.filters.status = "";
+        state.fixtureStatusScope = "completed";
         state.fixtureScope = "all";
 
         elements.teamSearch.value = "";
@@ -1867,6 +2139,18 @@ function bindEvents() {
     elements.generateAiSummary.addEventListener("click", generateAiSummary);
     elements.refreshSyncStatus.addEventListener("click", refreshFixtureSyncStatus);
     elements.refreshAiInsights.addEventListener("click", refreshAiInsights);
+
+    if (elements.fixtureStatusTabs) {
+        elements.fixtureStatusTabs.addEventListener("click", (event) => {
+            const tab = event.target.closest("[data-fixture-status-scope]");
+
+            if (!tab || tab.disabled) {
+                return;
+            }
+
+            setFixtureStatusScope(tab.dataset.fixtureStatusScope);
+        });
+    }
 
     if (elements.fixtureGroupTabs) {
         elements.fixtureGroupTabs.addEventListener("click", (event) => {
@@ -1884,6 +2168,7 @@ function bindEvents() {
         const button = event.target.closest("[data-fixture-summary-id]");
 
         if (button) {
+            event.stopPropagation();
             const fixtureId = button.dataset.fixtureSummaryId;
             generateSingleFixtureSummary(fixtureId, button);
             return;
@@ -1895,7 +2180,9 @@ function bindEvents() {
             return;
         }
 
-        selectFixture(fixtureCard.dataset.fixtureCardId);
+        selectFixture(fixtureCard.dataset.fixtureCardId, {
+            scroll: window.matchMedia("(max-width: 900px)").matches,
+        });
     });
 
     elements.fixturesContainer.addEventListener("keydown", (event) => {
@@ -1910,7 +2197,9 @@ function bindEvents() {
         }
 
         event.preventDefault();
-        selectFixture(fixtureCard.dataset.fixtureCardId);
+        selectFixture(fixtureCard.dataset.fixtureCardId, {
+            scroll: window.matchMedia("(max-width: 900px)").matches,
+        });
     });
 
     if (elements.matchDetailPanel) {
@@ -1946,22 +2235,22 @@ async function initializeDashboard() {
         ]);
 
         state.allFixtures = fixtures;
-        state.visibleFixtures = fixtures;
         state.standings = standings;
         state.insights = insights;
         state.aiInsights = aiInsights;
 
         populateFilters(state.allFixtures);
-        updateSummary(state.allFixtures, state.visibleFixtures);
         renderInsights(state.insights);
         renderAiInsights(state.aiInsights);
         renderPlayerStats();
         renderStandings(state.standings);
-        renderFixtureGroupTabs(state.allFixtures);
-        renderFixtures(state.visibleFixtures);
+        renderFixtureBrowser(state.allFixtures, { selectFirst: true });
     } catch (error) {
         console.error(error);
         elements.dashboardMessage.textContent = "Unable to load fixtures.";
+        if (elements.fixtureBrowserMessage) {
+            elements.fixtureBrowserMessage.textContent = "The fixture browser could not load match data.";
+        }
         elements.fixturesContainer.innerHTML = `
             <div class="empty-state">
                 The dashboard could not load fixture data. Please check that the API server is running.

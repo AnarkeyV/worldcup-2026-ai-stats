@@ -271,8 +271,20 @@ def test_dashboard_page_includes_fixture_group_tabs():
     assert 'id="fixture-group-tabs"' in response.text
     assert "Browse fixtures by group" in response.text
     assert "Provider-backed Rich Match Dashboard" in response.text
-    assert "dashboard.js?v=1.11.0-ui1" in response.text
-    assert "dashboard.css?v=1.11.0-ui1" in response.text
+    assert "dashboard.js?v=1.11.0-ui2" in response.text
+    assert "dashboard.css?v=1.11.0-ui2" in response.text
+
+def test_dashboard_page_includes_fixture_status_browser_controls():
+    response = client.get("/dashboard")
+
+    assert response.status_code == 200
+    assert 'id="fixture-status-tabs"' in response.text
+    assert 'id="fixture-browser-message"' in response.text
+    assert "Browse fixtures by status" in response.text
+    assert "Completed" in response.text
+    assert "Upcoming" in response.text
+    assert "fixture-browser-layout" in response.text
+
 
 
 def test_static_dashboard_css_includes_fixture_group_tab_styles():
@@ -300,3 +312,27 @@ def test_dashboard_js_includes_rich_match_detail_logic():
     assert "renderMatchStatsTab" in response.text
     assert "renderMatchLineupsTab" in response.text
     assert "match-detail-tab" in response.text
+
+
+def test_static_dashboard_css_includes_status_first_fixture_browser_styles():
+    response = client.get("/static/dashboard.css")
+
+    assert response.status_code == 200
+    assert "fixture-status-tabs" in response.text
+    assert "fixture-status-tab" in response.text
+    assert "fixture-browser-layout" in response.text
+    assert "fixture-group-section" in response.text
+    assert "fixture-card.is-selected" in response.text
+
+
+def test_dashboard_js_includes_status_first_fixture_browser_logic():
+    response = client.get("/static/dashboard.js")
+
+    assert response.status_code == 200
+    assert "fixtureStatusScope" in response.text
+    assert "getFixtureStatusCategory" in response.text
+    assert "renderFixtureStatusTabs" in response.text
+    assert "setFixtureStatusScope" in response.text
+    assert "ensureFixtureBrowserSelection" in response.text
+    assert "renderFixtureBrowser" in response.text
+    assert "fixture-group-section" in response.text
