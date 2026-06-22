@@ -1,226 +1,190 @@
 # Portfolio Release Summary
 
-## Overview
+## World Cup 2026 AI Stats — v1.11.0
 
-**World Cup 2026 AI Stats Dashboard** is a portfolio-grade DevOps/backend/observability project built around the FIFA World Cup 2026 use case.
-
-The current release is:
-
-```text
-Version: v1.8.0
-Release name: AI Insights Upgrade
-Test status: 149 passed
-Runtime: Docker Compose local stack
-Primary demo services: FastAPI, dashboard, PostgreSQL, Prometheus, Grafana
-Optional integrations: API-Football, Telegram, Ollama / Local Llama
-```
-
-The project includes backend APIs, database-backed fixture handling, provider sync logic, standings, group insights, structured AI insights, player statistics, AI summaries, Telegram notifications, Prometheus metrics, and Grafana dashboards.
+**Release name:** Mobile Rich Match Dashboard, Provider Leaders, and Group Race
+**Test status:** 184 passed
+**Runtime:** Self-hosted Windows laptop with Docker Compose
+**Development:** MacBook Pro, VS Code, Python venv, Git, and SSH control
+**Public demo:** `https://wc2026.khairulrizal.qzz.io/dashboard`
 
 ---
 
-## Portfolio Goal
+## Executive Summary
 
-The goal of this project is to show practical engineering range:
+World Cup 2026 AI Stats is a portfolio-grade DevOps, backend, observability, and local-AI project built around a real football data use case.
 
-- backend API design
-- service-layer organization
-- database-backed workflows
-- Docker Compose runtime operation
-- local-first AI integration
-- observability through Prometheus and Grafana
-- safe optional integrations
-- milestone-based release discipline
-- automated testing and documentation
+It is not a static mockup. The project operates as a self-hosted system that combines:
 
----
+- FastAPI backend APIs
+- PostgreSQL persistence
+- provider-backed fixture and match-detail data
+- a responsive static dashboard
+- local Ollama/Llama summary support
+- deterministic fallback behavior
+- Telegram notification readiness
+- Cloudflare mobile access
+- Prometheus metrics and Grafana visualization
+- Docker Compose runtime orchestration
 
-## What v1.8.0 Adds
-
-v1.8.0 upgrades the AI story from simple summaries into structured insight generation.
-
-Delivered:
-
-- `GET /ai/insights`
-- deterministic `ai_insights_service.py`
-- fixture availability insights
-- completed result insights
-- group-leader insights
-- strongest-attack insights
-- provider sync runtime status insights
-- group and team filters
-- Structured AI Insights panel in the FastAPI static dashboard
-- focused tests for service, route, and dashboard behavior
-
-The structured insights are intentionally fallback-safe. They work without requiring Ollama to be running, which makes the project more reliable during live demos.
+v1.11.0 turns the dashboard into a richer matchday experience with live provider-derived match details, player leaders, latest-result context, and a top-two Group Race board.
 
 ---
 
-## What This Project Demonstrates
+## What v1.11.0 Adds
+
+### Rich Match Detail
+
+- fixture cards organised by completed, live, and upcoming status
+- group-level match browsing
+- match detail overview, event timeline, team statistics, and lineups
+- provider-backed goals, cards, substitutions, formations, referee, and weather context
+- responsive desktop/mobile layout
+- sticky navigation for quick dashboard access
+
+### Provider-Derived Leaders
+
+- top scorer leaderboard
+- yellow-card leaderboard
+- red-card leaderboard
+- team and group filtering
+- explicit data coverage statement
+- no generic sample player records presented as live data
+- explicit unavailable state for assists when provider event data does not include them
+
+### AI and Standings Context
+
+- provider-backed latest completed-match card
+- local Ollama health visibility
+- deterministic fallback for unreliable/unavailable local summaries
+- Structured AI Insights
+- Group Race board showing the top two teams in every populated group
+
+---
+
+## Why This Is Relevant for DevOps / Cloud / Backend Roles
 
 ### Backend Engineering
 
-- FastAPI route design
-- service-layer organization
-- provider adapter pattern
-- environment-based configuration
-- database-backed workflows
+- FastAPI route design and dependency injection
+- SQLAlchemy persistence patterns
+- separate fixture and rich-match-detail models
+- provider payload normalization
+- deterministic service-layer logic
 - structured API responses
-- automated tests
+- test-driven change validation
 
-### DevOps and Runtime
+### DevOps and Runtime Operations
 
-- Dockerfile usage
-- Docker Compose orchestration
-- multi-service local runtime
-- PostgreSQL containerization
-- service dependency management
-- reproducible local demos
+- Docker Compose multi-service runtime
+- Windows Docker Desktop host operations
+- MacBook-to-Windows SSH control workflow
+- environment-driven configuration
+- health checks and runtime verification
+- safe local secret handling
+- release tagging and version consistency checks
 
 ### Observability
 
 - Prometheus metrics endpoint
-- Prometheus scrape configuration
-- Grafana provisioning
-- dashboard JSON configuration
-- version-aware application metrics
-- provider sync runtime observability
+- provider sync observability
+- Grafana dashboards
+- runtime-state visibility in the dashboard
+- application version metrics
+- health-oriented demo checks
 
 ### AI Integration
 
-- local-first LLM workflow
-- Ollama/Llama integration
-- AI health checking
-- deterministic structured AI insights
-- fallback-safe demo behavior
-- football summary generation
+- local Ollama/Llama model integration
+- health checks before AI usage
+- deterministic fallback behavior
+- guardrails against contradictory summary output
+- use of structured factual data rather than fabricated player analytics
 
-### Notification Integration
+### Product and Data Integrity
 
-- Telegram Bot API integration
-- readiness/status endpoint
-- test notification endpoint
-- safe secret handling through environment variables
-
-### Release Discipline
-
-- milestone-based development
-- changelog maintenance
-- roadmap maintenance
-- version consistency tests
-- documentation-first portfolio polish
-- full test baseline: `149 passed`
+- provider-backed rather than placeholder player leaders
+- honest unavailable state for unsupported assist data
+- current standings-derived Group Race
+- clear distinction between stored event data and generic sample records
+- responsive dashboard designed for actual personal mobile use
 
 ---
 
-## Portfolio Talking Points
+## Strong Interview Talking Points
 
-### 1. This is not just a simple API
+### 1. It is a real operating system, not only an API
 
-The project started with a backend foundation and grew into a complete local system with database, dashboards, AI summaries, structured AI insights, notifications, metrics, and Grafana.
+The project combines backend APIs, database storage, dashboard UX, data providers, local AI, notifications, monitoring, and a public tunnel in one self-hosted runtime.
 
-### 2. The project is milestone-driven
+### 2. Data quality was handled openly
 
-Each release added a specific capability and was validated before moving on.
+When provider data did not include assists, the dashboard did not invent them. It shows a transparent unavailable state instead.
 
-Recent examples:
+### 3. The AI layer is practical rather than decorative
 
-- v1.5.0 polished the project for portfolio release.
-- v1.6.0 improved real provider data sync reliability.
-- v1.7.0 added provider sync observability and runtime demo visibility.
-- v1.8.0 added structured AI insights.
+Local Llama improves the summary experience, but deterministic endpoints keep the dashboard reliable when the model is offline or returns inconsistent wording.
 
-### 3. The system is observable
+### 4. The application is observable
 
-Prometheus and Grafana are included so the project can demonstrate runtime visibility, not just application features.
+Prometheus and Grafana are available alongside the dashboard, and provider sync state is exposed through API, metrics, and UI.
 
-### 4. The AI layer is demo-safe
+### 5. The workflow reflects real operational constraints
 
-The project supports local Llama/Ollama summaries, but the new `/ai/insights` endpoint is deterministic and can still work when Ollama is unavailable.
-
-### 5. The project has automated tests
-
-The current release baseline is:
-
-```text
-149 passed
-```
-
-That is useful in interviews because it shows the project is not only manually tested.
+The MacBook is kept as the development/control machine. The Windows laptop is the always-on Docker runtime and public dashboard host. Verification is performed through SSH and endpoint checks.
 
 ---
 
-## Recommended Portfolio Demo Order
+## Recommended Demo Order
 
-A strong demo flow is:
-
-1. Open GitHub README and explain the project purpose.
-2. Run or show `python -m pytest` with `149 passed`.
-3. Start Docker Compose.
-4. Open FastAPI `/health`.
-5. Open FastAPI `/docs`.
-6. Sync sample fixtures.
-7. Show `/fixtures`, `/standings`, and `/insights/groups`.
-8. Show `/ai/insights`.
-9. Show player statistics.
-10. Show backend dashboard with Provider Sync Runtime and Structured AI Insights panels.
-11. Show Prometheus.
-12. Show Grafana.
-13. Show Telegram status endpoint.
-14. Explain optional local AI summary support through Ollama.
-
----
-
-## Reviewer-Friendly Summary
-
-World Cup 2026 AI Stats Dashboard is a FastAPI-based football analytics platform that demonstrates backend development, Dockerized runtime operations, database-backed workflows, local AI integration, Telegram notifications, and Prometheus/Grafana observability.
-
-The v1.8.0 release strengthens the AI story by adding structured, fallback-safe insights that connect fixture data, standings, and provider sync runtime state to a dashboard-ready AI panel.
+1. Open the public dashboard.
+2. Use **AI Insights** to show Group Race.
+3. Use **Players** to show provider-derived goals and cards.
+4. Use **AI Summary** to show the latest completed match.
+5. Use **Fixtures** to show rich match detail.
+6. Use **Sync** to show runtime observability.
+7. Open `/docs`, `/metrics`, Prometheus, and Grafana.
+8. Explain local AI, Telegram, Cloudflare Tunnel, and safe fallback behavior.
+9. Show `pytest -q` with `184 passed`.
 
 ---
 
 ## Release Checklist
 
-Before publishing v1.8.0:
+Before publishing v1.11.0:
 
-- [ ] `VERSION` is `1.8.0`
-- [ ] `.env.example` has `APP_VERSION=1.8.0`
-- [ ] `backend/app/config.py` default version is `1.8.0`
-- [ ] README badge shows `v1.8.0`
-- [ ] `docs/changelog.md` includes v1.8.0
-- [ ] `docs/roadmap.md` marks v1.8.0 as completed
-- [ ] `docs/architecture.md` reflects current architecture
-- [ ] `docs/demo-walkthrough.md` includes `/ai/insights`
-- [ ] `docs/v1.8.0-ai-insights-upgrade.md` exists
-- [ ] `python -m pytest` passes with `149 passed`
-- [ ] `git status` is clean after commit
-- [ ] branch is pushed
-- [ ] PR is created, reviewed, merged, and branch deleted
-
----
-
-## Suggested Release Commit
-
-```bash
-git add README.md docs
-git commit -m "Document v1.8.0 AI insights upgrade"
-```
+- [ ] `VERSION` is `1.11.0`
+- [ ] `.env.example` has `APP_VERSION=1.11.0`
+- [ ] `backend/app/config.py` defaults to `1.11.0`
+- [ ] README badge is `v1.11.0`
+- [ ] README current release is `v1.11.0`
+- [ ] changelog includes v1.11.0
+- [ ] roadmap marks v1.11.0 completed
+- [ ] architecture reflects rich match detail, leaders, and Group Race
+- [ ] demo walkthrough reflects the current dashboard flow
+- [ ] `pytest -q` reports `184 passed`
+- [ ] `git diff --check` is clean
+- [ ] feature branch is pushed
+- [ ] PR is reviewed and merged
+- [ ] `v1.11.0` tag is pushed
+- [ ] GitHub release is published
+- [ ] Windows runtime is refreshed from `main`
+- [ ] local and remote feature branches are removed
 
 ---
 
 ## Suggested GitHub Release Note
 
 ```text
-v1.8.0 — AI Insights Upgrade
-
-This release upgrades the AI layer with structured, fallback-safe insights for fixture data, standings context, and provider sync runtime status.
+v1.11.0 — Mobile Rich Match Dashboard, Provider Leaders, and Group Race
 
 Highlights:
-- Added GET /ai/insights
-- Added deterministic AI insights service
-- Added group and team filters for AI insights
-- Added Structured AI Insights panel to the static dashboard
-- Preserved Local Llama summary endpoints
-- Updated README, architecture, roadmap, changelog, and demo walkthrough
-- Verified full test suite: 149 passed
+- Added provider-backed rich match detail with timeline, statistics, formations, lineups, referee, and weather context.
+- Added status-first fixture browsing and sticky dashboard navigation.
+- Added provider-derived scorer, yellow-card, and red-card leaderboards.
+- Added latest completed-match summary backed by stored provider events.
+- Added Group Race showing the current top two teams in every populated group.
+- Preserved local Ollama summaries with deterministic fallback protection.
+- Refreshed README and portfolio documentation.
+- Verified full suite: 184 passed.
 ```
