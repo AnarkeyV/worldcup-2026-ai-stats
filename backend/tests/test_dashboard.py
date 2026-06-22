@@ -297,8 +297,8 @@ def test_dashboard_page_includes_fixture_group_tabs():
     assert 'id="fixture-group-tabs"' in response.text
     assert "Browse fixtures by group" in response.text
     assert "Provider-backed Rich Match Dashboard" in response.text
-    assert "dashboard.js?v=1.11.0-ui5" in response.text
-    assert "dashboard.css?v=1.11.0-ui5" in response.text
+    assert "dashboard.js?v=safe-sync-ui1" in response.text
+    assert "dashboard.css?v=safe-sync-ui1" in response.text
 
 def test_dashboard_page_includes_fixture_status_browser_controls():
     response = client.get("/dashboard")
@@ -424,3 +424,39 @@ def test_dashboard_js_includes_group_race_logic():
     assert "group_race" in response.text
     assert "Top-two group positions" in response.text
     assert "fetchAiInsights(state.filters)" in response.text
+
+
+def test_dashboard_page_includes_sync_freshness_and_safety_elements():
+    response = client.get("/dashboard")
+
+    assert response.status_code == 200
+    assert 'id="sync-freshness-badge"' in response.text
+    assert 'id="sync-data-freshness"' in response.text
+    assert 'id="sync-data-age"' in response.text
+    assert 'id="sync-scheduler-mode"' in response.text
+    assert 'id="sync-alert-policy"' in response.text
+    assert "Completed-match Telegram alerts are off by default." in response.text
+
+
+def test_static_dashboard_css_includes_sync_freshness_styles():
+    response = client.get("/static/dashboard.css")
+
+    assert response.status_code == 200
+    assert "sync-freshness-badge" in response.text
+    assert "sync-freshness-badge.fresh" in response.text
+    assert "sync-freshness-badge.aging" in response.text
+    assert "sync-freshness-badge.stale" in response.text
+    assert "sync-freshness-badge.last-sync-failed" in response.text
+
+
+def test_dashboard_js_includes_sync_freshness_and_stored_detail_refresh_logic():
+    response = client.get("/static/dashboard.js")
+
+    assert response.status_code == 200
+    assert "formatSyncFreshness" in response.text
+    assert "formatDataAgeSeconds" in response.text
+    assert "formatSchedulerMode" in response.text
+    assert "last_sync_failed" in response.text
+    assert "formatStoredDetailRefresh" in response.text
+    assert "Stored detail refresh" in response.text
+    assert "Stored provider payload; not a live detail request." in response.text

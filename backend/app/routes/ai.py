@@ -526,7 +526,7 @@ def list_ai_insights(
             .all()
         )
 
-        sync_status = get_fixture_sync_status()
+        sync_status = get_fixture_sync_status(db)
 
         return build_ai_insights(
             fixtures=fixtures,

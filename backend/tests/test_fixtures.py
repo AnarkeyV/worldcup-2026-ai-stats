@@ -37,7 +37,7 @@ def test_sync_sample_fixtures(client):
         "sample-arg-dza-2026-06-16",
     ]
     assert data["notifications"]["status"] == "skipped"
-    assert data["notifications"]["reason"] == "TELEGRAM_BOT_TOKEN is not configured."
+    assert data["notifications"]["reason"] == "Completed-match Telegram alerts are disabled by configuration."
     assert data["notifications"]["sent"] == 0
 
 
@@ -222,7 +222,7 @@ def test_sync_sample_fixtures_is_idempotent(client):
     assert data["newly_completed_count"] == 0
     assert data["newly_completed"] == []
     assert data["notifications"]["status"] == "skipped"
-    assert data["notifications"]["reason"] == "No newly completed fixtures"
+    assert data["notifications"]["reason"] == "Completed-match Telegram alerts are disabled by configuration."
     assert data["notifications"]["sent"] == 0
 
     list_response = client.get("/fixtures")
@@ -281,7 +281,7 @@ def test_sync_provider_fixtures_with_mocked_provider(client, monkeypatch):
     assert data["newly_completed_count"] == 0
     assert data["newly_completed"] == []
     assert data["notifications"]["status"] == "skipped"
-    assert data["notifications"]["reason"] == "No newly completed fixtures"
+    assert data["notifications"]["reason"] == "Completed-match Telegram alerts are disabled by configuration."
     assert data["notifications"]["sent"] == 0
 
     list_response = client.get("/fixtures")
@@ -450,3 +450,67 @@ def test_provider_sync_persists_rich_match_detail(client, monkeypatch):
     assert data["detail"]["statistics"]["away"]["expectedGoals"] == 0.07
     assert data["detail"]["referee"]["name"] == "Test Referee"
     assert data["detail"]["weather"]["tempC"] == 24
+
+
+def test_sync_generated_completed_match_alerts_are_disabled_by_default(client, monkeypatch):
+    notification_calls = []
+
+    def fail_if_called(fixtures):
+        notification_calls.append(fixtures)
+        raise AssertionError("Sync-generated Telegram alerts must remain disabled.")
+
+    monkeypatch.setattr(
+        fixtures_routes,
+        "send_completed_fixture_notifications",
+        fail_if_called,
+    )
+    monkeypatch.setattr(
+        fixtures_routes.settings,
+        "telegram_completed_match_alerts_enabled",
+        False,
+    )
+
+    response = client.post("/fixtures/sync/sample")
+
+    assert response.status_code == 200
+    assert notification_calls == []
+    assert response.json()["notifications"] == {
+        "status": "skipped",
+        "reason": "Completed-match Telegram alerts are disabled by configuration.",
+        "sent": 0,
+    }
+
+
+def test_sync_generated_completed_match_alerts_require_explicit_opt_in(client, monkeypatch):
+    sent_fixtures = []
+
+    def fake_send_completed_fixture_notifications(fixtures):
+        sent_fixtures.extend(fixtures)
+        return {
+            "sent": len(fixtures),
+            "messages": [],
+        }
+
+    monkeypatch.setattr(
+        fixtures_routes,
+        "send_completed_fixture_notifications",
+        fake_send_completed_fixture_notifications,
+    )
+    monkeypatch.setattr(
+        fixtures_routes.settings,
+        "telegram_completed_match_alerts_enabled",
+        True,
+    )
+
+    response = client.post("/fixtures/sync/sample")
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["notifications"] == {
+        "status": "sent",
+        "sent": 4,
+    }
+    assert len(sent_fixtures) == 4
+    assert sent_fixtures[0]["status"] == "complete"

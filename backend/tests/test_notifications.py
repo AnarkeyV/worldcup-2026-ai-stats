@@ -23,6 +23,7 @@ def test_get_telegram_notification_status_without_credentials(client, monkeypatc
         "chat_id_configured": False,
         "dashboard_link_configured": True,
         "public_dashboard_url": "http://localhost:8000/dashboard",
+        "completed_match_alerts_enabled": False,
         "ready": False,
     }
 
@@ -101,3 +102,16 @@ def test_send_test_telegram_notification_api_failure(client, monkeypatch):
 
     assert response.status_code == 502
     assert response.json()["detail"] == "Telegram API returned status 401."
+
+
+
+def test_telegram_status_exposes_completed_match_alert_policy(client, monkeypatch):
+    monkeypatch.setattr(
+        "app.routes.notifications.settings.telegram_completed_match_alerts_enabled",
+        True,
+    )
+
+    response = client.get("/notifications/telegram/status")
+
+    assert response.status_code == 200
+    assert response.json()["completed_match_alerts_enabled"] is True

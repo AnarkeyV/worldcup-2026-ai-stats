@@ -5,7 +5,7 @@
     <title>World Cup 2026 AI Stats Dashboard</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <link rel="stylesheet" href="/static/dashboard.css?v=1.11.0-ui5">
+    <link rel="stylesheet" href="/static/dashboard.css?v=safe-sync-ui1">
 </head>
 <body id="dashboard-top">
     <header class="app-header">
@@ -13,7 +13,7 @@
             <p class="eyebrow">World Cup 2026 AI Stats</p>
             <h1>Interactive Dashboard</h1>
             <p class="subtitle">
-                Browse fixtures by completed, live, or upcoming status, narrow them by group, open provider-backed match events, statistics, and lineups, monitor provider sync runtime state, review the latest completed result, and generate local AI summaries.
+                Browse fixtures by completed, live, or upcoming status, narrow them by group, open provider-backed match events, statistics, and lineups, review persisted provider sync history and data freshness, and generate local AI summaries.
             </p>
         </div>
 
@@ -74,6 +74,10 @@
                         Not Started
                     </span>
 
+                    <span id="sync-freshness-badge" class="sync-freshness-badge not-started">
+                        Data: No Sync Yet
+                    </span>
+
                     <button id="refresh-sync-status" type="button">
                         Refresh Sync Status
                     </button>
@@ -119,6 +123,18 @@
                 <article class="sync-runtime-card">
                     <span class="sync-runtime-label">Last Success</span>
                     <strong id="sync-last-success">-</strong>
+                </article>
+
+                <article class="sync-runtime-card">
+                    <span class="sync-runtime-label">Data Freshness</span>
+                    <strong id="sync-data-freshness">No sync recorded</strong>
+                    <small id="sync-data-age">No successful provider or sample sync yet.</small>
+                </article>
+
+                <article class="sync-runtime-card">
+                    <span class="sync-runtime-label">Sync Mode</span>
+                    <strong id="sync-scheduler-mode">Manual only</strong>
+                    <small id="sync-alert-policy">Completed-match Telegram alerts are off by default.</small>
                 </article>
             </div>
 
@@ -341,6 +357,6 @@
         </p>
     </footer>
 
-    <script src="/static/dashboard.js?v=1.11.0-ui5"></script>
+    <script src="/static/dashboard.js?v=safe-sync-ui1"></script>
 </body>
 </html>
