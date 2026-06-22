@@ -5,7 +5,7 @@
     <title>World Cup 2026 AI Stats Dashboard</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <link rel="stylesheet" href="/static/dashboard.css?v=1.11.0-ui3">
+    <link rel="stylesheet" href="/static/dashboard.css?v=1.11.0-ui4">
 </head>
 <body id="dashboard-top">
     <header class="app-header">
@@ -13,7 +13,7 @@
             <p class="eyebrow">World Cup 2026 AI Stats</p>
             <h1>Interactive Dashboard</h1>
             <p class="subtitle">
-                Browse fixtures by completed, live, or upcoming status, narrow them by group, open provider-backed match events, statistics, and lineups, monitor provider sync runtime state, and generate local AI summaries.
+                Browse fixtures by completed, live, or upcoming status, narrow them by group, open provider-backed match events, statistics, and lineups, monitor provider sync runtime state, review the latest completed result, and generate local AI summaries.
             </p>
         </div>
 
@@ -155,6 +155,17 @@
                 <div id="ai-summary-output" class="ai-summary-output">
                     No AI summary generated yet.
                 </div>
+
+                <section
+                    id="latest-completed-summary"
+                    class="latest-completed-summary"
+                    aria-live="polite"
+                    aria-label="Latest provider-backed completed match"
+                >
+                    <span class="latest-completed-loading">
+                        Loading the latest provider-backed completed match...
+                    </span>
+                </section>
             </div>
 
             <button id="generate-ai-summary" type="button">
@@ -224,11 +235,12 @@
             <div id="insights-container" class="insights-grid" aria-live="polite"></div>
         </section>
 
-        <section id="player-statistics" class="player-stats-section" data-dashboard-section aria-label="Player statistics">
+        <section id="player-statistics" class="player-stats-section" data-dashboard-section aria-label="Provider-backed player leaders">
             <div class="section-heading">
                 <div>
-                    <h2>Player Statistics</h2>
-                    <p id="player-stats-message">Preparing provider-backed player leaderboards...</p>
+                    <p class="eyebrow">Provider-backed match detail</p>
+                    <h2>Player Leaders</h2>
+                    <p id="player-stats-message">Loading provider-backed scorer and card leaderboards...</p>
                 </div>
             </div>
 
@@ -309,6 +321,6 @@
         </p>
     </footer>
 
-    <script src="/static/dashboard.js?v=1.11.0-ui3"></script>
+    <script src="/static/dashboard.js?v=1.11.0-ui4"></script>
 </body>
 </html>

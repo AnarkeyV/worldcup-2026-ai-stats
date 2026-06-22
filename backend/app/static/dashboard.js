@@ -4,6 +4,8 @@ const state = {
     standings: [],
     insights: null,
     aiInsights: null,
+    providerLeaders: null,
+    latestCompletedSummary: null,
     fixtureSummaries: {},
     fixtureSyncStatus: null,
     aiAvailable: false,
@@ -46,6 +48,7 @@ const elements = {
     generateAiSummary: document.querySelector("#generate-ai-summary"),
     aiSummaryMessage: document.querySelector("#ai-summary-message"),
     aiSummaryOutput: document.querySelector("#ai-summary-output"),
+    latestCompletedSummary: document.querySelector("#latest-completed-summary"),
     aiHealthBadge: document.querySelector("#ai-health-badge"),
     aiHealthDetails: document.querySelector("#ai-health-details"),
     providerSyncMessage: document.querySelector("#provider-sync-message"),
@@ -204,12 +207,30 @@ async function fetchAiInsights(filters = {}) {
     throw new Error("Unable to load structured AI insights from available API endpoints.");
 }
 
-async function fetchPlayerStats(filters = {}, sortBy = "goals", limit = 5) {
-    const queryString = buildPlayerStatsQueryString(filters, sortBy, limit);
+function buildProviderLeadersQueryString(filters = {}) {
+    const params = new URLSearchParams();
+
+    if (filters.group) {
+        params.set("group_name", filters.group);
+    }
+
+    if (filters.team && filters.team.trim()) {
+        params.set("team", filters.team.trim());
+    }
+
+    params.set("limit", "5");
+
+    const queryString = params.toString();
+
+    return queryString ? `?${queryString}` : "";
+}
+
+async function fetchProviderLeaders(filters = {}) {
+    const queryString = buildProviderLeadersQueryString(filters);
 
     const possibleEndpoints = [
-        `/api/players/stats${queryString}`,
-        `/players/stats${queryString}`,
+        `/api/players/leaders${queryString}`,
+        `/players/leaders${queryString}`,
     ];
 
     for (const endpoint of possibleEndpoints) {
@@ -220,35 +241,36 @@ async function fetchPlayerStats(filters = {}, sortBy = "goals", limit = 5) {
                 continue;
             }
 
-            const data = await response.json();
-            return normalizePlayerStatsResponse(data);
+            return await response.json();
         } catch (error) {
-            console.warn(`Unable to fetch player stats from ${endpoint}`, error);
+            console.warn(`Unable to fetch provider-backed player leaders from ${endpoint}`, error);
         }
     }
 
-    throw new Error("Unable to load player stats from available API endpoints.");
+    throw new Error("Unable to load provider-backed player leaders.");
 }
 
-async function fetchPlayerStatsSummary(filters = {}) {
-    const [
-        topScorers,
-        topAssists,
-        yellowCards,
-        redCards,
-    ] = await Promise.all([
-        fetchPlayerStats(filters, "goals", 5),
-        fetchPlayerStats(filters, "assists", 5),
-        fetchPlayerStats(filters, "yellow_cards", 5),
-        fetchPlayerStats(filters, "red_cards", 5),
-    ]);
+async function fetchLatestCompletedSummary() {
+    const possibleEndpoints = [
+        "/api/ai/latest-completed/summary",
+        "/ai/latest-completed/summary",
+    ];
 
-    return {
-        topScorers,
-        topAssists,
-        yellowCards,
-        redCards,
-    };
+    for (const endpoint of possibleEndpoints) {
+        try {
+            const response = await fetch(endpoint);
+
+            if (!response.ok) {
+                continue;
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.warn(`Unable to fetch the latest completed match summary from ${endpoint}`, error);
+        }
+    }
+
+    throw new Error("Unable to load the latest completed match summary.");
 }
 
 async function refreshFixtureSyncStatus() {
@@ -276,6 +298,34 @@ async function refreshAiInsights() {
     } catch (error) {
         console.error(error);
         setAiInsightsError("Unable to load structured AI insights.");
+    }
+}
+
+async function refreshProviderLeaders(filters = state.filters) {
+    setProviderLeadersLoading();
+
+    try {
+        const data = await fetchProviderLeaders(filters);
+
+        state.providerLeaders = data;
+        renderProviderLeaders(data);
+    } catch (error) {
+        console.error(error);
+        setProviderLeadersError();
+    }
+}
+
+async function refreshLatestCompletedSummary() {
+    setLatestCompletedSummaryLoading();
+
+    try {
+        const data = await fetchLatestCompletedSummary();
+
+        state.latestCompletedSummary = data;
+        renderLatestCompletedSummary(data);
+    } catch (error) {
+        console.error(error);
+        setLatestCompletedSummaryError();
     }
 }
 
@@ -419,23 +469,6 @@ function buildGroupOnlyQueryString(filters) {
     return queryString ? `?${queryString}` : "";
 }
 
-function buildPlayerStatsQueryString(filters, sortBy, limit) {
-    const params = new URLSearchParams();
-
-    if (filters.group) {
-        params.set("group_name", filters.group);
-    }
-
-    if (filters.team && filters.team.trim()) {
-        params.set("team", filters.team.trim());
-    }
-
-    params.set("sort_by", sortBy);
-    params.set("limit", limit);
-
-    return `?${params.toString()}`;
-}
-
 function normalizeFixturesResponse(data) {
     if (Array.isArray(data)) {
         return data;
@@ -489,18 +522,6 @@ function normalizeInsightsResponse(data) {
         unbeaten_teams: [],
         winless_teams: [],
     };
-}
-
-function normalizePlayerStatsResponse(data) {
-    if (data && Array.isArray(data.stats)) {
-        return data.stats;
-    }
-
-    if (Array.isArray(data)) {
-        return data;
-    }
-
-    return [];
 }
 
 function populateFilters(fixtures) {
@@ -874,7 +895,7 @@ async function applyFilters() {
         state.insights = insights;
 
         renderInsights(state.insights);
-        renderPlayerStats();
+        void refreshProviderLeaders(state.filters);
         renderStandings(state.standings);
         renderFixtureBrowser(fixtures, { selectFirst: true });
     } catch (error) {
@@ -900,13 +921,7 @@ async function applyFilters() {
                 The dashboard could not load group insight data. Please check that the insights API is running.
             </div>
         `;
-        elements.playerStatsMessage.textContent =
-            "Provider-backed player leaderboards are unavailable while fixture data is loading.";
-        elements.playerStatsContainer.innerHTML = `
-            <div class="empty-state">
-                Player leaders will be shown only when they are derived from real provider match details.
-            </div>
-        `;
+        setProviderLeadersError();
     }
 }
 
@@ -915,7 +930,7 @@ function setLoadingState() {
     elements.standingsMessage.textContent = "Loading standings...";
     elements.insightsMessage.textContent = "Loading insights...";
     elements.aiInsightsMessage.textContent = "Loading structured AI insights...";
-    elements.playerStatsMessage.textContent = "Preparing provider-backed player leaderboards...";
+    setProviderLeadersLoading();
 }
 
 function renderInsights(insights) {
@@ -1041,20 +1056,284 @@ function renderAiInsights(aiInsights) {
     });
 }
 
-function renderPlayerStats() {
-    elements.playerStatsContainer.innerHTML = `
-        <div class="player-stats-notice">
-            <strong>Live player leaderboards are being prepared from provider-backed match details.</strong>
-            <p>
-                Generic sample player records are intentionally hidden. The current Zafronix match
-                feed provides real goalscorers and card events; scorer and discipline leaderboards
-                will be derived from those records in the next v1.11.0 slice. Assist data is not present in the current provider payload.
-            </p>
-        </div>
-    `;
+function setProviderLeadersLoading() {
+    if (!elements.playerStatsMessage || !elements.playerStatsContainer) {
+        return;
+    }
 
     elements.playerStatsMessage.textContent =
-        "Only provider-derived player leaders will be shown on this dashboard.";
+        "Loading provider-backed scorer and card leaderboards...";
+    elements.playerStatsContainer.innerHTML = `
+        <div class="empty-state">
+            Loading real scorer and discipline events from stored provider match details.
+        </div>
+    `;
+}
+
+function setProviderLeadersError() {
+    if (!elements.playerStatsMessage || !elements.playerStatsContainer) {
+        return;
+    }
+
+    elements.playerStatsMessage.textContent =
+        "Provider-backed player leaderboards are currently unavailable.";
+    elements.playerStatsContainer.innerHTML = `
+        <div class="empty-state">
+            Player leaders are shown only when real provider match details are available.
+        </div>
+    `;
+}
+
+function getProviderLeaderScope(filters = {}) {
+    const scope = [];
+
+    if (filters.group_name) {
+        scope.push(filters.group_name);
+    }
+
+    if (filters.team) {
+        scope.push(filters.team);
+    }
+
+    if (scope.length === 0) {
+        return "";
+    }
+
+    return ` for ${scope.join(" / ")}`;
+}
+
+function getPlayerMetricText(value, singularLabel, pluralLabel) {
+    const metricValue = Number(formatNumber(value));
+
+    return `${metricValue} ${metricValue === 1 ? singularLabel : pluralLabel}`;
+}
+
+function renderPlayerLeaderList(players, metricKey, singularLabel, pluralLabel) {
+    if (!Array.isArray(players) || players.length === 0) {
+        return `
+            <p class="player-leader-empty">
+                No provider-backed ${pluralLabel.toLowerCase()} have been recorded in this scope.
+            </p>
+        `;
+    }
+
+    return `
+        <ol class="player-leader-list">
+            ${players.map((player, index) => {
+                const playerName = player?.player_name || "Player unavailable";
+                const team = player?.team || "Team unavailable";
+                const teamCode = player?.team_code ? ` · ${player.team_code}` : "";
+                const groupName = player?.group_name || "Group unavailable";
+                const metricText = getPlayerMetricText(
+                    player?.[metricKey],
+                    singularLabel,
+                    pluralLabel,
+                );
+
+                return `
+                    <li class="player-leader-row">
+                        <span class="player-leader-rank">${index + 1}</span>
+                        <span class="player-leader-identity">
+                            <strong>${escapeHtml(playerName)}</strong>
+                            <small>${escapeHtml(`${team}${teamCode} · ${groupName}`)}</small>
+                        </span>
+                        <span class="player-leader-metric">${escapeHtml(metricText)}</span>
+                    </li>
+                `;
+            }).join("")}
+        </ol>
+    `;
+}
+
+function renderPlayerLeaderboardCard({
+    title,
+    detail,
+    players,
+    metricKey,
+    singularLabel,
+    pluralLabel,
+}) {
+    return `
+        <article class="player-leaderboard-card">
+            <div class="player-leaderboard-heading">
+                <div>
+                    <span class="player-stat-label">${escapeHtml(title)}</span>
+                    <p>${escapeHtml(detail)}</p>
+                </div>
+            </div>
+            ${renderPlayerLeaderList(
+                players,
+                metricKey,
+                singularLabel,
+                pluralLabel,
+            )}
+        </article>
+    `;
+}
+
+function renderProviderLeaders(data) {
+    if (!data || !data.leaderboards) {
+        setProviderLeadersError();
+        return;
+    }
+
+    const coverage = data.coverage || {};
+    const leaderboards = data.leaderboards || {};
+    const assistData = data.assist_data || {};
+    const filters = data.filters || {};
+    const completedFixtureCount = formatNumber(coverage.completed_fixture_count);
+    const detailedFixtureCount = formatNumber(coverage.detailed_fixture_count);
+    const provider = data.provider || "provider";
+    const scope = getProviderLeaderScope(filters);
+
+    elements.playerStatsMessage.textContent =
+        `Showing real scorer and card leaders${scope} from ${detailedFixtureCount} detailed completed fixture${detailedFixtureCount === 1 ? "" : "s"}.`;
+
+    elements.playerStatsContainer.innerHTML = `
+        <article class="provider-coverage-card">
+            <div>
+                <span class="provider-coverage-label">Live data coverage</span>
+                <strong>${escapeHtml(`${detailedFixtureCount} of ${completedFixtureCount} completed fixtures have stored match details`)}</strong>
+                <p>
+                    Goals and cards are derived from the stored ${escapeHtml(provider)} event payload.
+                    No generic sample player records are used here.
+                </p>
+            </div>
+            <span class="provider-source-badge">${escapeHtml(provider)}</span>
+        </article>
+
+        ${renderPlayerLeaderboardCard({
+            title: "Top scorers",
+            detail: "Goal events from completed provider-backed matches.",
+            players: leaderboards.top_scorers,
+            metricKey: "goals",
+            singularLabel: "goal",
+            pluralLabel: "goals",
+        })}
+
+        ${renderPlayerLeaderboardCard({
+            title: "Yellow card leaders",
+            detail: "Discipline events recorded in completed matches.",
+            players: leaderboards.yellow_card_leaders,
+            metricKey: "yellow_cards",
+            singularLabel: "yellow card",
+            pluralLabel: "yellow cards",
+        })}
+
+        ${renderPlayerLeaderboardCard({
+            title: "Red card leaders",
+            detail: "Dismissal events recorded in completed matches.",
+            players: leaderboards.red_card_leaders,
+            metricKey: "red_cards",
+            singularLabel: "red card",
+            pluralLabel: "red cards",
+        })}
+
+        <aside class="assist-availability-note">
+            <strong>Assist leaders unavailable</strong>
+            <p>${escapeHtml(
+                assistData.message
+                || "The current provider match-detail payload does not include assist events."
+            )}</p>
+        </aside>
+    `;
+}
+
+function setLatestCompletedSummaryLoading() {
+    if (!elements.latestCompletedSummary) {
+        return;
+    }
+
+    elements.latestCompletedSummary.className = "latest-completed-summary";
+    elements.latestCompletedSummary.innerHTML = `
+        <span class="latest-completed-loading">
+            Loading the latest provider-backed completed match...
+        </span>
+    `;
+}
+
+function setLatestCompletedSummaryError() {
+    if (!elements.latestCompletedSummary) {
+        return;
+    }
+
+    elements.latestCompletedSummary.className = "latest-completed-summary error";
+    elements.latestCompletedSummary.innerHTML = `
+        <strong>Latest completed match unavailable</strong>
+        <p>
+            The provider-backed latest-result summary could not be loaded right now.
+        </p>
+    `;
+}
+
+function formatLatestMajorIncident(incident) {
+    if (incident?.description) {
+        return String(incident.description);
+    }
+
+    const player = incident?.player || "Player unavailable";
+    const team = incident?.team || incident?.team_code || "team unavailable";
+    const color = incident?.color || "red";
+    const minute = incident?.minute === null || incident?.minute === undefined
+        ? ""
+        : ` · ${incident.minute}'`;
+
+    return `${player} (${team}) · ${color} card${minute}`;
+}
+
+function renderLatestCompletedSummary(data) {
+    const fixture = data?.fixture;
+
+    if (!fixture || !fixture.home_team || !fixture.away_team) {
+        setLatestCompletedSummaryError();
+        return;
+    }
+
+    const majorIncidents = Array.isArray(data.major_incidents)
+        ? data.major_incidents
+        : [];
+    const scoreLine = `${fixture.home_team} ${formatScore(fixture.home_score)}–${formatScore(fixture.away_score)} ${fixture.away_team}`;
+    const provider = data.provider || "provider";
+    const resultSummary = data.summary || "No provider-backed summary is available for this completed match.";
+    const detailLabel = data.detail_available
+        ? "Detailed events stored"
+        : "Fixture result only";
+
+    const incidentsMarkup = majorIncidents.length > 0
+        ? `
+            <div class="latest-major-incidents">
+                <strong>Major incidents</strong>
+                <ul>
+                    ${majorIncidents.map((incident) => `
+                        <li>${escapeHtml(formatLatestMajorIncident(incident))}</li>
+                    `).join("")}
+                </ul>
+            </div>
+        `
+        : "";
+
+    elements.latestCompletedSummary.className = "latest-completed-summary success";
+    elements.latestCompletedSummary.innerHTML = `
+        <div class="latest-completed-heading">
+            <div>
+                <span class="latest-completed-label">Provider-backed latest result</span>
+                <h3>Latest Completed Match</h3>
+            </div>
+            <span class="provider-source-badge">${escapeHtml(provider)}</span>
+        </div>
+
+        <strong class="latest-completed-score">${escapeHtml(scoreLine)}</strong>
+
+        ${incidentsMarkup}
+
+        <p class="latest-completed-copy">${escapeHtml(resultSummary)}</p>
+
+        <div class="latest-completed-meta">
+            <span>${escapeHtml(fixture.group_name || "Group unavailable")}</span>
+            <span>${escapeHtml(formatDateTime(fixture.kickoff_time))}</span>
+            <span>${escapeHtml(detailLabel)}</span>
+        </div>
+    `;
 }
 
 function renderStandings(standings) {
@@ -1939,34 +2218,6 @@ async function generateSingleFixtureSummary(fixtureId, button) {
     }
 }
 
-function hasPlayerStatsData(playerStats) {
-    if (!playerStats) {
-        return false;
-    }
-
-    return [
-        playerStats.topScorers,
-        playerStats.topAssists,
-        playerStats.yellowCards,
-        playerStats.redCards,
-    ].some((items) => Array.isArray(items) && items.length > 0);
-}
-
-function formatPlayerMetricList(players, metricKey, metricLabel) {
-    if (!players || players.length === 0) {
-        return "No players yet";
-    }
-
-    return players
-        .slice(0, 3)
-        .map((player) => {
-            const value = formatNumber(player[metricKey]);
-            const teamCode = player.team_code || player.team || "Team";
-            return `${player.player_name} (${teamCode}, ${value} ${metricLabel})`;
-        })
-        .join(", ");
-}
-
 function formatScore(score) {
     return score === null || score === undefined ? "-" : score;
 }
@@ -2277,6 +2528,8 @@ async function initializeDashboard() {
     setLoadingState();
     checkAiHealth();
     refreshFixtureSyncStatus();
+    void refreshLatestCompletedSummary();
+    void refreshProviderLeaders();
 
     try {
         const [fixtures, standings, insights, aiInsights] = await Promise.all([
@@ -2294,7 +2547,6 @@ async function initializeDashboard() {
         populateFilters(state.allFixtures);
         renderInsights(state.insights);
         renderAiInsights(state.aiInsights);
-        renderPlayerStats();
         renderStandings(state.standings);
         renderFixtureBrowser(state.allFixtures, { selectFirst: true });
     } catch (error) {
@@ -2321,13 +2573,7 @@ async function initializeDashboard() {
                 The dashboard could not load group insight data. Please check that the insights API is running.
             </div>
         `;
-        elements.playerStatsMessage.textContent =
-            "Provider-backed player leaderboards are unavailable while the dashboard is offline.";
-        elements.playerStatsContainer.innerHTML = `
-            <div class="empty-state">
-                Player leaders will be shown only when they are derived from real provider match details.
-            </div>
-        `;
+        setProviderLeadersError();
     }
 }
 
