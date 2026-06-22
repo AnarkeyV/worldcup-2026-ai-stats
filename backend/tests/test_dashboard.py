@@ -271,8 +271,8 @@ def test_dashboard_page_includes_fixture_group_tabs():
     assert 'id="fixture-group-tabs"' in response.text
     assert "Browse fixtures by group" in response.text
     assert "Provider-backed Rich Match Dashboard" in response.text
-    assert "dashboard.js?v=1.11.0-ui2" in response.text
-    assert "dashboard.css?v=1.11.0-ui2" in response.text
+    assert "dashboard.js?v=1.11.0-ui3" in response.text
+    assert "dashboard.css?v=1.11.0-ui3" in response.text
 
 def test_dashboard_page_includes_fixture_status_browser_controls():
     response = client.get("/dashboard")
@@ -336,3 +336,35 @@ def test_dashboard_js_includes_status_first_fixture_browser_logic():
     assert "ensureFixtureBrowserSelection" in response.text
     assert "renderFixtureBrowser" in response.text
     assert "fixture-group-section" in response.text
+
+
+def test_dashboard_page_includes_persistent_quick_navigation():
+    response = client.get("/dashboard")
+
+    assert response.status_code == 200
+    assert 'id="dashboard-section-nav"' in response.text
+    assert "Quick dashboard navigation" in response.text
+    assert 'data-section-nav-link="dashboard-overview"' in response.text
+    assert 'href="#fixtures"' in response.text
+    assert 'id="group-standings"' in response.text
+    assert 'id="fixtures"' in response.text
+
+
+def test_static_dashboard_css_includes_persistent_quick_navigation_styles():
+    response = client.get("/static/dashboard.css")
+
+    assert response.status_code == 200
+    assert "dashboard-section-nav" in response.text
+    assert "dashboard-section-nav-link" in response.text
+    assert "position: sticky" in response.text
+    assert "scroll-margin-top" in response.text
+
+
+def test_dashboard_js_includes_section_navigation_logic():
+    response = client.get("/static/dashboard.js")
+
+    assert response.status_code == 200
+    assert "initializeSectionNavigation" in response.text
+    assert "setActiveSectionNavLink" in response.text
+    assert "IntersectionObserver" in response.text
+    assert "data-section-nav-link" in response.text

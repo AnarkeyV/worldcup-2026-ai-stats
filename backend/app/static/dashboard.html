@@ -5,9 +5,9 @@
     <title>World Cup 2026 AI Stats Dashboard</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <link rel="stylesheet" href="/static/dashboard.css?v=1.11.0-ui2">
+    <link rel="stylesheet" href="/static/dashboard.css?v=1.11.0-ui3">
 </head>
-<body>
+<body id="dashboard-top">
     <header class="app-header">
         <div>
             <p class="eyebrow">World Cup 2026 AI Stats</p>
@@ -22,8 +22,22 @@
         </a>
     </header>
 
+    <nav id="dashboard-section-nav" class="dashboard-section-nav" aria-label="Quick dashboard navigation">
+        <div class="dashboard-section-nav-inner">
+            <span class="dashboard-section-nav-label">Quick links</span>
+            <a class="dashboard-section-nav-link is-active" href="#dashboard-overview" data-section-nav-link="dashboard-overview" aria-current="page">Overview</a>
+            <a class="dashboard-section-nav-link" href="#sync-runtime" data-section-nav-link="sync-runtime">Sync</a>
+            <a class="dashboard-section-nav-link" href="#ai-summary" data-section-nav-link="ai-summary">AI Summary</a>
+            <a class="dashboard-section-nav-link" href="#ai-insights" data-section-nav-link="ai-insights">AI Insights</a>
+            <a class="dashboard-section-nav-link" href="#group-insights" data-section-nav-link="group-insights">Group Insights</a>
+            <a class="dashboard-section-nav-link" href="#player-statistics" data-section-nav-link="player-statistics">Players</a>
+            <a class="dashboard-section-nav-link" href="#group-standings" data-section-nav-link="group-standings">Standings</a>
+            <a class="dashboard-section-nav-link" href="#fixtures" data-section-nav-link="fixtures">Fixtures</a>
+        </div>
+    </nav>
+
     <main class="dashboard-layout">
-        <section class="summary-grid" aria-label="Dashboard summary">
+        <section id="dashboard-overview" class="summary-grid" data-dashboard-section aria-label="Dashboard overview">
             <article class="summary-card">
                 <span class="summary-label">Total Fixtures</span>
                 <strong id="total-fixtures">-</strong>
@@ -45,7 +59,7 @@
             </article>
         </section>
 
-        <section class="sync-runtime-panel" aria-label="Provider sync runtime status">
+        <section id="sync-runtime" class="sync-runtime-panel" data-dashboard-section aria-label="Provider sync runtime status">
             <div class="sync-runtime-heading">
                 <div>
                     <p class="eyebrow">Runtime Observability</p>
@@ -113,7 +127,7 @@
             </div>
         </section>
 
-        <section class="ai-summary-panel" aria-label="AI fixture summary">
+        <section id="ai-summary" class="ai-summary-panel" data-dashboard-section aria-label="AI fixture summary">
             <div class="ai-summary-content">
                 <div class="ai-summary-heading">
                     <div>
@@ -148,7 +162,7 @@
             </button>
         </section>
 
-                <section class="ai-insights-panel" aria-label="Structured AI insights">
+                <section id="ai-insights" class="ai-insights-panel" data-dashboard-section aria-label="Structured AI insights">
             <div class="ai-insights-heading">
                 <div>
                     <p class="eyebrow">AI Insights Upgrade</p>
@@ -199,7 +213,7 @@
             </button>
         </section>
 
-        <section class="insights-section" aria-label="Group insights">
+        <section id="group-insights" class="insights-section" data-dashboard-section aria-label="Group insights">
             <div class="section-heading">
                 <div>
                     <h2>Group Insights</h2>
@@ -210,7 +224,7 @@
             <div id="insights-container" class="insights-grid" aria-live="polite"></div>
         </section>
 
-        <section class="player-stats-section" aria-label="Player statistics">
+        <section id="player-statistics" class="player-stats-section" data-dashboard-section aria-label="Player statistics">
             <div class="section-heading">
                 <div>
                     <h2>Player Statistics</h2>
@@ -221,7 +235,7 @@
             <div id="player-stats-container" class="player-stats-grid" aria-live="polite"></div>
         </section>
 
-        <section class="standings-section" aria-label="Group standings">
+        <section id="group-standings" class="standings-section" data-dashboard-section aria-label="Group standings">
             <div class="section-heading">
                 <div>
                     <h2>Group Standings</h2>
@@ -232,7 +246,7 @@
             <div id="standings-container" class="standings-container" aria-live="polite"></div>
         </section>
 
-        <section class="fixtures-section" aria-label="Fixture browser">
+        <section id="fixtures" class="fixtures-section" data-dashboard-section aria-label="Fixture browser">
             <div class="section-heading fixture-browser-heading">
                 <div>
                     <h2>Fixtures</h2>
@@ -295,6 +309,6 @@
         </p>
     </footer>
 
-    <script src="/static/dashboard.js?v=1.11.0-ui2"></script>
+    <script src="/static/dashboard.js?v=1.11.0-ui3"></script>
 </body>
 </html>

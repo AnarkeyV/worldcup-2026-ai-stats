@@ -36,6 +36,79 @@ body {
     min-height: 100vh;
 }
 
+html {
+    scroll-behavior: smooth;
+}
+
+[data-dashboard-section] {
+    scroll-margin-top: 5.6rem;
+}
+
+.dashboard-section-nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    width: min(1180px, 90vw);
+    margin: 0 auto 1rem;
+    padding: 0.7rem 0;
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(15, 23, 42, 0.9));
+    backdrop-filter: blur(18px);
+}
+
+.dashboard-section-nav-inner {
+    display: flex;
+    gap: 0.55rem;
+    align-items: center;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    padding: 0.1rem 0.1rem 0.45rem;
+}
+
+.dashboard-section-nav-label {
+    flex: 0 0 auto;
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding-right: 0.15rem;
+}
+
+.dashboard-section-nav-link {
+    flex: 0 0 auto;
+    border: 1px solid rgba(148, 163, 184, 0.36);
+    border-radius: 0.85rem;
+    padding: 0.65rem 0.8rem;
+    background: rgba(2, 6, 23, 0.5);
+    color: #dbeafe;
+    font-size: 0.82rem;
+    font-weight: 850;
+    line-height: 1;
+    text-decoration: none;
+    transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+
+.dashboard-section-nav-link:hover,
+.dashboard-section-nav-link:focus-visible {
+    border-color: rgba(56, 189, 248, 0.8);
+    background: rgba(14, 165, 233, 0.16);
+    color: #f0f9ff;
+    outline: none;
+    transform: translateY(-1px);
+}
+
+.dashboard-section-nav-link.is-active {
+    border-color: var(--accent);
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.35), rgba(34, 197, 94, 0.16));
+    color: #ffffff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+}
+
 .app-header {
     display: flex;
     justify-content: space-between;
@@ -1764,5 +1837,33 @@ select:focus {
     .fixture-group-fixtures {
         grid-template-columns: 1fr;
         padding: 0.75rem;
+    }
+}
+
+
+/* v1.11.0 UI refinement: persistent quick-link navigation */
+@media (max-width: 720px) {
+    [data-dashboard-section] {
+        scroll-margin-top: 4.8rem;
+    }
+
+    .dashboard-section-nav {
+        width: 100%;
+        margin-bottom: 0.75rem;
+        padding: 0.6rem 5vw;
+    }
+
+    .dashboard-section-nav-inner {
+        gap: 0.45rem;
+        padding-bottom: 0.35rem;
+    }
+
+    .dashboard-section-nav-label {
+        display: none;
+    }
+
+    .dashboard-section-nav-link {
+        padding: 0.62rem 0.72rem;
+        font-size: 0.78rem;
     }
 }
