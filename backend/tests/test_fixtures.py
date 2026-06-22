@@ -313,3 +313,140 @@ def test_sync_provider_fixtures_returns_502_when_provider_fails(client, monkeypa
     assert response.json()["detail"] == (
         "API-Football request failed: network unavailable"
     )
+
+def test_get_fixture_detail_returns_unavailable_without_provider_detail(client):
+    sync_response = client.post("/fixtures/sync/sample")
+    assert sync_response.status_code == 200
+
+    fixture_id = client.get("/fixtures").json()["fixtures"][0]["id"]
+
+    response = client.get(f"/fixtures/{fixture_id}/detail")
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["fixture"]["id"] == fixture_id
+    assert data["detail_available"] is False
+    assert data["detail"] is None
+
+
+def test_provider_sync_persists_rich_match_detail(client, monkeypatch):
+    class MockProvider:
+        def get_world_cup_fixtures(self):
+            return [
+                {
+                    "external_id": "zafronix-rich-detail-001",
+                    "competition": "FIFA World Cup 2026",
+                    "stage": "Group Stage",
+                    "group_name": "Group A",
+                    "home_team": "Mexico",
+                    "away_team": "South Africa",
+                    "home_team_code": "MEX",
+                    "away_team_code": "RSA",
+                    "kickoff_time": "2026-06-11T19:00:00+00:00",
+                    "venue": "Mexico City Stadium",
+                    "status": "complete",
+                    "home_score": 2,
+                    "away_score": 0,
+                    "match_detail": {
+                        "provider": "zafronix",
+                        "provider_match_id": "2026-001",
+                        "goals": [
+                            {
+                                "minute": 9,
+                                "team": "home",
+                                "scorer": "Quiñones",
+                            },
+                            {
+                                "minute": 67,
+                                "team": "home",
+                                "scorer": "Jiménez",
+                            },
+                        ],
+                        "cards": [
+                            {
+                                "minute": 49,
+                                "team": "away",
+                                "player": "Sphephelo Sithole",
+                                "color": "red",
+                            }
+                        ],
+                        "substitutions": [
+                            {
+                                "minute": 66,
+                                "team": "home",
+                                "on": "Gilberto Mora",
+                                "off": "Álvaro Fidalgo",
+                            }
+                        ],
+                        "formations": {
+                            "home": "4-3-3",
+                            "away": "5-3-2",
+                        },
+                        "lineups": {
+                            "home": [
+                                {
+                                    "player": "Raúl Rangel",
+                                    "number": 1,
+                                    "position": "GK",
+                                    "starter": True,
+                                    "captain": False,
+                                }
+                            ],
+                            "away": [],
+                        },
+                        "statistics": {
+                            "home": {
+                                "possessionPct": 61,
+                                "shotsTotal": 16,
+                                "expectedGoals": 1.41,
+                            },
+                            "away": {
+                                "possessionPct": 39,
+                                "shotsTotal": 3,
+                                "expectedGoals": 0.07,
+                            },
+                        },
+                        "referee": {
+                            "name": "Test Referee",
+                            "country": "Test Country",
+                        },
+                        "weather": {
+                            "tempC": 24,
+                            "windKmh": 12,
+                        },
+                    },
+                }
+            ]
+
+    monkeypatch.setattr(
+        fixtures_routes,
+        "get_configured_football_provider",
+        lambda: ("zafronix", MockProvider()),
+    )
+
+    sync_response = client.post("/fixtures/sync/provider")
+    assert sync_response.status_code == 200
+
+    fixture_id = client.get("/fixtures").json()["fixtures"][0]["id"]
+
+    response = client.get(f"/fixtures/{fixture_id}/detail")
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["detail_available"] is True
+    assert data["fixture"]["external_id"] == "zafronix-rich-detail-001"
+    assert data["detail"]["provider"] == "zafronix"
+    assert data["detail"]["provider_match_id"] == "2026-001"
+    assert data["detail"]["goals"][0]["scorer"] == "Quiñones"
+    assert data["detail"]["goals"][1]["minute"] == 67
+    assert data["detail"]["cards"][0]["color"] == "red"
+    assert data["detail"]["formations"]["home"] == "4-3-3"
+    assert data["detail"]["lineups"]["home"][0]["player"] == "Raúl Rangel"
+    assert data["detail"]["statistics"]["home"]["possessionPct"] == 61
+    assert data["detail"]["statistics"]["away"]["expectedGoals"] == 0.07
+    assert data["detail"]["referee"]["name"] == "Test Referee"
+    assert data["detail"]["weather"]["tempC"] == 24

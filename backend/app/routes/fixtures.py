@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.fixture import Fixture
+from app.models.match_detail import MatchDetail
 from app.providers.api_football import ApiFootballProviderError
 from app.providers.factory import get_configured_football_provider
 from app.providers.zafronix import ZafronixProviderError
@@ -49,6 +50,25 @@ def serialize_fixture(fixture: Fixture) -> dict:
         "away_score": fixture.away_score,
         "created_at": fixture.created_at,
         "updated_at": fixture.updated_at,
+    }
+
+
+def serialize_match_detail(match_detail: MatchDetail) -> dict:
+    return {
+        "id": match_detail.id,
+        "fixture_id": match_detail.fixture_id,
+        "provider": match_detail.provider,
+        "provider_match_id": match_detail.provider_match_id,
+        "goals": match_detail.goals or [],
+        "cards": match_detail.cards or [],
+        "substitutions": match_detail.substitutions or [],
+        "formations": match_detail.formations or {},
+        "lineups": match_detail.lineups or {},
+        "statistics": match_detail.statistics or {},
+        "referee": match_detail.referee or {},
+        "weather": match_detail.weather or {},
+        "created_at": match_detail.created_at,
+        "updated_at": match_detail.updated_at,
     }
 
 
@@ -172,6 +192,40 @@ def list_fixtures(
 @router.get("/sync/status")
 def get_fixture_sync_runtime_status():
     return get_fixture_sync_status()
+
+
+@router.get("/{fixture_id}/detail")
+def get_fixture_detail(fixture_id: int, db: Session = Depends(get_db)):
+    try:
+        fixture = db.query(Fixture).filter(Fixture.id == fixture_id).first()
+
+        if fixture is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Fixture not found",
+            )
+
+        match_detail = (
+            db.query(MatchDetail)
+            .filter(MatchDetail.fixture_id == fixture.id)
+            .first()
+        )
+
+        return {
+            "fixture": serialize_fixture(fixture),
+            "detail_available": match_detail is not None,
+            "detail": (
+                serialize_match_detail(match_detail)
+                if match_detail is not None
+                else None
+            ),
+        }
+
+    except SQLAlchemyError as error:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Database error while getting fixture detail: {error}",
+        ) from error
 
 
 @router.get("/{fixture_id}")
