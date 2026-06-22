@@ -297,8 +297,8 @@ def test_dashboard_page_includes_fixture_group_tabs():
     assert 'id="fixture-group-tabs"' in response.text
     assert "Browse fixtures by group" in response.text
     assert "Provider-backed Rich Match Dashboard" in response.text
-    assert "dashboard.js?v=1.11.0-ui4" in response.text
-    assert "dashboard.css?v=1.11.0-ui4" in response.text
+    assert "dashboard.js?v=1.11.0-ui5" in response.text
+    assert "dashboard.css?v=1.11.0-ui5" in response.text
 
 def test_dashboard_page_includes_fixture_status_browser_controls():
     response = client.get("/dashboard")
@@ -394,3 +394,33 @@ def test_dashboard_js_includes_section_navigation_logic():
     assert "setActiveSectionNavLink" in response.text
     assert "IntersectionObserver" in response.text
     assert "data-section-nav-link" in response.text
+
+
+def test_dashboard_page_includes_group_race_board():
+    response = client.get("/dashboard")
+
+    assert response.status_code == 200
+    assert "Group Race" in response.text
+    assert "Top two teams in each group" in response.text
+    assert 'id="group-race-message"' in response.text
+    assert 'id="group-race-container"' in response.text
+
+
+def test_static_dashboard_css_includes_group_race_styles():
+    response = client.get("/static/dashboard.css")
+
+    assert response.status_code == 200
+    assert "group-race-board" in response.text
+    assert "group-race-grid" in response.text
+    assert "group-race-card" in response.text
+    assert "group-race-row" in response.text
+
+
+def test_dashboard_js_includes_group_race_logic():
+    response = client.get("/static/dashboard.js")
+
+    assert response.status_code == 200
+    assert "renderGroupRace" in response.text
+    assert "group_race" in response.text
+    assert "Top-two group positions" in response.text
+    assert "fetchAiInsights(state.filters)" in response.text

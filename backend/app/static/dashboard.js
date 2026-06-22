@@ -41,6 +41,8 @@ const elements = {
     insightsContainer: document.querySelector("#insights-container"),
     aiInsightsMessage: document.querySelector("#ai-insights-message"),
     aiInsightsSummary: document.querySelector("#ai-insights-summary"),
+    groupRaceMessage: document.querySelector("#group-race-message"),
+    groupRaceContainer: document.querySelector("#group-race-container"),
     aiInsightsContainer: document.querySelector("#ai-insights-container"),
     refreshAiInsights: document.querySelector("#refresh-ai-insights"),
     playerStatsMessage: document.querySelector("#player-stats-message"),
@@ -885,16 +887,19 @@ async function applyFilters() {
     setLoadingState();
 
     try {
-        const [fixtures, standings, insights] = await Promise.all([
+        const [fixtures, standings, insights, aiInsights] = await Promise.all([
             fetchFixtures(state.filters),
             fetchStandings(state.filters),
             fetchInsights(state.filters),
+            fetchAiInsights(state.filters),
         ]);
 
         state.standings = standings;
         state.insights = insights;
+        state.aiInsights = aiInsights;
 
         renderInsights(state.insights);
+        renderAiInsights(state.aiInsights);
         void refreshProviderLeaders(state.filters);
         renderStandings(state.standings);
         renderFixtureBrowser(fixtures, { selectFirst: true });
@@ -921,6 +926,7 @@ async function applyFilters() {
                 The dashboard could not load group insight data. Please check that the insights API is running.
             </div>
         `;
+        setAiInsightsError("Unable to load structured AI insights.");
         setProviderLeadersError();
     }
 }
@@ -929,7 +935,7 @@ function setLoadingState() {
     elements.dashboardMessage.textContent = "Loading fixtures...";
     elements.standingsMessage.textContent = "Loading standings...";
     elements.insightsMessage.textContent = "Loading insights...";
-    elements.aiInsightsMessage.textContent = "Loading structured AI insights...";
+    setAiInsightsLoading();
     setProviderLeadersLoading();
 }
 
@@ -992,11 +998,114 @@ function renderInsights(insights) {
     });
 }
 
+function setGroupRaceLoading() {
+    if (!elements.groupRaceMessage || !elements.groupRaceContainer) {
+        return;
+    }
+
+    elements.groupRaceMessage.textContent =
+        "Loading the current top two teams in each group.";
+    elements.groupRaceContainer.innerHTML = `
+        <div class="group-race-empty">
+            Checking completed-fixture standings for the current group race.
+        </div>
+    `;
+}
+
+function setGroupRaceError() {
+    if (!elements.groupRaceMessage || !elements.groupRaceContainer) {
+        return;
+    }
+
+    elements.groupRaceMessage.textContent =
+        "The group race could not be loaded.";
+    elements.groupRaceContainer.innerHTML = `
+        <div class="group-race-empty">
+            Top-two group positions are currently unavailable.
+        </div>
+    `;
+}
+
+function renderGroupRace(groupRace, filters = {}) {
+    if (!elements.groupRaceMessage || !elements.groupRaceContainer) {
+        return;
+    }
+
+    const groups = Array.isArray(groupRace?.groups) ? groupRace.groups : [];
+    const teamsPerGroup = Number(groupRace?.teams_per_group) || 2;
+    const scopeParts = [];
+
+    if (filters.group_name) {
+        scopeParts.push(filters.group_name);
+    }
+
+    if (filters.team) {
+        scopeParts.push(filters.team);
+    }
+
+    const scope = scopeParts.length
+        ? ` for ${scopeParts.join(" / ")}`
+        : "";
+
+    if (groups.length === 0) {
+        elements.groupRaceMessage.textContent =
+            `No completed-fixture group race is available${scope} yet.`;
+        elements.groupRaceContainer.innerHTML = `
+            <div class="group-race-empty">
+                Top-two positions will appear after completed group-stage fixtures are available.
+            </div>
+        `;
+        return;
+    }
+
+    elements.groupRaceMessage.textContent =
+        `Showing the current top ${teamsPerGroup} team${teamsPerGroup === 1 ? "" : "s"} across ${groups.length} group${groups.length === 1 ? "" : "s"}${scope}.`;
+
+    elements.groupRaceContainer.innerHTML = groups.map((group) => {
+        const teams = Array.isArray(group.teams) ? group.teams : [];
+
+        return `
+            <article class="group-race-card">
+                <div class="group-race-card-heading">
+                    <div>
+                        <span class="group-race-label">Qualification picture</span>
+                        <h4>${escapeHtml(group.group_name || "Group")}</h4>
+                    </div>
+                    <span class="group-race-card-count">Top ${formatNumber(teamsPerGroup)}</span>
+                </div>
+
+                <div class="group-race-table" role="table" aria-label="${escapeHtml(group.group_name || "Group")} top two">
+                    <div class="group-race-row group-race-table-heading" role="row">
+                        <span role="columnheader">#</span>
+                        <span role="columnheader">Team</span>
+                        <span role="columnheader">P</span>
+                        <span role="columnheader">GD</span>
+                        <span role="columnheader">Pts</span>
+                    </div>
+                    ${teams.map((team, index) => `
+                        <div class="group-race-row" role="row">
+                            <span class="group-race-rank" role="cell">${formatNumber(team.rank || index + 1)}</span>
+                            <span class="group-race-team" role="cell">
+                                <strong>${escapeHtml(team.team || "Team unavailable")}</strong>
+                                <small>${escapeHtml(team.team_code || "")}</small>
+                            </span>
+                            <span role="cell">${formatNumber(team.played)}</span>
+                            <span role="cell">${formatSignedNumber(team.goal_difference)}</span>
+                            <strong role="cell">${formatNumber(team.points)}</strong>
+                        </div>
+                    `).join("")}
+                </div>
+            </article>
+        `;
+    }).join("");
+}
+
 function setAiInsightsLoading() {
     elements.aiInsightsMessage.textContent = "Loading structured AI insights...";
     elements.aiInsightsSummary.className = "ai-insights-summary";
     elements.aiInsightsSummary.textContent = "Checking fixture, standings, and provider sync context.";
     elements.aiInsightsContainer.innerHTML = "";
+    setGroupRaceLoading();
 }
 
 function setAiInsightsError(message) {
@@ -1009,6 +1118,7 @@ function setAiInsightsError(message) {
             Structured AI insights are currently unavailable.
         </div>
     `;
+    setGroupRaceError();
 }
 
 function renderAiInsights(aiInsights) {
@@ -1032,6 +1142,8 @@ function renderAiInsights(aiInsights) {
     elements.aiInsightsSummary.className = "ai-insights-summary success";
     elements.aiInsightsSummary.textContent =
         `${aiInsights.summary} Mode: ${mode}. Fixtures: ${fixtureCount}. Completed: ${completedCount}. Sync status: ${syncStatus}.`;
+
+    renderGroupRace(aiInsights.group_race, aiInsights.filters || {});
 
     if (aiInsights.insights.length === 0) {
         elements.aiInsightsContainer.innerHTML = `

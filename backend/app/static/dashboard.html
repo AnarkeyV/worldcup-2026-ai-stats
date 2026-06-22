@@ -5,7 +5,7 @@
     <title>World Cup 2026 AI Stats Dashboard</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <link rel="stylesheet" href="/static/dashboard.css?v=1.11.0-ui4">
+    <link rel="stylesheet" href="/static/dashboard.css?v=1.11.0-ui5">
 </head>
 <body id="dashboard-top">
     <header class="app-header">
@@ -192,6 +192,26 @@
                 AI insights will appear after the dashboard checks fixture data.
             </div>
 
+            <section class="group-race-board" aria-label="Top two teams in each group">
+                <div class="group-race-heading">
+                    <div>
+                        <p class="eyebrow">Standings Snapshot</p>
+                        <h3>Group Race</h3>
+                        <p id="group-race-message">
+                            Loading the current top two teams in each group.
+                        </p>
+                    </div>
+
+                    <span class="group-race-badge">Top 2</span>
+                </div>
+
+                <div id="group-race-container" class="group-race-grid" aria-live="polite">
+                    <div class="group-race-empty">
+                        Group race positions will appear after completed fixtures are available.
+                    </div>
+                </div>
+            </section>
+
             <div id="ai-insights-container" class="ai-insights-grid" aria-live="polite"></div>
         </section>
 
@@ -321,6 +341,6 @@
         </p>
     </footer>
 
-    <script src="/static/dashboard.js?v=1.11.0-ui4"></script>
+    <script src="/static/dashboard.js?v=1.11.0-ui5"></script>
 </body>
 </html>

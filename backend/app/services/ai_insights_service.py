@@ -4,6 +4,7 @@ from app.services.standings_service import COMPLETED_STATUSES, build_group_stand
 
 
 DEFAULT_AI_INSIGHTS_LIMIT = 5
+TOP_GROUP_RACE_TEAMS = 2
 
 LIVE_STATUSES = {
     "live",
@@ -43,6 +44,7 @@ def build_ai_insights(
         fixtures=filtered_fixtures,
         group_name=group_name,
     )
+    group_race = _build_group_race(standings)
 
     insights = []
 
@@ -80,10 +82,10 @@ def build_ai_insights(
         if group_leaders_insight:
             insights.append(group_leaders_insight)
 
-        strongest_attack_insight = _build_strongest_attack_insight(standings)
+        group_race_insight = _build_group_race_insight(group_race)
 
-        if strongest_attack_insight:
-            insights.append(strongest_attack_insight)
+        if group_race_insight:
+            insights.append(group_race_insight)
 
     sync_insight = _build_sync_status_insight(sync_status)
 
@@ -117,8 +119,10 @@ def build_ai_insights(
             "other_status_count": status_counts["other"],
             "teams_analyzed": len(standings),
             "groups_analyzed": _count_groups(standings),
+            "group_race_group_count": len(group_race["groups"]),
             "sync_status": _get_sync_status_value(sync_status),
         },
+        "group_race": group_race,
         "insights": limited_insights,
     }
 
@@ -352,37 +356,128 @@ def _build_group_leaders_insight(
     )
 
 
-def _build_strongest_attack_insight(
+def _get_group_leaders(
     standings: list[dict[str, Any]],
-) -> dict[str, str] | None:
-    if not standings:
-        return None
+) -> list[dict[str, Any]]:
+    leaders_by_group: dict[str, dict[str, Any]] = {}
 
-    strongest_attacks = sorted(
-        standings,
-        key=lambda team: (
-            -team["goals_for"],
-            -team["points"],
-            -team["goal_difference"],
-            team["team"],
-        ),
-    )[:3]
+    for team in standings:
+        group_name = team.get("group_name")
 
-    attack_entries = [
-        f"{team['team']} ({team['group_name']}, {team['goals_for']} GF)"
-        for team in strongest_attacks
-        if team["goals_for"] > 0
+        if not group_name:
+            continue
+
+        if group_name not in leaders_by_group:
+            leaders_by_group[group_name] = team
+
+    return [
+        leaders_by_group[group_name]
+        for group_name in sorted(leaders_by_group)
     ]
 
-    if not attack_entries:
+
+def _format_leader_entry(standing: dict[str, Any]) -> str:
+    return (
+        f"{standing['team']} "
+        f"({standing['group_name']}, {standing['points']} pts, "
+        f"{_format_goal_difference(standing['goal_difference'])} GD)"
+    )
+
+
+def _format_goal_difference(goal_difference: int) -> str:
+    if goal_difference > 0:
+        return f"+{goal_difference}"
+
+    return str(goal_difference)
+
+
+def _build_group_race(
+    standings: list[dict[str, Any]],
+) -> dict[str, Any]:
+    groups: dict[str, list[dict[str, Any]]] = {}
+
+    for standing in standings:
+        group_name = str(standing.get("group_name") or "").strip()
+
+        if not group_name:
+            continue
+
+        groups.setdefault(group_name, []).append(standing)
+
+    race_groups = []
+
+    for group_name in sorted(groups):
+        ordered_teams = sorted(
+            groups[group_name],
+            key=lambda standing: (
+                -_as_int(standing.get("points")),
+                -_as_int(standing.get("goal_difference")),
+                -_as_int(standing.get("goals_for")),
+                str(standing.get("team") or ""),
+            ),
+        )
+
+        top_teams = [
+            _serialize_group_race_team(standing, rank=index + 1)
+            for index, standing in enumerate(ordered_teams[:TOP_GROUP_RACE_TEAMS])
+        ]
+
+        if top_teams:
+            race_groups.append(
+                {
+                    "group_name": group_name,
+                    "teams": top_teams,
+                }
+            )
+
+    return {
+        "teams_per_group": TOP_GROUP_RACE_TEAMS,
+        "groups": race_groups,
+    }
+
+
+def _serialize_group_race_team(
+    standing: dict[str, Any],
+    rank: int,
+) -> dict[str, Any]:
+    return {
+        "rank": rank,
+        "team": standing.get("team") or "Team unavailable",
+        "team_code": standing.get("team_code") or "",
+        "played": _as_int(standing.get("played")),
+        "points": _as_int(standing.get("points")),
+        "goal_difference": _as_int(standing.get("goal_difference")),
+        "goals_for": _as_int(standing.get("goals_for")),
+        "goals_against": _as_int(standing.get("goals_against")),
+    }
+
+
+def _as_int(value: Any) -> int:
+    try:
+        return int(value or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _build_group_race_insight(
+    group_race: dict[str, Any],
+) -> dict[str, str] | None:
+    groups = group_race.get("groups") or []
+
+    if not groups:
         return None
 
+    group_count = len(groups)
+    teams_per_group = group_race.get("teams_per_group") or TOP_GROUP_RACE_TEAMS
+
     return _build_insight(
-        title="Strongest attacks identified",
+        title="Top two group positions",
         category="standings",
         message=(
-            "The strongest attacks based on completed fixtures include "
-            f"{join_readable_list(attack_entries)}."
+            f"The Group Race board shows the current top {teams_per_group} teams "
+            f"in each of {group_count} completed-fixture group"
+            f"{'' if group_count == 1 else 's'}, ordered by points, goal difference, "
+            "and goals scored."
         ),
     )
 
@@ -417,47 +512,12 @@ def _build_sync_status_insight(
     )
 
 
-def _get_group_leaders(
-    standings: list[dict[str, Any]],
-) -> list[dict[str, Any]]:
-    leaders_by_group: dict[str, dict[str, Any]] = {}
-
-    for team in standings:
-        group_name = team.get("group_name")
-
-        if not group_name:
-            continue
-
-        if group_name not in leaders_by_group:
-            leaders_by_group[group_name] = team
-
-    return [
-        leaders_by_group[group_name]
-        for group_name in sorted(leaders_by_group)
-    ]
-
-
 def _count_groups(standings: list[dict[str, Any]]) -> int:
     return len({
         team["group_name"]
         for team in standings
         if team.get("group_name")
     })
-
-
-def _format_leader_entry(standing: dict[str, Any]) -> str:
-    return (
-        f"{standing['team']} "
-        f"({standing['group_name']}, {standing['points']} pts, "
-        f"{_format_goal_difference(standing['goal_difference'])} GD)"
-    )
-
-
-def _format_goal_difference(goal_difference: int) -> str:
-    if goal_difference > 0:
-        return f"+{goal_difference}"
-
-    return str(goal_difference)
 
 
 def _get_sync_status_value(sync_status: dict[str, Any] | None) -> str | None:
