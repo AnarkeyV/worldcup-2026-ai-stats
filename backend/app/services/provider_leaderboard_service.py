@@ -1,9 +1,31 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import re
 from typing import Any
 
 from app.services.standings_service import COMPLETED_STATUSES
+
+
+GOAL_SCORER_TRAILING_ANNOTATION_PATTERN = re.compile(
+    r"\s+\d{1,3}(?:\+\d{1,3})?[\'’]?(?:\s+(?:pen|penalty))?\s*$",
+    re.IGNORECASE,
+)
+
+
+def clean_goal_scorer_name(value: Any) -> str:
+    """
+    Keep player names separate from a provider's embedded goal annotation.
+
+    Some Zafronix goal strings contain the event minute and penalty note inside
+    the scorer field, for example ``Havertz 45+5' pen``. The minute already
+    exists as structured event data, so the leaderboard and match summary use
+    the cleaned name while retaining the minute in its dedicated field.
+    """
+    source_name = str(value or "").replace("\u00a0", " ").strip()
+
+    return GOAL_SCORER_TRAILING_ANNOTATION_PATTERN.sub("", source_name).strip()
+
 
 
 def get_value(record: Any, field_name: str, default: Any = None) -> Any:
@@ -157,9 +179,10 @@ def _aggregate_goal_events(
         if not isinstance(event, dict):
             continue
 
-        source_name = str(event.get("scorer") or "").strip()
+        raw_scorer = str(event.get("scorer") or "").strip()
+        source_name = clean_goal_scorer_name(raw_scorer)
 
-        if not source_name or _is_own_goal(source_name):
+        if not source_name or _is_own_goal(raw_scorer):
             continue
 
         team, team_code = _resolve_team_context(fixture, event.get("team"))
@@ -244,7 +267,8 @@ def _build_goal_events(fixture: Any, detail: Any | None) -> list[dict[str, Any]]
         if not isinstance(event, dict):
             continue
 
-        scorer = str(event.get("scorer") or "").strip()
+        raw_scorer = str(event.get("scorer") or "").strip()
+        scorer = clean_goal_scorer_name(raw_scorer)
         team, team_code = _resolve_team_context(fixture, event.get("team"))
 
         if not scorer or not team:
@@ -256,7 +280,7 @@ def _build_goal_events(fixture: Any, detail: Any | None) -> list[dict[str, Any]]
                 "team": team,
                 "team_code": team_code,
                 "scorer": scorer,
-                "own_goal": _is_own_goal(scorer),
+                "own_goal": _is_own_goal(raw_scorer),
             }
         )
 

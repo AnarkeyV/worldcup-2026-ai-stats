@@ -1,4 +1,10 @@
+from types import SimpleNamespace
+
 import app.routes.fixtures as fixtures_routes
+from app.services.provider_leaderboard_service import (
+    build_latest_completed_match_summary,
+    build_provider_player_leaderboards,
+)
 
 
 def install_rich_fixture_provider(monkeypatch):
@@ -208,3 +214,61 @@ def test_root_includes_provider_leaders_and_latest_summary_links(client):
 
     assert data["player_leaders"] == "/players/leaders"
     assert data["latest_completed_summary"] == "/ai/latest-completed/summary"
+
+
+def test_provider_leaders_clean_goal_annotations_from_player_names():
+    fixture = SimpleNamespace(
+        id=501,
+        status="complete",
+        group_name="Group E",
+        home_team="Germany",
+        away_team="Curaçao",
+        home_team_code="GER",
+        away_team_code="CUW",
+        home_score=2,
+        away_score=0,
+        kickoff_time="2026-06-19T19:00:00+00:00",
+    )
+    detail = SimpleNamespace(
+        fixture_id=501,
+        provider="zafronix",
+        goals=[
+            {
+                "minute": "45+5",
+                "team": "home",
+                "scorer": "Havertz 45+5' pen",
+            },
+            {
+                "minute": 74,
+                "team": "home",
+                "scorer": "Havertz",
+            },
+        ],
+        cards=[],
+    )
+
+    leaders = build_provider_player_leaderboards(
+        fixtures=[fixture],
+        match_details=[detail],
+    )
+
+    assert leaders["leaderboards"]["top_scorers"] == [
+        {
+            "player_name": "Havertz",
+            "team": "Germany",
+            "team_code": "GER",
+            "group_name": "Group E",
+            "goals": 2,
+            "yellow_cards": 0,
+            "red_cards": 0,
+        }
+    ]
+
+    summary = build_latest_completed_match_summary(
+        fixtures=[fixture],
+        match_details=[detail],
+    )
+
+    assert summary is not None
+    assert "Havertz (45+5')" in summary["summary"]
+    assert "45+5' pen" not in summary["summary"]
