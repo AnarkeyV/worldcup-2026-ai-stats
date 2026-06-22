@@ -7,12 +7,12 @@ World Cup 2026 AI Stats is developed through small, test-backed milestones. Each
 ## Current Status
 
 ```text
-Current release: v1.11.0 — Mobile Rich Match Dashboard, Provider Leaders, and Group Race
-Release verification: 184 tests passed
+Current release: v1.12.0 — Safe Matchday Sync, Audit History, and Data Freshness
+Release verification: 196 tests passed before release
 Primary runtime: Windows laptop + Docker Compose
 Development machine: MacBook Pro + VS Code + Python venv
 Public dashboard: https://wc2026.khairulrizal.qzz.io/dashboard
-Active milestone: v1.12.0 — Safe Matchday Sync, Audit History, and Data Freshness
+Next planning stage: choose the next small, testable milestone after Windows runtime verification
 ```
 
 Current live capabilities:
@@ -23,6 +23,8 @@ Current live capabilities:
 - provider-backed goals and card leaderboards
 - latest completed-match summary
 - top-two Group Race board across populated groups
+- persisted fixture sync audit history and safe freshness states
+- disabled-by-default provider-only scheduling and completed-match Telegram alert policy
 - Telegram status/testing and mobile dashboard links
 - Prometheus, Grafana, sync observability, and Cloudflare access
 
@@ -54,47 +56,41 @@ Current live capabilities:
 | v1.9.0 | Completed | Live local AI, Telegram mobile links, Cloudflare, and Windows runtime resilience |
 | v1.10.0 | Completed | Match-detail dashboard and README polish |
 | v1.11.0 | Completed | Rich match details, provider leaders, latest result, sticky navigation, Group Race |
+| v1.12.0 | Completed | Safe matchday sync audit history, opt-in scheduler/alerts, and factual freshness indicators |
 
 ---
 
-## Active Milestone
+## v1.12.0 Release Notes
 
 ### v1.12.0 — Safe Matchday Sync, Audit History, and Data Freshness
 
 **Goal:** Make matchday operation safer and easier to verify without inventing football data or enabling side effects by default.
 
-Committed scope:
+Delivered scope:
 
 - persisted fixture sync-run history for successful and failed attempts
-- a read-only latest status endpoint backed by persisted history
-- a read-only recent sync-history endpoint
+- read-only latest status and recent sync-history endpoints backed by stored audit records
 - optional provider-only scheduler that is disabled by default
 - no immediate provider call on application start and no overlapping scheduled runs
 - completed-match Telegram alerts disabled by default and controlled separately from Telegram test messages
 - visible dashboard states for no sync, fresh, aging, stale, unavailable, and last-sync-failed data
-- clear stored match-detail refresh time based only on the local stored provider payload
+- clear stored match-detail refresh time based only on the locally stored provider payload
 - redacted, bounded persisted sync errors to avoid exposing configured secrets
 
-Non-goals for this release:
+Release boundaries retained:
 
-- automatic rich-detail backfill
-- automatic Telegram alerts from the scheduler
-- meaningful-event alerting
-- event deduplication or historical event-correction/version storage
-- inferred assists, player analytics, or any data not supplied reliably by a provider
-- factual match-report export
+- no automatic rich-detail backfill
+- no automatic Telegram alerts from the scheduler
+- no meaningful-event alerting
+- no event deduplication or historical event-correction/version storage
+- no inferred assists, player analytics, or data not supplied reliably by a provider
+- no factual match-report export
 
-### Acceptance Criteria
+Validation completed before release preparation:
 
-- Fixture sync results survive backend restart because run history is stored in the database.
-- `/fixtures/sync/status` reflects the latest persisted run and preserves the most recent successful timestamp.
-- `/fixtures/sync/history` returns recent safe audit records without secrets.
-- Scheduled provider sync is opt-in, waits a full configured interval before its first run, and cannot overlap another scheduled run.
-- Scheduled sync never sends Telegram alerts.
-- Manual sample/provider sync does not send completed-match Telegram alerts until `TELEGRAM_COMPLETED_MATCH_ALERTS_ENABLED=true` is explicitly configured.
-- The dashboard describes stored data freshness and stored match-detail refresh honestly.
-- Focused tests pass first, followed by the full suite and `git diff --check`.
-- `APP_VERSION` remains at `1.11.0` until release preparation.
+- focused test suite: 100 passed
+- full regression suite: 196 passed
+- `git diff --check`: passed with no whitespace errors
 
 ---
 
