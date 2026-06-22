@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException
 
+from app.config import settings
 from app.services.metrics_service import record_notification_result
 from app.services.telegram_notifier import (
     TelegramNotificationError,
@@ -18,10 +19,10 @@ def get_telegram_notification_status():
     """
     Return safe Telegram notification configuration status.
 
-    This endpoint does not expose the bot token or chat ID values.
+    This endpoint does not expose the bot token or chat ID values. It also
+    distinguishes an operator-triggered test from sync-generated alerts, which
+    require a separate explicit opt-in.
     """
-    from app.config import settings
-
     bot_token_configured = bool(settings.telegram_bot_token) and (
         settings.telegram_bot_token != "replace_me"
     )
@@ -39,6 +40,9 @@ def get_telegram_notification_status():
         "chat_id_configured": chat_id_configured,
         "dashboard_link_configured": dashboard_link_configured,
         "public_dashboard_url": public_dashboard_url,
+        "completed_match_alerts_enabled": bool(
+            settings.telegram_completed_match_alerts_enabled
+        ),
         "ready": bot_token_configured and chat_id_configured,
     }
 

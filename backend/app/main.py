@@ -18,6 +18,10 @@ from app.routes.provider_ai import router as provider_ai_router
 from app.routes.provider_leaders import router as provider_leaders_router
 from app.routes.standings import router as standings_router
 from app.services.metrics_service import record_http_request_metrics
+from app.services.provider_sync_scheduler import (
+    ProviderSyncScheduler,
+    run_scheduled_provider_sync,
+)
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -26,10 +30,25 @@ STATIC_DIR = BASE_DIR / "static"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    scheduler = None
+
     if settings.app_env != "test":
         create_db_and_tables()
 
-    yield
+        if settings.provider_sync_scheduler_enabled:
+            scheduler = ProviderSyncScheduler(
+                run_sync=run_scheduled_provider_sync,
+                interval_seconds=settings.provider_sync_interval_minutes * 60,
+            )
+            scheduler.start()
+
+    app.state.provider_sync_scheduler = scheduler
+
+    try:
+        yield
+    finally:
+        if scheduler is not None:
+            scheduler.stop()
 
 
 app = FastAPI(
@@ -70,6 +89,8 @@ def root():
         "version": settings.app_version,
         "dashboard": "/dashboard",
         "fixtures": "/fixtures",
+        "fixture_sync_status": "/fixtures/sync/status",
+        "fixture_sync_history": "/fixtures/sync/history",
         "standings": "/standings",
         "group_insights": "/insights/groups",
         "player_stats": "/players/stats",

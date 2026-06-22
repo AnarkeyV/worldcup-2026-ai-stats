@@ -280,6 +280,46 @@ button:disabled {
     border-color: rgba(239, 68, 68, 0.5);
 }
 
+.sync-freshness-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 9.5rem;
+    border-radius: 999px;
+    padding: 0.55rem 0.85rem;
+    font-size: 0.78rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border: 1px solid var(--border);
+}
+
+.sync-freshness-badge.not-started,
+.sync-freshness-badge.unavailable {
+    color: #dbeafe;
+    background: rgba(59, 130, 246, 0.16);
+    border-color: rgba(96, 165, 250, 0.5);
+}
+
+.sync-freshness-badge.fresh {
+    color: #bbf7d0;
+    background: rgba(34, 197, 94, 0.16);
+    border-color: rgba(34, 197, 94, 0.5);
+}
+
+.sync-freshness-badge.aging {
+    color: #fef3c7;
+    background: rgba(245, 158, 11, 0.16);
+    border-color: rgba(245, 158, 11, 0.5);
+}
+
+.sync-freshness-badge.stale,
+.sync-freshness-badge.last-sync-failed {
+    color: #fecaca;
+    background: rgba(239, 68, 68, 0.16);
+    border-color: rgba(239, 68, 68, 0.5);
+}
+
 .sync-runtime-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -309,6 +349,14 @@ button:disabled {
     font-size: 1.05rem;
     line-height: 1.35;
     word-break: break-word;
+}
+
+.sync-runtime-card small {
+    display: block;
+    margin-top: 0.45rem;
+    color: #64748b;
+    font-size: 0.8rem;
+    line-height: 1.45;
 }
 
 .sync-error-message {
@@ -1429,7 +1477,7 @@ select:focus {
 
 .match-detail-overview-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 0.85rem;
 }
 

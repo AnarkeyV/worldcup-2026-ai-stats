@@ -12,6 +12,7 @@ Release verification: 184 tests passed
 Primary runtime: Windows laptop + Docker Compose
 Development machine: MacBook Pro + VS Code + Python venv
 Public dashboard: https://wc2026.khairulrizal.qzz.io/dashboard
+Active milestone: v1.12.0 — Safe Matchday Sync, Audit History, and Data Freshness
 ```
 
 Current live capabilities:
@@ -56,28 +57,51 @@ Current live capabilities:
 
 ---
 
-## Candidate Next Milestone
+## Active Milestone
 
-### Live Matchday Automation and Data Quality
+### v1.12.0 — Safe Matchday Sync, Audit History, and Data Freshness
 
-**Goal:** Improve the project’s ability to operate safely during live matchdays while keeping provider data transparent and reviewable.
+**Goal:** Make matchday operation safer and easier to verify without inventing football data or enabling side effects by default.
 
-Potential scope:
+Committed scope:
 
-- scheduled provider sync with explicit opt-in configuration
-- persisted sync-run history instead of process-memory-only runtime state
-- Telegram notification policy for newly completed matches and meaningful incidents
-- dashboard indicators for stale data and last successful detail refresh
-- provider event-quality normalization for duplicate, malformed, or corrected events
-- richer player detail where the provider supplies reliable fields
-- optional match report export using only stored factual data
+- persisted fixture sync-run history for successful and failed attempts
+- a read-only latest status endpoint backed by persisted history
+- a read-only recent sync-history endpoint
+- optional provider-only scheduler that is disabled by default
+- no immediate provider call on application start and no overlapping scheduled runs
+- completed-match Telegram alerts disabled by default and controlled separately from Telegram test messages
+- visible dashboard states for no sync, fresh, aging, stale, unavailable, and last-sync-failed data
+- clear stored match-detail refresh time based only on the local stored provider payload
+- redacted, bounded persisted sync errors to avoid exposing configured secrets
 
-This is intentionally a candidate scope, not a committed release contract. It should be selected and broken into a small milestone before implementation.
+Non-goals for this release:
+
+- automatic rich-detail backfill
+- automatic Telegram alerts from the scheduler
+- meaningful-event alerting
+- event deduplication or historical event-correction/version storage
+- inferred assists, player analytics, or any data not supplied reliably by a provider
+- factual match-report export
+
+### Acceptance Criteria
+
+- Fixture sync results survive backend restart because run history is stored in the database.
+- `/fixtures/sync/status` reflects the latest persisted run and preserves the most recent successful timestamp.
+- `/fixtures/sync/history` returns recent safe audit records without secrets.
+- Scheduled provider sync is opt-in, waits a full configured interval before its first run, and cannot overlap another scheduled run.
+- Scheduled sync never sends Telegram alerts.
+- Manual sample/provider sync does not send completed-match Telegram alerts until `TELEGRAM_COMPLETED_MATCH_ALERTS_ENABLED=true` is explicitly configured.
+- The dashboard describes stored data freshness and stored match-detail refresh honestly.
+- Focused tests pass first, followed by the full suite and `git diff --check`.
+- `APP_VERSION` remains at `1.11.0` until release preparation.
 
 ---
 
 ## Longer-Term Ideas
 
+- provider event-quality normalization with provider-specific event IDs and correction handling
+- factual stored-data match report export
 - authentication and per-user preferences
 - team comparison views
 - group qualification scenario simulation

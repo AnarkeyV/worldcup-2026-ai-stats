@@ -55,6 +55,7 @@ const elements = {
     aiHealthDetails: document.querySelector("#ai-health-details"),
     providerSyncMessage: document.querySelector("#provider-sync-message"),
     syncStatusBadge: document.querySelector("#sync-status-badge"),
+    syncFreshnessBadge: document.querySelector("#sync-freshness-badge"),
     refreshSyncStatus: document.querySelector("#refresh-sync-status"),
     syncProvider: document.querySelector("#sync-provider"),
     syncLastRun: document.querySelector("#sync-last-run"),
@@ -64,6 +65,10 @@ const elements = {
     syncUpdated: document.querySelector("#sync-updated"),
     syncNewlyCompleted: document.querySelector("#sync-newly-completed"),
     syncLastSuccess: document.querySelector("#sync-last-success"),
+    syncDataFreshness: document.querySelector("#sync-data-freshness"),
+    syncDataAge: document.querySelector("#sync-data-age"),
+    syncSchedulerMode: document.querySelector("#sync-scheduler-mode"),
+    syncAlertPolicy: document.querySelector("#sync-alert-policy"),
     syncErrorMessage: document.querySelector("#sync-error-message"),
     fixtureStatusTabs: document.querySelector("#fixture-status-tabs"),
     fixtureGroupTabs: document.querySelector("#fixture-group-tabs"),
@@ -389,12 +394,20 @@ function setSyncStatusLoading() {
     elements.providerSyncMessage.textContent = "Checking latest fixture sync status...";
     elements.syncStatusBadge.className = "sync-status-badge not-started";
     elements.syncStatusBadge.textContent = "Checking";
+    elements.syncFreshnessBadge.className = "sync-freshness-badge not-started";
+    elements.syncFreshnessBadge.textContent = "Data: Checking";
 }
 
 function setSyncStatusError(message) {
     elements.providerSyncMessage.textContent = message;
     elements.syncStatusBadge.className = "sync-status-badge error";
     elements.syncStatusBadge.textContent = "Error";
+    elements.syncFreshnessBadge.className = "sync-freshness-badge unavailable";
+    elements.syncFreshnessBadge.textContent = "Data: Unavailable";
+    elements.syncDataFreshness.textContent = "Unavailable";
+    elements.syncDataAge.textContent = "The dashboard could not read persisted sync status.";
+    elements.syncSchedulerMode.textContent = "Unknown";
+    elements.syncAlertPolicy.textContent = "Telegram sync-alert policy could not be loaded.";
     elements.syncErrorMessage.className = "sync-error-message has-error";
     elements.syncErrorMessage.textContent = message;
 }
@@ -403,13 +416,19 @@ function renderFixtureSyncStatus(data) {
     const status = data.status || "not_started";
     const source = data.source || "No source yet";
     const provider = data.provider || "No provider yet";
+    const triggerType = data.trigger_type || "manual";
     const totalFixtures = formatNumber(data.total_fixtures);
     const created = formatNumber(data.created);
     const updated = formatNumber(data.updated);
     const newlyCompleted = formatNumber(data.newly_completed_count);
+    const freshness = data.freshness || { state: "unavailable" };
+    const freshnessState = freshness.state || "unavailable";
+    const scheduler = data.scheduler || {};
 
     elements.syncStatusBadge.className = `sync-status-badge ${getSyncStatusClass(status)}`;
     elements.syncStatusBadge.textContent = formatSyncStatus(status);
+    elements.syncFreshnessBadge.className = `sync-freshness-badge ${getSyncFreshnessClass(freshnessState)}`;
+    elements.syncFreshnessBadge.textContent = `Data: ${formatSyncFreshness(freshnessState)}`;
     elements.syncProvider.textContent = provider;
     elements.syncLastRun.textContent = formatDateTime(data.last_run_at);
     elements.syncDuration.textContent = formatDurationSeconds(data.duration_seconds);
@@ -418,16 +437,22 @@ function renderFixtureSyncStatus(data) {
     elements.syncUpdated.textContent = updated;
     elements.syncNewlyCompleted.textContent = newlyCompleted;
     elements.syncLastSuccess.textContent = formatDateTime(data.last_success_at);
+    elements.syncDataFreshness.textContent = formatSyncFreshness(freshnessState);
+    elements.syncDataAge.textContent = formatDataAgeSeconds(freshness.data_age_seconds);
+    elements.syncSchedulerMode.textContent = formatSchedulerMode(scheduler);
+    elements.syncAlertPolicy.textContent = data.completed_match_alerts_enabled
+        ? "Completed-match Telegram alerts are explicitly enabled."
+        : "Completed-match Telegram alerts are disabled by configuration.";
 
     if (status === "not_started") {
         elements.providerSyncMessage.textContent =
-            "No fixture sync has been recorded yet. Run sample or provider sync to populate runtime data.";
+            "No fixture sync has been recorded yet. Automated provider sync is disabled unless explicitly enabled in configuration.";
     } else if (status === "success") {
         elements.providerSyncMessage.textContent =
-            `Last ${source} sync succeeded using ${provider}: ${totalFixtures} fetched, ${created} created, ${updated} updated.`;
+            `Last ${triggerType} ${source} sync succeeded using ${provider}: ${totalFixtures} fetched, ${created} created, ${updated} updated. Stored data is ${formatSyncFreshness(freshnessState).toLowerCase()}.`;
     } else {
         elements.providerSyncMessage.textContent =
-            `Last ${source} sync failed using ${provider}. Check the error message below.`;
+            `Last ${triggerType} ${source} sync failed using ${provider}. The dashboard continues to show the last stored data state; check the safe error message below.`;
     }
 
     if (data.last_error) {
@@ -435,7 +460,7 @@ function renderFixtureSyncStatus(data) {
         elements.syncErrorMessage.textContent = data.last_error;
     } else {
         elements.syncErrorMessage.className = "sync-error-message";
-        elements.syncErrorMessage.textContent = "No sync errors recorded.";
+        elements.syncErrorMessage.textContent = "No sync errors recorded in the latest persisted run.";
     }
 }
 
@@ -1914,6 +1939,11 @@ function renderMatchDetailOverview(fixture, detail, options = {}) {
                 <strong>${escapeHtml(detail.provider || "Unknown provider")}</strong>
                 <small>Match ID ${escapeHtml(detail.provider_match_id || "–")}</small>
             </article>
+            <article class="match-detail-fact">
+                <span>Stored detail refresh</span>
+                <strong>${escapeHtml(formatStoredDetailRefresh(detail.updated_at))}</strong>
+                <small>Stored provider payload; not a live detail request.</small>
+            </article>
         </div>
 
         <div class="match-detail-context">
@@ -2410,6 +2440,67 @@ function getSyncStatusClass(status) {
     }
 
     return "not-started";
+}
+
+function getSyncFreshnessClass(state) {
+    return String(state || "unavailable").replaceAll("_", "-");
+}
+
+function formatSyncFreshness(state) {
+    const labels = {
+        fresh: "Fresh",
+        aging: "Aging",
+        stale: "Stale",
+        last_sync_failed: "Last Sync Failed",
+        not_started: "No Sync Yet",
+        unavailable: "Unavailable",
+    };
+
+    return labels[state] || "Unavailable";
+}
+
+function formatDataAgeSeconds(value) {
+    if (value === null || value === undefined) {
+        return "No successful sync is recorded yet.";
+    }
+
+    const seconds = Number(value);
+
+    if (Number.isNaN(seconds) || seconds < 0) {
+        return "The latest successful sync timestamp is unavailable.";
+    }
+
+    if (seconds < 60) {
+        return "Last successful sync was less than a minute ago.";
+    }
+
+    if (seconds < 3600) {
+        return `Last successful sync was ${Math.floor(seconds / 60)} minute${Math.floor(seconds / 60) === 1 ? "" : "s"} ago.`;
+    }
+
+    return `Last successful sync was ${Math.floor(seconds / 3600)} hour${Math.floor(seconds / 3600) === 1 ? "" : "s"} ago.`;
+}
+
+function formatSchedulerMode(scheduler) {
+    if (!scheduler || !scheduler.enabled) {
+        return "Manual only";
+    }
+
+    const interval = Number(scheduler.interval_minutes);
+
+    if (Number.isNaN(interval) || interval <= 0) {
+        return "Automatic";
+    }
+
+    return `Every ${interval} min`;
+}
+
+function formatStoredDetailRefresh(value) {
+    if (!value) {
+        return "Not recorded";
+    }
+
+    return formatDateTime(value);
 }
 
 function formatDateTime(value) {

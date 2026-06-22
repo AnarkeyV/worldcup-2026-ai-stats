@@ -1,3 +1,4 @@
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -20,6 +21,12 @@ class Settings(BaseSettings):
 
     telegram_bot_token: str = ""
     telegram_chat_id: str = ""
+    telegram_completed_match_alerts_enabled: bool = False
+
+    provider_sync_scheduler_enabled: bool = False
+    provider_sync_interval_minutes: int = Field(default=30, ge=5, le=1440)
+    fixture_sync_fresh_after_minutes: int = Field(default=60, ge=1, le=10080)
+    fixture_sync_stale_after_minutes: int = Field(default=180, ge=2, le=20160)
 
     public_dashboard_url: str = "http://localhost:8000/dashboard"
 
