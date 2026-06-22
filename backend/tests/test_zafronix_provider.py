@@ -43,6 +43,64 @@ def test_zafronix_provider_normalizes_completed_fixture(monkeypatch):
                         "city": "Ciudad de México",
                         "country": "Mexico",
                         "status": "finished",
+                        "goals": [
+                            {
+                                "minute": 9,
+                                "team": "home",
+                                "scorer": "Quiñones",
+                            }
+                        ],
+                        "cards": [
+                            {
+                                "minute": 49,
+                                "team": "away",
+                                "player": "Sphephelo Sithole",
+                                "color": "red",
+                            }
+                        ],
+                        "substitutions": [
+                            {
+                                "minute": 66,
+                                "team": "home",
+                                "on": "Gilberto Mora",
+                                "off": "Álvaro Fidalgo",
+                            }
+                        ],
+                        "formations": {
+                            "home": "4-3-3",
+                            "away": "5-3-2",
+                        },
+                        "lineups": {
+                            "home": [
+                                {
+                                    "player": "Raúl Rangel",
+                                    "number": 1,
+                                    "position": "GK",
+                                    "starter": True,
+                                }
+                            ],
+                            "away": [],
+                        },
+                        "statistics": {
+                            "home": {
+                                "possessionPct": 61,
+                                "shotsTotal": 16,
+                                "expectedGoals": 1.41,
+                            },
+                            "away": {
+                                "possessionPct": 39,
+                                "shotsTotal": 3,
+                                "expectedGoals": 0.07,
+                            },
+                        },
+                        "referee": {
+                            "name": "Test Referee",
+                            "country": "Test Country",
+                        },
+                        "weather": {
+                            "tempC": 24,
+                            "windKmh": 12,
+                        },
                     }
                 ]
             }
@@ -55,24 +113,46 @@ def test_zafronix_provider_normalizes_completed_fixture(monkeypatch):
 
     fixtures = provider.get_world_cup_fixtures()
 
-    assert fixtures == [
+    assert len(fixtures) == 1
+
+    fixture = fixtures[0]
+
+    assert fixture["external_id"] == "zafronix-2026-001"
+    assert fixture["competition"] == "FIFA World Cup 2026"
+    assert fixture["stage"] == "Group Stage"
+    assert fixture["group_name"] == "Group A"
+    assert fixture["home_team"] == "Mexico"
+    assert fixture["away_team"] == "South Africa"
+    assert fixture["home_team_code"] == "MEX"
+    assert fixture["away_team_code"] == "RSA"
+    assert fixture["kickoff_time"] == "2026-06-11T19:00:00.000Z"
+    assert fixture["venue"] == "Mexico City Stadium, Ciudad de México, Mexico"
+    assert fixture["status"] == "complete"
+    assert fixture["home_score"] == 2
+    assert fixture["away_score"] == 0
+
+    detail = fixture["match_detail"]
+
+    assert detail["provider"] == "zafronix"
+    assert detail["provider_match_id"] == "2026-001"
+    assert detail["goals"] == [
         {
-            "external_id": "zafronix-2026-001",
-            "competition": "FIFA World Cup 2026",
-            "stage": "Group Stage",
-            "group_name": "Group A",
-            "home_team": "Mexico",
-            "away_team": "South Africa",
-            "home_team_code": "MEX",
-            "away_team_code": "RSA",
-            "kickoff_time": "2026-06-11T19:00:00.000Z",
-            "venue": "Mexico City Stadium, Ciudad de México, Mexico",
-            "status": "complete",
-            "home_score": 2,
-            "away_score": 0,
+            "minute": 9,
+            "team": "home",
+            "scorer": "Quiñones",
         }
     ]
-
+    assert detail["cards"][0]["color"] == "red"
+    assert detail["substitutions"][0]["on"] == "Gilberto Mora"
+    assert detail["formations"] == {
+        "home": "4-3-3",
+        "away": "5-3-2",
+    }
+    assert detail["lineups"]["home"][0]["player"] == "Raúl Rangel"
+    assert detail["lineups"]["home"][0]["captain"] is False
+    assert detail["statistics"]["home"]["expectedGoals"] == 1.41
+    assert detail["referee"]["name"] == "Test Referee"
+    assert detail["weather"]["tempC"] == 24
 
 def test_zafronix_provider_normalizes_scheduled_fixture(monkeypatch):
     def fake_get(url, headers, params, timeout):

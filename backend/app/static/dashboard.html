@@ -5,15 +5,15 @@
     <title>World Cup 2026 AI Stats Dashboard</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <link rel="stylesheet" href="/static/dashboard.css?v=1.10.0">
+    <link rel="stylesheet" href="/static/dashboard.css?v=1.11.0-ui5">
 </head>
-<body>
+<body id="dashboard-top">
     <header class="app-header">
         <div>
             <p class="eyebrow">World Cup 2026 AI Stats</p>
             <h1>Interactive Dashboard</h1>
             <p class="subtitle">
-                Browse fixtures, filter matches, view group standings, explore team insights, track player statistics, monitor provider sync runtime state, and generate local AI summaries.
+                Browse fixtures by completed, live, or upcoming status, narrow them by group, open provider-backed match events, statistics, and lineups, monitor provider sync runtime state, review the latest completed result, and generate local AI summaries.
             </p>
         </div>
 
@@ -22,8 +22,22 @@
         </a>
     </header>
 
+    <nav id="dashboard-section-nav" class="dashboard-section-nav" aria-label="Quick dashboard navigation">
+        <div class="dashboard-section-nav-inner">
+            <span class="dashboard-section-nav-label">Quick links</span>
+            <a class="dashboard-section-nav-link is-active" href="#dashboard-overview" data-section-nav-link="dashboard-overview" aria-current="page">Overview</a>
+            <a class="dashboard-section-nav-link" href="#sync-runtime" data-section-nav-link="sync-runtime">Sync</a>
+            <a class="dashboard-section-nav-link" href="#ai-summary" data-section-nav-link="ai-summary">AI Summary</a>
+            <a class="dashboard-section-nav-link" href="#ai-insights" data-section-nav-link="ai-insights">AI Insights</a>
+            <a class="dashboard-section-nav-link" href="#group-insights" data-section-nav-link="group-insights">Group Insights</a>
+            <a class="dashboard-section-nav-link" href="#player-statistics" data-section-nav-link="player-statistics">Players</a>
+            <a class="dashboard-section-nav-link" href="#group-standings" data-section-nav-link="group-standings">Standings</a>
+            <a class="dashboard-section-nav-link" href="#fixtures" data-section-nav-link="fixtures">Fixtures</a>
+        </div>
+    </nav>
+
     <main class="dashboard-layout">
-        <section class="summary-grid" aria-label="Dashboard summary">
+        <section id="dashboard-overview" class="summary-grid" data-dashboard-section aria-label="Dashboard overview">
             <article class="summary-card">
                 <span class="summary-label">Total Fixtures</span>
                 <strong id="total-fixtures">-</strong>
@@ -35,7 +49,7 @@
             </article>
 
             <article class="summary-card">
-                <span class="summary-label">Scheduled</span>
+                <span class="summary-label">Upcoming</span>
                 <strong id="scheduled-fixtures">-</strong>
             </article>
 
@@ -45,7 +59,7 @@
             </article>
         </section>
 
-        <section class="sync-runtime-panel" aria-label="Provider sync runtime status">
+        <section id="sync-runtime" class="sync-runtime-panel" data-dashboard-section aria-label="Provider sync runtime status">
             <div class="sync-runtime-heading">
                 <div>
                     <p class="eyebrow">Runtime Observability</p>
@@ -113,7 +127,7 @@
             </div>
         </section>
 
-        <section class="ai-summary-panel" aria-label="AI fixture summary">
+        <section id="ai-summary" class="ai-summary-panel" data-dashboard-section aria-label="AI fixture summary">
             <div class="ai-summary-content">
                 <div class="ai-summary-heading">
                     <div>
@@ -141,6 +155,17 @@
                 <div id="ai-summary-output" class="ai-summary-output">
                     No AI summary generated yet.
                 </div>
+
+                <section
+                    id="latest-completed-summary"
+                    class="latest-completed-summary"
+                    aria-live="polite"
+                    aria-label="Latest provider-backed completed match"
+                >
+                    <span class="latest-completed-loading">
+                        Loading the latest provider-backed completed match...
+                    </span>
+                </section>
             </div>
 
             <button id="generate-ai-summary" type="button">
@@ -148,7 +173,7 @@
             </button>
         </section>
 
-                <section class="ai-insights-panel" aria-label="Structured AI insights">
+                <section id="ai-insights" class="ai-insights-panel" data-dashboard-section aria-label="Structured AI insights">
             <div class="ai-insights-heading">
                 <div>
                     <p class="eyebrow">AI Insights Upgrade</p>
@@ -166,6 +191,26 @@
             <div id="ai-insights-summary" class="ai-insights-summary">
                 AI insights will appear after the dashboard checks fixture data.
             </div>
+
+            <section class="group-race-board" aria-label="Top two teams in each group">
+                <div class="group-race-heading">
+                    <div>
+                        <p class="eyebrow">Standings Snapshot</p>
+                        <h3>Group Race</h3>
+                        <p id="group-race-message">
+                            Loading the current top two teams in each group.
+                        </p>
+                    </div>
+
+                    <span class="group-race-badge">Top 2</span>
+                </div>
+
+                <div id="group-race-container" class="group-race-grid" aria-live="polite">
+                    <div class="group-race-empty">
+                        Group race positions will appear after completed fixtures are available.
+                    </div>
+                </div>
+            </section>
 
             <div id="ai-insights-container" class="ai-insights-grid" aria-live="polite"></div>
         </section>
@@ -199,7 +244,7 @@
             </button>
         </section>
 
-        <section class="insights-section" aria-label="Group insights">
+        <section id="group-insights" class="insights-section" data-dashboard-section aria-label="Group insights">
             <div class="section-heading">
                 <div>
                     <h2>Group Insights</h2>
@@ -210,18 +255,19 @@
             <div id="insights-container" class="insights-grid" aria-live="polite"></div>
         </section>
 
-        <section class="player-stats-section" aria-label="Player statistics">
+        <section id="player-statistics" class="player-stats-section" data-dashboard-section aria-label="Provider-backed player leaders">
             <div class="section-heading">
                 <div>
-                    <h2>Player Statistics</h2>
-                    <p id="player-stats-message">Loading player statistics...</p>
+                    <p class="eyebrow">Provider-backed match detail</p>
+                    <h2>Player Leaders</h2>
+                    <p id="player-stats-message">Loading provider-backed scorer and card leaderboards...</p>
                 </div>
             </div>
 
             <div id="player-stats-container" class="player-stats-grid" aria-live="polite"></div>
         </section>
 
-        <section class="standings-section" aria-label="Group standings">
+        <section id="group-standings" class="standings-section" data-dashboard-section aria-label="Group standings">
             <div class="section-heading">
                 <div>
                     <h2>Group Standings</h2>
@@ -232,42 +278,69 @@
             <div id="standings-container" class="standings-container" aria-live="polite"></div>
         </section>
 
-        <section class="fixtures-section">
-            <div class="section-heading">
+        <section id="fixtures" class="fixtures-section" data-dashboard-section aria-label="Fixture browser">
+            <div class="section-heading fixture-browser-heading">
                 <div>
                     <h2>Fixtures</h2>
                     <p id="dashboard-message">Loading fixtures...</p>
                 </div>
             </div>
 
-            <div id="fixtures-container" class="fixtures-grid" aria-live="polite"></div>
-
-            <aside
-                id="match-detail-panel"
-                class="match-detail-panel"
-                aria-label="Selected match detail"
+            <div
+                id="fixture-status-tabs"
+                class="fixture-status-tabs"
+                role="tablist"
+                aria-label="Browse fixtures by status"
             >
-                <div class="match-detail-heading">
-                    <div>
-                        <p class="eyebrow">Match Detail Dashboard</p>
-                        <h3 id="match-detail-title">Select a fixture</h3>
-                    </div>
-                    <span id="match-detail-status" class="status-pill status-default">Waiting</span>
-                </div>
+                <span class="fixture-status-tabs-loading">Loading match categories...</span>
+            </div>
 
-                <div id="selected-match-detail" class="selected-match-detail" aria-live="polite">
-                    Click any fixture card to open scoreline, venue, kickoff, group, stage, AI summary, and provider-backed match context.
+            <div class="fixture-group-browser-heading">
+                <div>
+                    <span class="fixture-browser-label">Match groups</span>
+                    <p id="fixture-browser-message">Choose a match status, then a group.</p>
                 </div>
-            </aside>
+            </div>
+
+            <div
+                id="fixture-group-tabs"
+                class="fixture-group-tabs"
+                role="tablist"
+                aria-label="Browse fixtures by group"
+            >
+                <span class="fixture-group-tabs-loading">Loading groups...</span>
+            </div>
+
+            <div class="fixture-browser-layout">
+                <aside
+                    id="match-detail-panel"
+                    class="match-detail-panel"
+                    aria-label="Selected match detail"
+                >
+                    <div class="match-detail-heading">
+                        <div>
+                            <p class="eyebrow">Match Detail Dashboard</p>
+                            <h3 id="match-detail-title">Select a fixture</h3>
+                        </div>
+                        <span id="match-detail-status" class="status-pill status-default">Waiting</span>
+                    </div>
+
+                    <div id="selected-match-detail" class="selected-match-detail" aria-live="polite">
+                        Select a fixture to open provider-backed score, event timeline, team statistics, and lineups.
+                    </div>
+                </aside>
+
+                <div id="fixtures-container" class="fixtures-grid" aria-live="polite"></div>
+            </div>
         </section>
     </main>
 
     <footer class="app-footer">
         <p>
-            v1.10.0 Match Detail Dashboard · Powered by FastAPI
+            Provider-backed Rich Match Dashboard · Powered by FastAPI
         </p>
     </footer>
 
-    <script src="/static/dashboard.js?v=1.10.0"></script>
+    <script src="/static/dashboard.js?v=1.11.0-ui5"></script>
 </body>
 </html>

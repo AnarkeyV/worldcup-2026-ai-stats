@@ -4,6 +4,7 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from app.models.fixture import Fixture
+from app.services.match_detail_sync_service import upsert_match_detail
 
 
 COMPLETED_STATUSES = {
@@ -68,6 +69,7 @@ def sync_fixtures(db: Session, fixtures: list[dict]) -> dict:
 
     for fixture_data in fixtures:
         item = fixture_data.copy()
+        match_detail_data = item.pop("match_detail", None)
         external_id = _clean_external_id(item.get("external_id"))
         item["external_id"] = external_id
 
@@ -92,18 +94,28 @@ def sync_fixtures(db: Session, fixtures: list[dict]) -> dict:
             for key, value in item.items():
                 setattr(existing_fixture, key, value)
 
+            fixture_record = existing_fixture
+
             if not was_completed and is_completed:
                 newly_completed.append(external_id)
 
             updated += 1
 
         else:
-            fixture = Fixture(**item)
-            db.add(fixture)
+            fixture_record = Fixture(**item)
+            db.add(fixture_record)
+            db.flush()
             created += 1
 
             if is_completed:
                 newly_completed.append(external_id)
+
+        if isinstance(match_detail_data, dict):
+            upsert_match_detail(
+                db=db,
+                fixture=fixture_record,
+                detail_data=match_detail_data,
+            )
 
     db.commit()
 

@@ -52,6 +52,7 @@ def test_build_ai_insights_empty_fixture_list():
         "teams_analyzed": 0,
         "groups_analyzed": 0,
         "sync_status": None,
+        "group_race_group_count": 0,
     }
     assert result["insights"] == [
         {
@@ -98,7 +99,7 @@ def test_build_ai_insights_summarizes_completed_fixtures_and_standings():
     assert "Fixture data available" in titles
     assert "Completed results detected" in titles
     assert "Group leaders available" in titles
-    assert "Strongest attacks identified" in titles
+    assert "Top two group positions" in titles
 
     summary = result["summary"].lower()
 

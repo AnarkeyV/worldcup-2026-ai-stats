@@ -4,10 +4,18 @@ const state = {
     standings: [],
     insights: null,
     aiInsights: null,
-    playerStats: null,
+    providerLeaders: null,
+    latestCompletedSummary: null,
     fixtureSummaries: {},
     fixtureSyncStatus: null,
     aiAvailable: false,
+    fixtureStatusScope: "completed",
+    fixtureScope: "all",
+    fixtureBrowserFixtures: [],
+    selectedFixture: null,
+    selectedFixtureDetail: null,
+    selectedFixtureId: null,
+    activeMatchDetailTab: "overview",
     filters: {
         team: "",
         group: "",
@@ -33,6 +41,8 @@ const elements = {
     insightsContainer: document.querySelector("#insights-container"),
     aiInsightsMessage: document.querySelector("#ai-insights-message"),
     aiInsightsSummary: document.querySelector("#ai-insights-summary"),
+    groupRaceMessage: document.querySelector("#group-race-message"),
+    groupRaceContainer: document.querySelector("#group-race-container"),
     aiInsightsContainer: document.querySelector("#ai-insights-container"),
     refreshAiInsights: document.querySelector("#refresh-ai-insights"),
     playerStatsMessage: document.querySelector("#player-stats-message"),
@@ -40,6 +50,7 @@ const elements = {
     generateAiSummary: document.querySelector("#generate-ai-summary"),
     aiSummaryMessage: document.querySelector("#ai-summary-message"),
     aiSummaryOutput: document.querySelector("#ai-summary-output"),
+    latestCompletedSummary: document.querySelector("#latest-completed-summary"),
     aiHealthBadge: document.querySelector("#ai-health-badge"),
     aiHealthDetails: document.querySelector("#ai-health-details"),
     providerSyncMessage: document.querySelector("#provider-sync-message"),
@@ -54,6 +65,10 @@ const elements = {
     syncNewlyCompleted: document.querySelector("#sync-newly-completed"),
     syncLastSuccess: document.querySelector("#sync-last-success"),
     syncErrorMessage: document.querySelector("#sync-error-message"),
+    fixtureStatusTabs: document.querySelector("#fixture-status-tabs"),
+    fixtureGroupTabs: document.querySelector("#fixture-group-tabs"),
+    fixtureBrowserMessage: document.querySelector("#fixture-browser-message"),
+    matchDetailPanel: document.querySelector("#match-detail-panel"),
 };
 
 async function fetchFixtures(filters = {}) {
@@ -194,12 +209,30 @@ async function fetchAiInsights(filters = {}) {
     throw new Error("Unable to load structured AI insights from available API endpoints.");
 }
 
-async function fetchPlayerStats(filters = {}, sortBy = "goals", limit = 5) {
-    const queryString = buildPlayerStatsQueryString(filters, sortBy, limit);
+function buildProviderLeadersQueryString(filters = {}) {
+    const params = new URLSearchParams();
+
+    if (filters.group) {
+        params.set("group_name", filters.group);
+    }
+
+    if (filters.team && filters.team.trim()) {
+        params.set("team", filters.team.trim());
+    }
+
+    params.set("limit", "5");
+
+    const queryString = params.toString();
+
+    return queryString ? `?${queryString}` : "";
+}
+
+async function fetchProviderLeaders(filters = {}) {
+    const queryString = buildProviderLeadersQueryString(filters);
 
     const possibleEndpoints = [
-        `/api/players/stats${queryString}`,
-        `/players/stats${queryString}`,
+        `/api/players/leaders${queryString}`,
+        `/players/leaders${queryString}`,
     ];
 
     for (const endpoint of possibleEndpoints) {
@@ -210,35 +243,36 @@ async function fetchPlayerStats(filters = {}, sortBy = "goals", limit = 5) {
                 continue;
             }
 
-            const data = await response.json();
-            return normalizePlayerStatsResponse(data);
+            return await response.json();
         } catch (error) {
-            console.warn(`Unable to fetch player stats from ${endpoint}`, error);
+            console.warn(`Unable to fetch provider-backed player leaders from ${endpoint}`, error);
         }
     }
 
-    throw new Error("Unable to load player stats from available API endpoints.");
+    throw new Error("Unable to load provider-backed player leaders.");
 }
 
-async function fetchPlayerStatsSummary(filters = {}) {
-    const [
-        topScorers,
-        topAssists,
-        yellowCards,
-        redCards,
-    ] = await Promise.all([
-        fetchPlayerStats(filters, "goals", 5),
-        fetchPlayerStats(filters, "assists", 5),
-        fetchPlayerStats(filters, "yellow_cards", 5),
-        fetchPlayerStats(filters, "red_cards", 5),
-    ]);
+async function fetchLatestCompletedSummary() {
+    const possibleEndpoints = [
+        "/api/ai/latest-completed/summary",
+        "/ai/latest-completed/summary",
+    ];
 
-    return {
-        topScorers,
-        topAssists,
-        yellowCards,
-        redCards,
-    };
+    for (const endpoint of possibleEndpoints) {
+        try {
+            const response = await fetch(endpoint);
+
+            if (!response.ok) {
+                continue;
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.warn(`Unable to fetch the latest completed match summary from ${endpoint}`, error);
+        }
+    }
+
+    throw new Error("Unable to load the latest completed match summary.");
 }
 
 async function refreshFixtureSyncStatus() {
@@ -266,6 +300,34 @@ async function refreshAiInsights() {
     } catch (error) {
         console.error(error);
         setAiInsightsError("Unable to load structured AI insights.");
+    }
+}
+
+async function refreshProviderLeaders(filters = state.filters) {
+    setProviderLeadersLoading();
+
+    try {
+        const data = await fetchProviderLeaders(filters);
+
+        state.providerLeaders = data;
+        renderProviderLeaders(data);
+    } catch (error) {
+        console.error(error);
+        setProviderLeadersError();
+    }
+}
+
+async function refreshLatestCompletedSummary() {
+    setLatestCompletedSummaryLoading();
+
+    try {
+        const data = await fetchLatestCompletedSummary();
+
+        state.latestCompletedSummary = data;
+        renderLatestCompletedSummary(data);
+    } catch (error) {
+        console.error(error);
+        setLatestCompletedSummaryError();
     }
 }
 
@@ -409,23 +471,6 @@ function buildGroupOnlyQueryString(filters) {
     return queryString ? `?${queryString}` : "";
 }
 
-function buildPlayerStatsQueryString(filters, sortBy, limit) {
-    const params = new URLSearchParams();
-
-    if (filters.group) {
-        params.set("group_name", filters.group);
-    }
-
-    if (filters.team && filters.team.trim()) {
-        params.set("team", filters.team.trim());
-    }
-
-    params.set("sort_by", sortBy);
-    params.set("limit", limit);
-
-    return `?${params.toString()}`;
-}
-
 function normalizeFixturesResponse(data) {
     if (Array.isArray(data)) {
         return data;
@@ -481,28 +526,11 @@ function normalizeInsightsResponse(data) {
     };
 }
 
-function normalizePlayerStatsResponse(data) {
-    if (data && Array.isArray(data.stats)) {
-        return data.stats;
-    }
-
-    if (Array.isArray(data)) {
-        return data;
-    }
-
-    return [];
-}
-
 function populateFilters(fixtures) {
     resetSelectOptions(elements.groupFilter, "All groups");
     resetSelectOptions(elements.statusFilter, "All statuses");
 
-    const groups = [...new Set(
-        fixtures
-            .map((fixture) => fixture.group_name)
-            .filter(Boolean)
-    )].sort();
-
+    const groups = getFixtureGroups(fixtures);
     const statuses = [...new Set(
         fixtures
             .map((fixture) => fixture.status)
@@ -522,6 +550,8 @@ function populateFilters(fixtures) {
         option.textContent = formatStatus(status);
         elements.statusFilter.appendChild(option);
     });
+
+    renderFixtureGroupTabs(fixtures);
 }
 
 function resetSelectOptions(selectElement, defaultLabel) {
@@ -534,13 +564,322 @@ function resetSelectOptions(selectElement, defaultLabel) {
     selectElement.appendChild(option);
 }
 
+function getFixtureGroups(fixtures) {
+    return [...new Set(
+        fixtures
+            .map((fixture) => fixture.group_name)
+            .filter(Boolean)
+    )].sort((left, right) => left.localeCompare(right, undefined, { numeric: true }));
+}
+
+const COMPLETED_FIXTURE_STATUSES = new Set([
+    "complete",
+    "completed",
+    "finished",
+    "final",
+    "ft",
+    "full-time",
+    "full time",
+    "full_time",
+    "match finished",
+]);
+
+const LIVE_FIXTURE_STATUSES = new Set([
+    "live",
+    "in_play",
+    "in play",
+    "halftime",
+    "half-time",
+    "ht",
+    "1h",
+    "2h",
+]);
+
+function normalizeFixtureStatus(fixture) {
+    return String(fixture?.status || "")
+        .trim()
+        .toLowerCase()
+        .replaceAll("_", " ");
+}
+
+function getFixtureStatusCategory(fixture) {
+    const status = normalizeFixtureStatus(fixture);
+
+    if (COMPLETED_FIXTURE_STATUSES.has(status)) {
+        return "completed";
+    }
+
+    if (LIVE_FIXTURE_STATUSES.has(status) || status.includes("live") || status.includes("in play")) {
+        return "live";
+    }
+
+    return "upcoming";
+}
+
+function getFixtureStatusCounts(fixtures) {
+    return fixtures.reduce((counts, fixture) => {
+        counts[getFixtureStatusCategory(fixture)] += 1;
+        return counts;
+    }, {
+        completed: 0,
+        live: 0,
+        upcoming: 0,
+    });
+}
+
+function getFixtureScopeFromGroup(groupName) {
+    return groupName ? `group:${groupName}` : "all";
+}
+
+function getGroupNameFromScope(scope) {
+    return scope && scope.startsWith("group:")
+        ? scope.slice("group:".length)
+        : "";
+}
+
+function isKnockoutFixture(fixture) {
+    if (fixture.group_name) {
+        return false;
+    }
+
+    const stage = String(fixture.stage || "").toLowerCase();
+
+    return Boolean(stage) && !stage.includes("group");
+}
+
+function getFixturesForStatus(fixtures, statusScope = state.fixtureStatusScope) {
+    return fixtures.filter((fixture) => getFixtureStatusCategory(fixture) === statusScope);
+}
+
+function filterFixturesForScope(fixtures) {
+    const statusFixtures = getFixturesForStatus(fixtures);
+
+    if (state.fixtureScope === "knockout") {
+        return statusFixtures.filter(isKnockoutFixture);
+    }
+
+    const groupName = getGroupNameFromScope(state.fixtureScope);
+
+    if (groupName) {
+        return statusFixtures.filter((fixture) => fixture.group_name === groupName);
+    }
+
+    return statusFixtures;
+}
+
+function getFixtureDisplayGroup(fixture) {
+    return fixture.group_name || fixture.stage || "Other matches";
+}
+
+function getAvailableFixtureStatusScopes(fixtures) {
+    const counts = getFixtureStatusCounts(fixtures);
+
+    return ["completed", "live", "upcoming"].filter((scope) => counts[scope] > 0);
+}
+
+function ensureFixtureBrowserSelection(fixtures) {
+    const availableStatuses = getAvailableFixtureStatusScopes(fixtures);
+
+    if (!availableStatuses.length) {
+        state.fixtureStatusScope = "completed";
+        state.fixtureScope = "all";
+        return;
+    }
+
+    if (!availableStatuses.includes(state.fixtureStatusScope)) {
+        state.fixtureStatusScope = availableStatuses.includes("completed")
+            ? "completed"
+            : availableStatuses[0];
+        state.fixtureScope = "all";
+    }
+
+    const statusFixtures = getFixturesForStatus(fixtures);
+    const selectedGroup = getGroupNameFromScope(state.fixtureScope);
+    const availableGroups = getFixtureGroups(statusFixtures);
+    const hasSelectedGroup = selectedGroup && availableGroups.includes(selectedGroup);
+    const hasKnockoutFixtures = statusFixtures.some(isKnockoutFixture);
+
+    if (state.filters.group && availableGroups.includes(state.filters.group)) {
+        state.fixtureScope = getFixtureScopeFromGroup(state.filters.group);
+        return;
+    }
+
+    if (hasSelectedGroup || (state.fixtureScope === "knockout" && hasKnockoutFixtures)) {
+        return;
+    }
+
+    if (availableGroups.length > 0) {
+        state.fixtureScope = getFixtureScopeFromGroup(availableGroups[0]);
+    } else if (hasKnockoutFixtures) {
+        state.fixtureScope = "knockout";
+    } else {
+        state.fixtureScope = "all";
+    }
+}
+
+function renderFixtureStatusTabs(fixtures) {
+    if (!elements.fixtureStatusTabs) {
+        return;
+    }
+
+    const counts = getFixtureStatusCounts(fixtures);
+    const tabs = [
+        {
+            scope: "completed",
+            label: "Completed",
+            description: "Finished matches",
+        },
+        {
+            scope: "live",
+            label: "Live",
+            description: "Matches in progress",
+        },
+        {
+            scope: "upcoming",
+            label: "Upcoming",
+            description: "Scheduled or not started",
+        },
+    ];
+
+    elements.fixtureStatusTabs.innerHTML = tabs.map((tab) => {
+        const active = tab.scope === state.fixtureStatusScope;
+        const count = counts[tab.scope];
+
+        return `
+            <button
+                class="fixture-status-tab ${active ? "is-active" : ""} ${count === 0 ? "is-empty" : ""}"
+                type="button"
+                role="tab"
+                aria-selected="${active ? "true" : "false"}"
+                aria-label="${escapeHtml(tab.label)} matches: ${formatNumber(count)}"
+                data-fixture-status-scope="${escapeHtml(tab.scope)}"
+                ${count === 0 ? "disabled" : ""}
+            >
+                <span>${escapeHtml(tab.label)}</span>
+                <strong>${formatNumber(count)}</strong>
+                <small>${escapeHtml(tab.description)}</small>
+            </button>
+        `;
+    }).join("");
+}
+
+function renderFixtureGroupTabs(fixtures) {
+    if (!elements.fixtureGroupTabs) {
+        return;
+    }
+
+    const statusFixtures = getFixturesForStatus(fixtures);
+    const groups = getFixtureGroups(statusFixtures);
+    const tabs = [
+        {
+            scope: "all",
+            label: "All groups",
+            count: statusFixtures.length,
+        },
+        ...groups.map((group) => ({
+            scope: getFixtureScopeFromGroup(group),
+            label: group,
+            count: statusFixtures.filter((fixture) => fixture.group_name === group).length,
+        })),
+    ];
+
+    const knockoutFixtures = statusFixtures.filter(isKnockoutFixture);
+
+    if (knockoutFixtures.length > 0) {
+        tabs.push({
+            scope: "knockout",
+            label: "Knockout",
+            count: knockoutFixtures.length,
+        });
+    }
+
+    if (tabs.length === 1 && statusFixtures.length === 0) {
+        elements.fixtureGroupTabs.innerHTML = `
+            <span class="fixture-group-tabs-loading">No ${escapeHtml(state.fixtureStatusScope)} fixtures are available.</span>
+        `;
+        return;
+    }
+
+    elements.fixtureGroupTabs.innerHTML = tabs.map((tab) => {
+        const active = tab.scope === state.fixtureScope;
+
+        return `
+            <button
+                class="fixture-group-tab ${active ? "is-active" : ""}"
+                type="button"
+                role="tab"
+                aria-selected="${active ? "true" : "false"}"
+                data-fixture-scope="${escapeHtml(tab.scope)}"
+            >
+                <span>${escapeHtml(tab.label)}</span>
+                <small>${formatNumber(tab.count)}</small>
+            </button>
+        `;
+    }).join("");
+}
+
+function updateFixtureBrowserMessage(fixtures) {
+    if (!elements.fixtureBrowserMessage) {
+        return;
+    }
+
+    const label = state.fixtureStatusScope === "upcoming"
+        ? "upcoming"
+        : state.fixtureStatusScope;
+    const scopeLabel = state.fixtureScope === "all"
+        ? "all groups"
+        : state.fixtureScope === "knockout"
+            ? "the knockout stage"
+            : getGroupNameFromScope(state.fixtureScope);
+
+    elements.fixtureBrowserMessage.textContent =
+        `Showing ${fixtures.length} ${label} fixture${fixtures.length === 1 ? "" : "s"} for ${scopeLabel}.`;
+}
+
+function syncFixtureScopeFromGroupFilter() {
+    state.fixtureScope = state.filters.group
+        ? getFixtureScopeFromGroup(state.filters.group)
+        : "all";
+}
+
+function setFixtureStatusScope(scope) {
+    state.fixtureStatusScope = scope;
+    state.fixtureScope = "all";
+    renderFixtureBrowser(state.fixtureBrowserFixtures, { selectFirst: true });
+}
+
+function setFixtureScope(scope) {
+    state.fixtureScope = scope;
+    renderFixtureBrowser(state.fixtureBrowserFixtures, { selectFirst: true });
+}
+
+function renderFixtureBrowser(fixtures, options = {}) {
+    state.fixtureBrowserFixtures = Array.isArray(fixtures) ? fixtures : [];
+    ensureFixtureBrowserSelection(state.fixtureBrowserFixtures);
+
+    const browserFixtures = filterFixturesForScope(state.fixtureBrowserFixtures);
+
+    state.visibleFixtures = browserFixtures;
+    updateSummary(state.allFixtures, state.visibleFixtures);
+    renderFixtureStatusTabs(state.fixtureBrowserFixtures);
+    renderFixtureGroupTabs(state.fixtureBrowserFixtures);
+    updateFixtureBrowserMessage(browserFixtures);
+    renderFixtures(browserFixtures);
+
+    const selectionIsVisible = state.selectedFixtureId
+        && browserFixtures.some((fixture) => String(fixture.id) === String(state.selectedFixtureId));
+
+    if (options.selectFirst !== false && !selectionIsVisible && browserFixtures.length > 0) {
+        selectFixture(browserFixtures[0].id, { scroll: false });
+    }
+}
+
 function updateSummary(allFixtures, visibleFixtures) {
-    const completed = allFixtures.filter((fixture) => fixture.status === "complete").length;
-    const scheduled = allFixtures.filter((fixture) => fixture.status === "scheduled").length;
+    const statusCounts = getFixtureStatusCounts(allFixtures);
 
     elements.totalFixtures.textContent = allFixtures.length;
-    elements.completedFixtures.textContent = completed;
-    elements.scheduledFixtures.textContent = scheduled;
+    elements.completedFixtures.textContent = statusCounts.completed;
+    elements.scheduledFixtures.textContent = statusCounts.upcoming;
     elements.visibleFixtures.textContent = visibleFixtures.length;
 }
 
@@ -548,26 +887,28 @@ async function applyFilters() {
     setLoadingState();
 
     try {
-        const [fixtures, standings, insights, playerStats] = await Promise.all([
+        const [fixtures, standings, insights, aiInsights] = await Promise.all([
             fetchFixtures(state.filters),
             fetchStandings(state.filters),
             fetchInsights(state.filters),
-            fetchPlayerStatsSummary(state.filters),
+            fetchAiInsights(state.filters),
         ]);
 
-        state.visibleFixtures = fixtures;
         state.standings = standings;
         state.insights = insights;
-        state.playerStats = playerStats;
+        state.aiInsights = aiInsights;
 
-        updateSummary(state.allFixtures, state.visibleFixtures);
         renderInsights(state.insights);
-        renderPlayerStats(state.playerStats);
+        renderAiInsights(state.aiInsights);
+        void refreshProviderLeaders(state.filters);
         renderStandings(state.standings);
-        renderFixtures(state.visibleFixtures);
+        renderFixtureBrowser(fixtures, { selectFirst: true });
     } catch (error) {
         console.error(error);
         elements.dashboardMessage.textContent = "Unable to apply filters.";
+        if (elements.fixtureBrowserMessage) {
+            elements.fixtureBrowserMessage.textContent = "Unable to load the selected fixture browser view.";
+        }
         elements.fixturesContainer.innerHTML = `
             <div class="empty-state">
                 The dashboard could not load filtered fixture data. Please check that the fixtures API is running.
@@ -585,12 +926,8 @@ async function applyFilters() {
                 The dashboard could not load group insight data. Please check that the insights API is running.
             </div>
         `;
-        elements.playerStatsMessage.textContent = "Unable to load player statistics.";
-        elements.playerStatsContainer.innerHTML = `
-            <div class="empty-state">
-                The dashboard could not load player statistics. Please check that the player stats API is running.
-            </div>
-        `;
+        setAiInsightsError("Unable to load structured AI insights.");
+        setProviderLeadersError();
     }
 }
 
@@ -598,8 +935,8 @@ function setLoadingState() {
     elements.dashboardMessage.textContent = "Loading fixtures...";
     elements.standingsMessage.textContent = "Loading standings...";
     elements.insightsMessage.textContent = "Loading insights...";
-    elements.aiInsightsMessage.textContent = "Loading structured AI insights...";
-    elements.playerStatsMessage.textContent = "Loading player statistics...";
+    setAiInsightsLoading();
+    setProviderLeadersLoading();
 }
 
 function renderInsights(insights) {
@@ -661,11 +998,114 @@ function renderInsights(insights) {
     });
 }
 
+function setGroupRaceLoading() {
+    if (!elements.groupRaceMessage || !elements.groupRaceContainer) {
+        return;
+    }
+
+    elements.groupRaceMessage.textContent =
+        "Loading the current top two teams in each group.";
+    elements.groupRaceContainer.innerHTML = `
+        <div class="group-race-empty">
+            Checking completed-fixture standings for the current group race.
+        </div>
+    `;
+}
+
+function setGroupRaceError() {
+    if (!elements.groupRaceMessage || !elements.groupRaceContainer) {
+        return;
+    }
+
+    elements.groupRaceMessage.textContent =
+        "The group race could not be loaded.";
+    elements.groupRaceContainer.innerHTML = `
+        <div class="group-race-empty">
+            Top-two group positions are currently unavailable.
+        </div>
+    `;
+}
+
+function renderGroupRace(groupRace, filters = {}) {
+    if (!elements.groupRaceMessage || !elements.groupRaceContainer) {
+        return;
+    }
+
+    const groups = Array.isArray(groupRace?.groups) ? groupRace.groups : [];
+    const teamsPerGroup = Number(groupRace?.teams_per_group) || 2;
+    const scopeParts = [];
+
+    if (filters.group_name) {
+        scopeParts.push(filters.group_name);
+    }
+
+    if (filters.team) {
+        scopeParts.push(filters.team);
+    }
+
+    const scope = scopeParts.length
+        ? ` for ${scopeParts.join(" / ")}`
+        : "";
+
+    if (groups.length === 0) {
+        elements.groupRaceMessage.textContent =
+            `No completed-fixture group race is available${scope} yet.`;
+        elements.groupRaceContainer.innerHTML = `
+            <div class="group-race-empty">
+                Top-two positions will appear after completed group-stage fixtures are available.
+            </div>
+        `;
+        return;
+    }
+
+    elements.groupRaceMessage.textContent =
+        `Showing the current top ${teamsPerGroup} team${teamsPerGroup === 1 ? "" : "s"} across ${groups.length} group${groups.length === 1 ? "" : "s"}${scope}.`;
+
+    elements.groupRaceContainer.innerHTML = groups.map((group) => {
+        const teams = Array.isArray(group.teams) ? group.teams : [];
+
+        return `
+            <article class="group-race-card">
+                <div class="group-race-card-heading">
+                    <div>
+                        <span class="group-race-label">Qualification picture</span>
+                        <h4>${escapeHtml(group.group_name || "Group")}</h4>
+                    </div>
+                    <span class="group-race-card-count">Top ${formatNumber(teamsPerGroup)}</span>
+                </div>
+
+                <div class="group-race-table" role="table" aria-label="${escapeHtml(group.group_name || "Group")} top two">
+                    <div class="group-race-row group-race-table-heading" role="row">
+                        <span role="columnheader">#</span>
+                        <span role="columnheader">Team</span>
+                        <span role="columnheader">P</span>
+                        <span role="columnheader">GD</span>
+                        <span role="columnheader">Pts</span>
+                    </div>
+                    ${teams.map((team, index) => `
+                        <div class="group-race-row" role="row">
+                            <span class="group-race-rank" role="cell">${formatNumber(team.rank || index + 1)}</span>
+                            <span class="group-race-team" role="cell">
+                                <strong>${escapeHtml(team.team || "Team unavailable")}</strong>
+                                <small>${escapeHtml(team.team_code || "")}</small>
+                            </span>
+                            <span role="cell">${formatNumber(team.played)}</span>
+                            <span role="cell">${formatSignedNumber(team.goal_difference)}</span>
+                            <strong role="cell">${formatNumber(team.points)}</strong>
+                        </div>
+                    `).join("")}
+                </div>
+            </article>
+        `;
+    }).join("");
+}
+
 function setAiInsightsLoading() {
     elements.aiInsightsMessage.textContent = "Loading structured AI insights...";
     elements.aiInsightsSummary.className = "ai-insights-summary";
     elements.aiInsightsSummary.textContent = "Checking fixture, standings, and provider sync context.";
     elements.aiInsightsContainer.innerHTML = "";
+    setGroupRaceLoading();
 }
 
 function setAiInsightsError(message) {
@@ -678,6 +1118,7 @@ function setAiInsightsError(message) {
             Structured AI insights are currently unavailable.
         </div>
     `;
+    setGroupRaceError();
 }
 
 function renderAiInsights(aiInsights) {
@@ -702,6 +1143,8 @@ function renderAiInsights(aiInsights) {
     elements.aiInsightsSummary.textContent =
         `${aiInsights.summary} Mode: ${mode}. Fixtures: ${fixtureCount}. Completed: ${completedCount}. Sync status: ${syncStatus}.`;
 
+    renderGroupRace(aiInsights.group_race, aiInsights.filters || {});
+
     if (aiInsights.insights.length === 0) {
         elements.aiInsightsContainer.innerHTML = `
             <div class="empty-state">
@@ -725,60 +1168,284 @@ function renderAiInsights(aiInsights) {
     });
 }
 
-function renderPlayerStats(playerStats) {
-    elements.playerStatsContainer.innerHTML = "";
-
-    if (!hasPlayerStatsData(playerStats)) {
-        elements.playerStatsContainer.innerHTML = `
-            <div class="empty-state">
-                Player statistics will appear after sample player stats are synced.
-            </div>
-        `;
-        elements.playerStatsMessage.textContent = "No player statistics are available yet.";
+function setProviderLeadersLoading() {
+    if (!elements.playerStatsMessage || !elements.playerStatsContainer) {
         return;
     }
 
-    const selectedGroup = state.filters.group || "all groups";
-    const selectedTeam = state.filters.team ? ` matching "${state.filters.team}"` : "";
+    elements.playerStatsMessage.textContent =
+        "Loading provider-backed scorer and card leaderboards...";
+    elements.playerStatsContainer.innerHTML = `
+        <div class="empty-state">
+            Loading real scorer and discipline events from stored provider match details.
+        </div>
+    `;
+}
+
+function setProviderLeadersError() {
+    if (!elements.playerStatsMessage || !elements.playerStatsContainer) {
+        return;
+    }
 
     elements.playerStatsMessage.textContent =
-        `Showing player leaders for ${selectedGroup}${selectedTeam}.`;
+        "Provider-backed player leaderboards are currently unavailable.";
+    elements.playerStatsContainer.innerHTML = `
+        <div class="empty-state">
+            Player leaders are shown only when real provider match details are available.
+        </div>
+    `;
+}
 
-    const cards = [
-        {
-            label: "Top Scorers",
-            value: formatPlayerMetricList(playerStats.topScorers, "goals", "G"),
-            detail: "Players ranked by goals, then assists.",
-        },
-        {
-            label: "Top Assists",
-            value: formatPlayerMetricList(playerStats.topAssists, "assists", "A"),
-            detail: "Players creating the most goals.",
-        },
-        {
-            label: "Yellow Cards",
-            value: formatPlayerMetricList(playerStats.yellowCards, "yellow_cards", "YC"),
-            detail: "Players with the most yellow cards.",
-        },
-        {
-            label: "Red Cards",
-            value: formatPlayerMetricList(playerStats.redCards, "red_cards", "RC"),
-            detail: "Players with red card records.",
-        },
-    ];
+function getProviderLeaderScope(filters = {}) {
+    const scope = [];
 
-    cards.forEach((item) => {
-        const card = document.createElement("article");
-        card.className = "player-stat-card";
+    if (filters.group_name) {
+        scope.push(filters.group_name);
+    }
 
-        card.innerHTML = `
-            <span class="player-stat-label">${escapeHtml(item.label)}</span>
-            <strong>${escapeHtml(item.value)}</strong>
-            <p>${escapeHtml(item.detail)}</p>
+    if (filters.team) {
+        scope.push(filters.team);
+    }
+
+    if (scope.length === 0) {
+        return "";
+    }
+
+    return ` for ${scope.join(" / ")}`;
+}
+
+function getPlayerMetricText(value, singularLabel, pluralLabel) {
+    const metricValue = Number(formatNumber(value));
+
+    return `${metricValue} ${metricValue === 1 ? singularLabel : pluralLabel}`;
+}
+
+function renderPlayerLeaderList(players, metricKey, singularLabel, pluralLabel) {
+    if (!Array.isArray(players) || players.length === 0) {
+        return `
+            <p class="player-leader-empty">
+                No provider-backed ${pluralLabel.toLowerCase()} have been recorded in this scope.
+            </p>
         `;
+    }
 
-        elements.playerStatsContainer.appendChild(card);
-    });
+    return `
+        <ol class="player-leader-list">
+            ${players.map((player, index) => {
+                const playerName = player?.player_name || "Player unavailable";
+                const team = player?.team || "Team unavailable";
+                const teamCode = player?.team_code ? ` · ${player.team_code}` : "";
+                const groupName = player?.group_name || "Group unavailable";
+                const metricText = getPlayerMetricText(
+                    player?.[metricKey],
+                    singularLabel,
+                    pluralLabel,
+                );
+
+                return `
+                    <li class="player-leader-row">
+                        <span class="player-leader-rank">${index + 1}</span>
+                        <span class="player-leader-identity">
+                            <strong>${escapeHtml(playerName)}</strong>
+                            <small>${escapeHtml(`${team}${teamCode} · ${groupName}`)}</small>
+                        </span>
+                        <span class="player-leader-metric">${escapeHtml(metricText)}</span>
+                    </li>
+                `;
+            }).join("")}
+        </ol>
+    `;
+}
+
+function renderPlayerLeaderboardCard({
+    title,
+    detail,
+    players,
+    metricKey,
+    singularLabel,
+    pluralLabel,
+}) {
+    return `
+        <article class="player-leaderboard-card">
+            <div class="player-leaderboard-heading">
+                <div>
+                    <span class="player-stat-label">${escapeHtml(title)}</span>
+                    <p>${escapeHtml(detail)}</p>
+                </div>
+            </div>
+            ${renderPlayerLeaderList(
+                players,
+                metricKey,
+                singularLabel,
+                pluralLabel,
+            )}
+        </article>
+    `;
+}
+
+function renderProviderLeaders(data) {
+    if (!data || !data.leaderboards) {
+        setProviderLeadersError();
+        return;
+    }
+
+    const coverage = data.coverage || {};
+    const leaderboards = data.leaderboards || {};
+    const assistData = data.assist_data || {};
+    const filters = data.filters || {};
+    const completedFixtureCount = formatNumber(coverage.completed_fixture_count);
+    const detailedFixtureCount = formatNumber(coverage.detailed_fixture_count);
+    const provider = data.provider || "provider";
+    const scope = getProviderLeaderScope(filters);
+
+    elements.playerStatsMessage.textContent =
+        `Showing real scorer and card leaders${scope} from ${detailedFixtureCount} detailed completed fixture${detailedFixtureCount === 1 ? "" : "s"}.`;
+
+    elements.playerStatsContainer.innerHTML = `
+        <article class="provider-coverage-card">
+            <div>
+                <span class="provider-coverage-label">Live data coverage</span>
+                <strong>${escapeHtml(`${detailedFixtureCount} of ${completedFixtureCount} completed fixtures have stored match details`)}</strong>
+                <p>
+                    Goals and cards are derived from the stored ${escapeHtml(provider)} event payload.
+                    No generic sample player records are used here.
+                </p>
+            </div>
+            <span class="provider-source-badge">${escapeHtml(provider)}</span>
+        </article>
+
+        ${renderPlayerLeaderboardCard({
+            title: "Top scorers",
+            detail: "Goal events from completed provider-backed matches.",
+            players: leaderboards.top_scorers,
+            metricKey: "goals",
+            singularLabel: "goal",
+            pluralLabel: "goals",
+        })}
+
+        ${renderPlayerLeaderboardCard({
+            title: "Yellow card leaders",
+            detail: "Discipline events recorded in completed matches.",
+            players: leaderboards.yellow_card_leaders,
+            metricKey: "yellow_cards",
+            singularLabel: "yellow card",
+            pluralLabel: "yellow cards",
+        })}
+
+        ${renderPlayerLeaderboardCard({
+            title: "Red card leaders",
+            detail: "Dismissal events recorded in completed matches.",
+            players: leaderboards.red_card_leaders,
+            metricKey: "red_cards",
+            singularLabel: "red card",
+            pluralLabel: "red cards",
+        })}
+
+        <aside class="assist-availability-note">
+            <strong>Assist leaders unavailable</strong>
+            <p>${escapeHtml(
+                assistData.message
+                || "The current provider match-detail payload does not include assist events."
+            )}</p>
+        </aside>
+    `;
+}
+
+function setLatestCompletedSummaryLoading() {
+    if (!elements.latestCompletedSummary) {
+        return;
+    }
+
+    elements.latestCompletedSummary.className = "latest-completed-summary";
+    elements.latestCompletedSummary.innerHTML = `
+        <span class="latest-completed-loading">
+            Loading the latest provider-backed completed match...
+        </span>
+    `;
+}
+
+function setLatestCompletedSummaryError() {
+    if (!elements.latestCompletedSummary) {
+        return;
+    }
+
+    elements.latestCompletedSummary.className = "latest-completed-summary error";
+    elements.latestCompletedSummary.innerHTML = `
+        <strong>Latest completed match unavailable</strong>
+        <p>
+            The provider-backed latest-result summary could not be loaded right now.
+        </p>
+    `;
+}
+
+function formatLatestMajorIncident(incident) {
+    if (incident?.description) {
+        return String(incident.description);
+    }
+
+    const player = incident?.player || "Player unavailable";
+    const team = incident?.team || incident?.team_code || "team unavailable";
+    const color = incident?.color || "red";
+    const minute = incident?.minute === null || incident?.minute === undefined
+        ? ""
+        : ` · ${incident.minute}'`;
+
+    return `${player} (${team}) · ${color} card${minute}`;
+}
+
+function renderLatestCompletedSummary(data) {
+    const fixture = data?.fixture;
+
+    if (!fixture || !fixture.home_team || !fixture.away_team) {
+        setLatestCompletedSummaryError();
+        return;
+    }
+
+    const majorIncidents = Array.isArray(data.major_incidents)
+        ? data.major_incidents
+        : [];
+    const scoreLine = `${fixture.home_team} ${formatScore(fixture.home_score)}–${formatScore(fixture.away_score)} ${fixture.away_team}`;
+    const provider = data.provider || "provider";
+    const resultSummary = data.summary || "No provider-backed summary is available for this completed match.";
+    const detailLabel = data.detail_available
+        ? "Detailed events stored"
+        : "Fixture result only";
+
+    const incidentsMarkup = majorIncidents.length > 0
+        ? `
+            <div class="latest-major-incidents">
+                <strong>Major incidents</strong>
+                <ul>
+                    ${majorIncidents.map((incident) => `
+                        <li>${escapeHtml(formatLatestMajorIncident(incident))}</li>
+                    `).join("")}
+                </ul>
+            </div>
+        `
+        : "";
+
+    elements.latestCompletedSummary.className = "latest-completed-summary success";
+    elements.latestCompletedSummary.innerHTML = `
+        <div class="latest-completed-heading">
+            <div>
+                <span class="latest-completed-label">Provider-backed latest result</span>
+                <h3>Latest Completed Match</h3>
+            </div>
+            <span class="provider-source-badge">${escapeHtml(provider)}</span>
+        </div>
+
+        <strong class="latest-completed-score">${escapeHtml(scoreLine)}</strong>
+
+        ${incidentsMarkup}
+
+        <p class="latest-completed-copy">${escapeHtml(resultSummary)}</p>
+
+        <div class="latest-completed-meta">
+            <span>${escapeHtml(fixture.group_name || "Group unavailable")}</span>
+            <span>${escapeHtml(formatDateTime(fixture.kickoff_time))}</span>
+            <span>${escapeHtml(detailLabel)}</span>
+        </div>
+    `;
 }
 
 function renderStandings(standings) {
@@ -794,84 +1461,88 @@ function renderStandings(standings) {
         return;
     }
 
-    const selectedGroup = state.filters.group || "all groups";
+    const standingsByGroup = standings.reduce((groups, team) => {
+        const groupName = team.group_name || "Other";
+        groups[groupName] = groups[groupName] || [];
+        groups[groupName].push(team);
+        return groups;
+    }, {});
 
-    elements.standingsMessage.textContent =
-        `Showing ${standings.length} team${standings.length === 1 ? "" : "s"} for ${selectedGroup}.`;
+    const groupNames = Object.keys(standingsByGroup).sort((left, right) =>
+        left.localeCompare(right, undefined, { numeric: true })
+    );
 
-    const table = document.createElement("div");
-    table.className = "standings-table-wrapper";
-
-    table.innerHTML = `
-        <table class="standings-table">
-            <thead>
-                <tr>
-                    <th>Group</th>
-                    <th>Team</th>
-                    <th>P</th>
-                    <th>W</th>
-                    <th>D</th>
-                    <th>L</th>
-                    <th>GF</th>
-                    <th>GA</th>
-                    <th>GD</th>
-                    <th>Pts</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${standings.map((team) => `
-                    <tr>
-                        <td>${escapeHtml(team.group_name)}</td>
-                        <td>
-                            <strong>${escapeHtml(team.team)}</strong>
-                            <span class="team-code">${escapeHtml(team.team_code || "")}</span>
-                        </td>
-                        <td>${formatNumber(team.played)}</td>
-                        <td>${formatNumber(team.wins)}</td>
-                        <td>${formatNumber(team.draws)}</td>
-                        <td>${formatNumber(team.losses)}</td>
-                        <td>${formatNumber(team.goals_for)}</td>
-                        <td>${formatNumber(team.goals_against)}</td>
-                        <td>${formatSignedNumber(team.goal_difference)}</td>
-                        <td><strong>${formatNumber(team.points)}</strong></td>
-                    </tr>
-                `).join("")}
-            </tbody>
-        </table>
-    `;
-
-    elements.standingsContainer.appendChild(table);
-}
-
-function renderFixtures(fixtures) {
-    elements.fixturesContainer.innerHTML = "";
-
-    if (fixtures.length === 0) {
-        elements.fixturesContainer.innerHTML = `
-            <div class="empty-state">
-                No fixtures match the selected filters.
-            </div>
-        `;
-        elements.dashboardMessage.textContent = "Try changing or resetting the filters.";
-        return;
+    if (state.fixtureScope === "knockout") {
+        elements.standingsMessage.textContent =
+            "Knockout fixtures are selected above. Group standings remain based on completed group-stage results.";
+    } else {
+        const selectedGroup = state.filters.group || "all groups";
+        elements.standingsMessage.textContent =
+            `Showing compact standings for ${groupNames.length} group${groupNames.length === 1 ? "" : "s"} in ${selectedGroup}.`;
     }
 
-    elements.dashboardMessage.textContent = `Showing ${fixtures.length} fixture${fixtures.length === 1 ? "" : "s"}.`;
+    const groupGrid = document.createElement("div");
+    groupGrid.className = "group-standings-grid";
 
-    fixtures.forEach((fixture) => {
+    groupNames.forEach((groupName) => {
+        const rows = standingsByGroup[groupName];
+
         const card = document.createElement("article");
-        card.className = "fixture-card";
-        card.tabIndex = 0;
-
-        const fixtureId = fixture.id;
-        const savedSummary = state.fixtureSummaries[fixtureId];
-        const matchLabel = `${fixture.home_team || "Home team"} vs ${fixture.away_team || "Away team"}`;
-
-        card.dataset.fixtureCardId = fixtureId;
-        card.setAttribute("role", "button");
-        card.setAttribute("aria-label", `Open match detail for ${matchLabel}`);
+        card.className = "group-standings-card";
 
         card.innerHTML = `
+            <div class="group-standings-header">
+                <div>
+                    <span class="group-standings-label">Standings</span>
+                    <h3>${escapeHtml(groupName)}</h3>
+                </div>
+                <span>${formatNumber(rows.length)} teams</span>
+            </div>
+
+            <div class="standings-compact-table" role="table" aria-label="${escapeHtml(groupName)} standings">
+                <div class="standings-compact-row standings-compact-heading" role="row">
+                    <span role="columnheader">#</span>
+                    <span role="columnheader">Team</span>
+                    <span role="columnheader">P</span>
+                    <span role="columnheader">GD</span>
+                    <span role="columnheader">Pts</span>
+                </div>
+                ${rows.map((team, index) => `
+                    <div class="standings-compact-row" role="row">
+                        <span role="cell">${index + 1}</span>
+                        <span class="standings-team" role="cell">
+                            <strong>${escapeHtml(team.team)}</strong>
+                            <small>${escapeHtml(team.team_code || "")}</small>
+                        </span>
+                        <span role="cell">${formatNumber(team.played)}</span>
+                        <span role="cell">${formatSignedNumber(team.goal_difference)}</span>
+                        <strong role="cell">${formatNumber(team.points)}</strong>
+                    </div>
+                `).join("")}
+            </div>
+        `;
+
+        groupGrid.appendChild(card);
+    });
+
+    elements.standingsContainer.appendChild(groupGrid);
+}
+
+function buildFixtureCardMarkup(fixture) {
+    const fixtureId = fixture.id;
+    const savedSummary = state.fixtureSummaries[fixtureId];
+    const matchLabel = `${fixture.home_team || "Home team"} vs ${fixture.away_team || "Away team"}`;
+    const selected = String(state.selectedFixtureId) === String(fixtureId);
+
+    return `
+        <article
+            class="fixture-card ${selected ? "is-selected" : ""}"
+            tabindex="0"
+            role="button"
+            aria-label="Open match detail for ${escapeHtml(matchLabel)}"
+            aria-pressed="${selected ? "true" : "false"}"
+            data-fixture-card-id="${escapeHtml(fixtureId)}"
+        >
             <div class="fixture-meta">
                 <span>${escapeHtml(fixture.competition || "World Cup 2026")}</span>
                 <span>${escapeHtml(fixture.group_name || fixture.stage || "Fixture")}</span>
@@ -902,13 +1573,13 @@ function renderFixtures(fixtures) {
                 </span>
             </div>
 
-            <div class="fixture-card-hint">Click card for match detail dashboard</div>
+            <div class="fixture-card-hint">Open match detail</div>
 
             <div class="fixture-ai-actions">
                 <button
                     class="fixture-ai-button"
                     type="button"
-                    data-fixture-summary-id="${fixtureId}"
+                    data-fixture-summary-id="${escapeHtml(fixtureId)}"
                 >
                     Generate Match Summary
                 </button>
@@ -916,23 +1587,116 @@ function renderFixtures(fixtures) {
 
             <div
                 class="fixture-ai-summary ${savedSummary ? "success" : ""}"
-                id="fixture-summary-${fixtureId}"
+                id="fixture-summary-${escapeHtml(fixtureId)}"
+                ${savedSummary ? "" : "hidden"}
             >
-                ${savedSummary ? escapeHtml(savedSummary) : "No match summary generated yet."}
+                ${savedSummary ? escapeHtml(savedSummary) : ""}
+            </div>
+        </article>
+    `;
+}
+
+function groupFixturesForDisplay(fixtures) {
+    return fixtures.reduce((groups, fixture) => {
+        const groupName = getFixtureDisplayGroup(fixture);
+
+        if (!groups[groupName]) {
+            groups[groupName] = [];
+        }
+
+        groups[groupName].push(fixture);
+        return groups;
+    }, {});
+}
+
+function renderFixtures(fixtures) {
+    elements.fixturesContainer.innerHTML = "";
+
+    if (fixtures.length === 0) {
+        elements.fixturesContainer.className = "fixtures-grid";
+        elements.fixturesContainer.innerHTML = `
+            <div class="empty-state">
+                No fixtures match the selected status and group.
             </div>
         `;
+        elements.dashboardMessage.textContent = "Choose another match status or group.";
+        return;
+    }
 
-        elements.fixturesContainer.appendChild(card);
+    const activeLabel = state.fixtureStatusScope === "upcoming"
+        ? "upcoming"
+        : state.fixtureStatusScope;
+    elements.dashboardMessage.textContent =
+        `Showing ${fixtures.length} ${activeLabel} fixture${fixtures.length === 1 ? "" : "s"}.`;
+
+    const renderAllGroups = state.fixtureScope === "all" && fixtures.length > 6;
+
+    if (!renderAllGroups) {
+        elements.fixturesContainer.className = "fixtures-grid";
+        elements.fixturesContainer.innerHTML = fixtures
+            .map((fixture) => buildFixtureCardMarkup(fixture))
+            .join("");
+        return;
+    }
+
+    const groups = groupFixturesForDisplay(fixtures);
+    const groupNames = Object.keys(groups).sort((left, right) =>
+        left.localeCompare(right, undefined, { numeric: true })
+    );
+
+    elements.fixturesContainer.className = "fixtures-grouped-sections";
+    elements.fixturesContainer.innerHTML = groupNames.map((groupName, index) => `
+        <details class="fixture-group-section" ${index === 0 ? "open" : ""}>
+            <summary>
+                <span>${escapeHtml(groupName)}</span>
+                <small>${formatNumber(groups[groupName].length)} match${groups[groupName].length === 1 ? "" : "es"}</small>
+            </summary>
+            <div class="fixture-group-fixtures">
+                ${groups[groupName].map((fixture) => buildFixtureCardMarkup(fixture)).join("")}
+            </div>
+        </details>
+    `).join("");
+}
+
+function syncSelectedFixtureCard() {
+    document.querySelectorAll("[data-fixture-card-id]").forEach((card) => {
+        const selected = String(card.dataset.fixtureCardId) === String(state.selectedFixtureId);
+
+        card.classList.toggle("is-selected", selected);
+        card.setAttribute("aria-pressed", selected ? "true" : "false");
     });
 }
 
 function getMatchDetailElements() {
     return {
-        panel: document.querySelector("#match-detail-panel"),
+        panel: elements.matchDetailPanel || document.querySelector("#match-detail-panel"),
         title: document.querySelector("#match-detail-title"),
         status: document.querySelector("#match-detail-status"),
         detail: document.querySelector("#selected-match-detail"),
     };
+}
+
+async function fetchFixtureDetail(fixtureId) {
+    const possibleEndpoints = [
+        `/api/fixtures/${fixtureId}/detail`,
+        `/fixtures/${fixtureId}/detail`,
+    ];
+
+    for (const endpoint of possibleEndpoints) {
+        try {
+            const response = await fetch(endpoint);
+
+            if (!response.ok) {
+                continue;
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.warn(`Unable to fetch fixture detail from ${endpoint}`, error);
+        }
+    }
+
+    throw new Error("Unable to load provider-backed fixture detail.");
 }
 
 function formatMatchScoreline(fixture) {
@@ -942,33 +1706,460 @@ function formatMatchScoreline(fixture) {
     return `${homeScore} - ${awayScore}`;
 }
 
-function renderProviderAvailabilityNote() {
+function getTeamNameFromSide(side, fixture) {
+    return side === "away"
+        ? fixture.away_team || "Away team"
+        : fixture.home_team || "Home team";
+}
+
+function formatDetailMinute(value) {
+    if (value === null || value === undefined || value === "") {
+        return "–";
+    }
+
+    return `${value}'`;
+}
+
+function getMatchDetailTabs() {
+    return [
+        { id: "overview", label: "Overview" },
+        { id: "timeline", label: "Timeline" },
+        { id: "stats", label: "Stats" },
+        { id: "lineups", label: "Lineups" },
+    ];
+}
+
+function renderMatchDetailTabs() {
     return `
-        <div class="match-detail-note">
-            <strong>Provider detail status:</strong>
-            Zafronix fixture sync is available for core match records. Detailed timelines,
-            lineups, cards, formations, and per-match statistics will appear here when those
-            fields are added to the local data model.
+        <div class="match-detail-tabs" role="tablist" aria-label="Selected match detail">
+            ${getMatchDetailTabs().map((tab) => {
+                const active = tab.id === state.activeMatchDetailTab;
+
+                return `
+                    <button
+                        class="match-detail-tab ${active ? "is-active" : ""}"
+                        type="button"
+                        role="tab"
+                        aria-selected="${active ? "true" : "false"}"
+                        data-match-detail-tab="${tab.id}"
+                    >
+                        ${tab.label}
+                    </button>
+                `;
+            }).join("")}
         </div>
     `;
 }
 
-function renderFixtureDetail(fixture) {
+function isRedCard(card) {
+    const color = String(card?.color || "").toLowerCase();
+
+    return color.includes("red") || color.includes("second");
+}
+
+function buildTimelineEvents(fixture, detail) {
+    const events = [];
+
+    (detail?.goals || []).forEach((goal) => {
+        events.push({
+            minute: goal.minute,
+            kind: "goal",
+            team: getTeamNameFromSide(goal.team, fixture),
+            actor: goal.scorer || "Scorer unavailable",
+            description: "Goal",
+        });
+    });
+
+    (detail?.cards || []).forEach((card) => {
+        const redCard = isRedCard(card);
+
+        events.push({
+            minute: card.minute,
+            kind: redCard ? "red-card" : "yellow-card",
+            team: getTeamNameFromSide(card.team, fixture),
+            actor: card.player || "Player unavailable",
+            description: redCard ? "Red card" : "Yellow card",
+        });
+    });
+
+    (detail?.substitutions || []).forEach((substitution) => {
+        events.push({
+            minute: substitution.minute,
+            kind: "substitution",
+            team: getTeamNameFromSide(substitution.team, fixture),
+            actor: substitution.on || "Substitute",
+            description: `On for ${substitution.off || "player unavailable"}`,
+        });
+    });
+
+    return events.sort((left, right) => {
+        const leftMinute = parseMatchMinute(left.minute);
+        const rightMinute = parseMatchMinute(right.minute);
+
+        if (leftMinute !== rightMinute) {
+            return leftMinute - rightMinute;
+        }
+
+        return left.kind.localeCompare(right.kind);
+    });
+}
+
+function parseMatchMinute(value) {
+    const match = String(value ?? "").match(/^(\d+)(?:\+(\d+))?/);
+
+    if (!match) {
+        return Number.MAX_SAFE_INTEGER;
+    }
+
+    return Number(match[1]) + (Number(match[2] || 0) / 100);
+}
+
+function renderKeyMatchEvents(fixture, detail) {
+    const events = buildTimelineEvents(fixture, detail)
+        .filter((event) => event.kind === "goal" || event.kind === "red-card")
+        .slice(0, 6);
+
+    if (events.length === 0) {
+        return `
+            <div class="match-detail-empty">
+                No goals or red-card incidents have been supplied for this match.
+            </div>
+        `;
+    }
+
+    return `
+        <div class="match-key-events">
+            ${events.map((event) => `
+                <div class="match-key-event ${event.kind}">
+                    <span>${escapeHtml(formatDetailMinute(event.minute))}</span>
+                    <div>
+                        <strong>${escapeHtml(event.description)} · ${escapeHtml(event.actor)}</strong>
+                        <small>${escapeHtml(event.team)}</small>
+                    </div>
+                </div>
+            `).join("")}
+        </div>
+    `;
+}
+
+function formatWeather(weather) {
+    if (!weather || Object.keys(weather).length === 0) {
+        return "Weather data unavailable";
+    }
+
+    const parts = [];
+
+    if (weather.tempC !== undefined && weather.tempC !== null) {
+        parts.push(`${weather.tempC}°C`);
+    }
+
+    if (weather.humidityPct !== undefined && weather.humidityPct !== null) {
+        parts.push(`${weather.humidityPct}% humidity`);
+    }
+
+    if (weather.windKmh !== undefined && weather.windKmh !== null) {
+        parts.push(`${weather.windKmh} km/h wind`);
+    }
+
+    return parts.length ? parts.join(" · ") : "Weather data unavailable";
+}
+
+function renderMatchDetailOverview(fixture, detail, options = {}) {
+    const savedSummary = state.fixtureSummaries[fixture.id];
+    const formations = detail?.formations || {};
+    const referee = detail?.referee || {};
+    const weather = detail?.weather || {};
+
+    if (options.isLoading) {
+        return `
+            <div class="match-detail-loading">
+                Loading provider-backed timeline, statistics, and lineup data...
+            </div>
+        `;
+    }
+
+    if (!detail) {
+        const reason = options.error
+            ? "Provider match detail could not be loaded right now."
+            : "Provider match detail has not been stored for this fixture yet.";
+
+        return `
+            <div class="match-detail-note ${options.error ? "error" : ""}">
+                <strong>Provider detail status:</strong> ${escapeHtml(reason)}
+            </div>
+            <div class="match-detail-context">
+                <h4>AI match summary</h4>
+                <p>${escapeHtml(savedSummary || "No match summary generated yet. Use the Generate Match Summary button on the fixture card.")}</p>
+            </div>
+        `;
+    }
+
+    return `
+        <div class="match-detail-overview-grid">
+            <article class="match-detail-fact">
+                <span>Formation</span>
+                <strong>${escapeHtml(formations.home || "–")} <small>vs</small> ${escapeHtml(formations.away || "–")}</strong>
+            </article>
+            <article class="match-detail-fact">
+                <span>Referee</span>
+                <strong>${escapeHtml(referee.name || "Not supplied")}</strong>
+                <small>${escapeHtml(referee.country || "")}</small>
+            </article>
+            <article class="match-detail-fact">
+                <span>Conditions</span>
+                <strong>${escapeHtml(formatWeather(weather))}</strong>
+            </article>
+            <article class="match-detail-fact">
+                <span>Provider</span>
+                <strong>${escapeHtml(detail.provider || "Unknown provider")}</strong>
+                <small>Match ID ${escapeHtml(detail.provider_match_id || "–")}</small>
+            </article>
+        </div>
+
+        <div class="match-detail-context">
+            <h4>Key incidents</h4>
+            ${renderKeyMatchEvents(fixture, detail)}
+        </div>
+
+        <div class="match-detail-context">
+            <h4>AI match summary</h4>
+            <p>${escapeHtml(savedSummary || "No match summary generated yet. Use the Generate Match Summary button on the fixture card.")}</p>
+        </div>
+    `;
+}
+
+function renderMatchTimelineTab(fixture, detail) {
+    if (!detail) {
+        return `
+            <div class="match-detail-empty">
+                Timeline data is not available for this fixture yet.
+            </div>
+        `;
+    }
+
+    const events = buildTimelineEvents(fixture, detail);
+
+    if (events.length === 0) {
+        return `
+            <div class="match-detail-empty">
+                No provider event timeline is available for this fixture.
+            </div>
+        `;
+    }
+
+    return `
+        <div class="match-timeline" aria-label="Match event timeline">
+            ${events.map((event) => `
+                <article class="timeline-event ${event.kind}">
+                    <span class="timeline-minute">${escapeHtml(formatDetailMinute(event.minute))}</span>
+                    <div class="timeline-marker" aria-hidden="true"></div>
+                    <div class="timeline-content">
+                        <strong>${escapeHtml(event.description)} · ${escapeHtml(event.actor)}</strong>
+                        <p>${escapeHtml(event.team)}</p>
+                    </div>
+                </article>
+            `).join("")}
+        </div>
+    `;
+}
+
+function getStatisticNumber(statistics, key) {
+    const value = Number(statistics?.[key]);
+
+    return Number.isFinite(value) ? value : 0;
+}
+
+function formatMatchStatistic(key, value) {
+    if (key === "possessionPct") {
+        return `${value}%`;
+    }
+
+    if (key === "expectedGoals") {
+        return value.toFixed(2);
+    }
+
+    return String(value);
+}
+
+function getStatisticShare(homeValue, awayValue) {
+    const total = homeValue + awayValue;
+
+    if (total <= 0) {
+        return 50;
+    }
+
+    return Math.max(0, Math.min(100, (homeValue / total) * 100));
+}
+
+function renderStatisticComparison(label, key, homeStats, awayStats) {
+    const homeValue = getStatisticNumber(homeStats, key);
+    const awayValue = getStatisticNumber(awayStats, key);
+    const homeShare = getStatisticShare(homeValue, awayValue);
+
+    return `
+        <article class="stat-comparison-row">
+            <div class="stat-comparison-values">
+                <strong>${escapeHtml(formatMatchStatistic(key, homeValue))}</strong>
+                <span>${escapeHtml(label)}</span>
+                <strong>${escapeHtml(formatMatchStatistic(key, awayValue))}</strong>
+            </div>
+            <div class="stat-comparison-track" aria-label="${escapeHtml(label)} comparison">
+                <span class="stat-comparison-home" style="width: ${homeShare.toFixed(2)}%"></span>
+                <span class="stat-comparison-away" style="width: ${(100 - homeShare).toFixed(2)}%"></span>
+            </div>
+        </article>
+    `;
+}
+
+function renderMatchStatsTab(fixture, detail) {
+    const statistics = detail?.statistics || {};
+    const homeStats = statistics.home || {};
+    const awayStats = statistics.away || {};
+
+    if (Object.keys(homeStats).length === 0 && Object.keys(awayStats).length === 0) {
+        return `
+            <div class="match-detail-empty">
+                Team statistics are not available for this fixture yet.
+            </div>
+        `;
+    }
+
+    const metrics = [
+        ["Possession", "possessionPct"],
+        ["Shots", "shotsTotal"],
+        ["Shots on target", "shotsOnGoal"],
+        ["Expected goals", "expectedGoals"],
+        ["Accurate passes", "passesAccurate"],
+        ["Corners", "corners"],
+        ["Fouls", "fouls"],
+    ];
+
+    return `
+        <div class="match-stats-heading">
+            <span>${escapeHtml(fixture.home_team || "Home")}</span>
+            <strong>Match statistics</strong>
+            <span>${escapeHtml(fixture.away_team || "Away")}</span>
+        </div>
+        <div class="match-stats-comparison">
+            ${metrics.map(([label, key]) =>
+                renderStatisticComparison(label, key, homeStats, awayStats)
+            ).join("")}
+        </div>
+        <p class="match-stats-note">
+            Comparison bars use provider-supplied values for this completed match.
+        </p>
+    `;
+}
+
+function getLineupGroups(players) {
+    const safePlayers = Array.isArray(players) ? players : [];
+
+    return {
+        starters: safePlayers.filter((player) => player?.starter),
+        substitutes: safePlayers.filter((player) => !player?.starter),
+    };
+}
+
+function renderLineupList(players, emptyMessage) {
+    if (!players.length) {
+        return `<div class="match-detail-empty compact">${escapeHtml(emptyMessage)}</div>`;
+    }
+
+    return `
+        <div class="lineup-list">
+            ${players.map((player) => `
+                <div class="lineup-player">
+                    <span class="lineup-number">${escapeHtml(player.number ?? "–")}</span>
+                    <div>
+                        <strong>${escapeHtml(player.player || "Player unavailable")}</strong>
+                        <small>
+                            ${escapeHtml(player.position || "Position unavailable")}
+                            ${player.captain ? " · Captain" : ""}
+                        </small>
+                    </div>
+                </div>
+            `).join("")}
+        </div>
+    `;
+}
+
+function renderLineupTeam(teamName, formation, players) {
+    const groups = getLineupGroups(players);
+
+    return `
+        <article class="lineup-team-card">
+            <div class="lineup-team-heading">
+                <div>
+                    <span>Lineup</span>
+                    <h4>${escapeHtml(teamName)}</h4>
+                </div>
+                <strong>${escapeHtml(formation || "Formation unavailable")}</strong>
+            </div>
+
+            <h5>Starting XI</h5>
+            ${renderLineupList(groups.starters, "Starting lineup not supplied.")}
+
+            ${groups.substitutes.length ? `
+                <h5>Bench</h5>
+                ${renderLineupList(groups.substitutes, "No bench data supplied.")}
+            ` : ""}
+        </article>
+    `;
+}
+
+function renderMatchLineupsTab(fixture, detail) {
+    const lineups = detail?.lineups || {};
+    const formations = detail?.formations || {};
+
+    if (!Array.isArray(lineups.home) && !Array.isArray(lineups.away)) {
+        return `
+            <div class="match-detail-empty">
+                Lineups are not available for this fixture yet.
+            </div>
+        `;
+    }
+
+    return `
+        <div class="lineup-grid">
+            ${renderLineupTeam(fixture.home_team || "Home", formations.home, lineups.home || [])}
+            ${renderLineupTeam(fixture.away_team || "Away", formations.away, lineups.away || [])}
+        </div>
+    `;
+}
+
+function renderMatchDetailContent(fixture, detail, options = {}) {
+    if (state.activeMatchDetailTab === "timeline") {
+        return renderMatchTimelineTab(fixture, detail);
+    }
+
+    if (state.activeMatchDetailTab === "stats") {
+        return renderMatchStatsTab(fixture, detail);
+    }
+
+    if (state.activeMatchDetailTab === "lineups") {
+        return renderMatchLineupsTab(fixture, detail);
+    }
+
+    return renderMatchDetailOverview(fixture, detail, options);
+}
+
+function renderFixtureDetail(fixture, detail = null, options = {}) {
     const matchDetail = getMatchDetailElements();
 
     if (!matchDetail.panel || !matchDetail.title || !matchDetail.status || !matchDetail.detail) {
         return;
     }
 
-    const fixtureId = fixture.id;
     const homeTeam = fixture.home_team || "Home team";
     const awayTeam = fixture.away_team || "Away team";
-    const savedSummary = state.fixtureSummaries[fixtureId];
 
     matchDetail.title.textContent = `${homeTeam} vs ${awayTeam}`;
     matchDetail.status.className = `status-pill ${getStatusClass(fixture.status)}`;
     matchDetail.status.textContent = formatStatus(fixture.status);
-    matchDetail.panel.scrollIntoView({ behavior: "smooth", block: "start" });
+
+    if (options.scroll) {
+        matchDetail.panel.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
 
     matchDetail.detail.innerHTML = `
         <div class="match-detail-scoreboard">
@@ -1002,69 +2193,48 @@ function renderFixtureDetail(fixture) {
             </div>
         </div>
 
-        <div class="match-detail-context">
-            <h4>Match context</h4>
-            <p>
-                This detail view uses the current fixture record from the backend and keeps the
-                dashboard mobile-friendly for live checks from Telegram or Cloudflare links.
-            </p>
-        </div>
+        ${renderMatchDetailTabs()}
 
-        <div class="match-detail-context">
-            <h4>AI match summary</h4>
-            <p>${escapeHtml(savedSummary || "No match summary generated yet. Use the Generate Match Summary button on the fixture card.")}</p>
+        <div class="match-detail-tab-panel" role="tabpanel">
+            ${renderMatchDetailContent(fixture, detail, options)}
         </div>
-
-        <div class="match-detail-placeholder-grid">
-            <div>
-                <h4>Stats</h4>
-                <p>Shots, possession, expected goals, and other match stats are not stored yet.</p>
-            </div>
-            <div>
-                <h4>Events</h4>
-                <p>Goals, cards, substitutions, and timeline events are not stored yet.</p>
-            </div>
-            <div>
-                <h4>Lineups</h4>
-                <p>Starting lineups and formations are not stored yet.</p>
-            </div>
-        </div>
-
-        ${renderProviderAvailabilityNote()}
     `;
 }
 
-async function selectFixture(fixtureId) {
+async function selectFixture(fixtureId, options = {}) {
     const fixtureFromState = state.visibleFixtures.find((fixture) => String(fixture.id) === String(fixtureId))
         || state.allFixtures.find((fixture) => String(fixture.id) === String(fixtureId));
 
-    if (fixtureFromState) {
-        renderFixtureDetail(fixtureFromState);
+    if (!fixtureFromState) {
+        return;
     }
 
+    state.selectedFixture = fixtureFromState;
+    state.selectedFixtureId = String(fixtureId);
+    state.selectedFixtureDetail = null;
+    state.activeMatchDetailTab = "overview";
+    syncSelectedFixtureCard();
+
+    renderFixtureDetail(fixtureFromState, null, {
+        isLoading: true,
+        scroll: options.scroll === true,
+    });
+
     try {
-        const response = await fetch(`/fixtures/${fixtureId}`);
+        const payload = await fetchFixtureDetail(fixtureId);
+        const fixture = payload.fixture || fixtureFromState;
+        const detail = payload.detail_available ? payload.detail : null;
 
-        if (!response.ok) {
-            throw new Error("Unable to load fixture detail.");
-        }
+        state.selectedFixture = fixture;
+        state.selectedFixtureDetail = detail;
 
-        const fixture = await response.json();
-        renderFixtureDetail(fixture);
+        renderFixtureDetail(fixture, detail);
     } catch (error) {
         console.error(error);
 
-        if (!fixtureFromState) {
-            const matchDetail = getMatchDetailElements();
-
-            if (matchDetail.detail) {
-                matchDetail.detail.innerHTML = `
-                    <div class="match-detail-note error">
-                        Unable to load this match detail. Please check that the backend API is running.
-                    </div>
-                `;
-            }
-        }
+        renderFixtureDetail(fixtureFromState, null, {
+            error: true,
+        });
     }
 }
 
@@ -1115,6 +2285,7 @@ async function generateSingleFixtureSummary(fixtureId, button) {
 
     button.disabled = true;
     button.textContent = "Generating...";
+    summaryElement.hidden = false;
     summaryElement.className = "fixture-ai-summary";
     summaryElement.textContent = "Generating match summary...";
 
@@ -1134,6 +2305,18 @@ async function generateSingleFixtureSummary(fixtureId, button) {
         state.fixtureSummaries[fixtureId] = summaryText;
         summaryElement.className = "fixture-ai-summary success";
         summaryElement.textContent = summaryText;
+
+        if (
+            state.selectedFixture
+            && String(state.selectedFixtureId) === String(fixtureId)
+        ) {
+            renderFixtureDetail(
+                state.selectedFixture,
+                state.selectedFixtureDetail,
+                { scroll: false },
+            );
+        }
+
         await checkAiHealth();
     } catch (error) {
         console.error(error);
@@ -1145,34 +2328,6 @@ async function generateSingleFixtureSummary(fixtureId, button) {
         button.disabled = false;
         button.textContent = "Generate Match Summary";
     }
-}
-
-function hasPlayerStatsData(playerStats) {
-    if (!playerStats) {
-        return false;
-    }
-
-    return [
-        playerStats.topScorers,
-        playerStats.topAssists,
-        playerStats.yellowCards,
-        playerStats.redCards,
-    ].some((items) => Array.isArray(items) && items.length > 0);
-}
-
-function formatPlayerMetricList(players, metricKey, metricLabel) {
-    if (!players || players.length === 0) {
-        return "No players yet";
-    }
-
-    return players
-        .slice(0, 3)
-        .map((player) => {
-            const value = formatNumber(player[metricKey]);
-            const teamCode = player.team_code || player.team || "Team";
-            return `${player.player_name} (${teamCode}, ${value} ${metricLabel})`;
-        })
-        .join(", ");
 }
 
 function formatScore(score) {
@@ -1228,15 +2383,17 @@ function formatSyncStatus(status) {
 }
 
 function getStatusClass(status) {
-    if (status === "complete") {
+    const category = getFixtureStatusCategory({ status });
+
+    if (category === "completed") {
         return "status-complete";
     }
 
-    if (status === "scheduled") {
+    if (category === "upcoming") {
         return "status-scheduled";
     }
 
-    if (status === "live") {
+    if (category === "live") {
         return "status-live";
     }
 
@@ -1311,6 +2468,57 @@ function scheduleFilterApply() {
     }, 250);
 }
 
+function setActiveSectionNavLink(sectionId) {
+    const links = document.querySelectorAll("[data-section-nav-link]");
+
+    links.forEach((link) => {
+        const isActive = link.dataset.sectionNavLink === sectionId;
+
+        link.classList.toggle("is-active", isActive);
+
+        if (isActive) {
+            link.setAttribute("aria-current", "page");
+        } else {
+            link.removeAttribute("aria-current");
+        }
+    });
+}
+
+function initializeSectionNavigation() {
+    const links = document.querySelectorAll("[data-section-nav-link]");
+    const sections = document.querySelectorAll("[data-dashboard-section]");
+
+    if (links.length === 0 || sections.length === 0) {
+        return;
+    }
+
+    links.forEach((link) => {
+        link.addEventListener("click", () => {
+            setActiveSectionNavLink(link.dataset.sectionNavLink);
+        });
+    });
+
+    if (!("IntersectionObserver" in window)) {
+        setActiveSectionNavLink(sections[0].id);
+        return;
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+        const activeEntry = entries
+            .filter((entry) => entry.isIntersecting)
+            .sort((left, right) => right.intersectionRatio - left.intersectionRatio)[0];
+
+        if (activeEntry) {
+            setActiveSectionNavLink(activeEntry.target.id);
+        }
+    }, {
+        rootMargin: "-25% 0px -60% 0px",
+        threshold: [0.1, 0.25, 0.5],
+    });
+
+    sections.forEach((section) => observer.observe(section));
+}
+
 function bindEvents() {
     elements.teamSearch.addEventListener("input", (event) => {
         state.filters.team = event.target.value;
@@ -1319,6 +2527,7 @@ function bindEvents() {
 
     elements.groupFilter.addEventListener("change", (event) => {
         state.filters.group = event.target.value;
+        syncFixtureScopeFromGroupFilter();
         applyFilters();
     });
 
@@ -1331,6 +2540,8 @@ function bindEvents() {
         state.filters.team = "";
         state.filters.group = "";
         state.filters.status = "";
+        state.fixtureStatusScope = "completed";
+        state.fixtureScope = "all";
 
         elements.teamSearch.value = "";
         elements.groupFilter.value = "";
@@ -1343,10 +2554,35 @@ function bindEvents() {
     elements.refreshSyncStatus.addEventListener("click", refreshFixtureSyncStatus);
     elements.refreshAiInsights.addEventListener("click", refreshAiInsights);
 
+    if (elements.fixtureStatusTabs) {
+        elements.fixtureStatusTabs.addEventListener("click", (event) => {
+            const tab = event.target.closest("[data-fixture-status-scope]");
+
+            if (!tab || tab.disabled) {
+                return;
+            }
+
+            setFixtureStatusScope(tab.dataset.fixtureStatusScope);
+        });
+    }
+
+    if (elements.fixtureGroupTabs) {
+        elements.fixtureGroupTabs.addEventListener("click", (event) => {
+            const tab = event.target.closest("[data-fixture-scope]");
+
+            if (!tab) {
+                return;
+            }
+
+            setFixtureScope(tab.dataset.fixtureScope);
+        });
+    }
+
     elements.fixturesContainer.addEventListener("click", (event) => {
         const button = event.target.closest("[data-fixture-summary-id]");
 
         if (button) {
+            event.stopPropagation();
             const fixtureId = button.dataset.fixtureSummaryId;
             generateSingleFixtureSummary(fixtureId, button);
             return;
@@ -1358,7 +2594,9 @@ function bindEvents() {
             return;
         }
 
-        selectFixture(fixtureCard.dataset.fixtureCardId);
+        selectFixture(fixtureCard.dataset.fixtureCardId, {
+            scroll: window.matchMedia("(max-width: 900px)").matches,
+        });
     });
 
     elements.fixturesContainer.addEventListener("keydown", (event) => {
@@ -1373,42 +2611,62 @@ function bindEvents() {
         }
 
         event.preventDefault();
-        selectFixture(fixtureCard.dataset.fixtureCardId);
+        selectFixture(fixtureCard.dataset.fixtureCardId, {
+            scroll: window.matchMedia("(max-width: 900px)").matches,
+        });
     });
+
+    if (elements.matchDetailPanel) {
+        elements.matchDetailPanel.addEventListener("click", (event) => {
+            const tab = event.target.closest("[data-match-detail-tab]");
+
+            if (!tab || !state.selectedFixture) {
+                return;
+            }
+
+            state.activeMatchDetailTab = tab.dataset.matchDetailTab;
+            renderFixtureDetail(
+                state.selectedFixture,
+                state.selectedFixtureDetail,
+                { scroll: false },
+            );
+        });
+    }
 }
 
 async function initializeDashboard() {
+    initializeSectionNavigation();
     bindEvents();
     setLoadingState();
     checkAiHealth();
     refreshFixtureSyncStatus();
+    void refreshLatestCompletedSummary();
+    void refreshProviderLeaders();
 
     try {
-        const [fixtures, standings, insights, aiInsights, playerStats] = await Promise.all([
-        fetchFixtures(),
-        fetchStandings(),
-        fetchInsights(),
-        fetchAiInsights(),
-        fetchPlayerStatsSummary(),
+        const [fixtures, standings, insights, aiInsights] = await Promise.all([
+            fetchFixtures(),
+            fetchStandings(),
+            fetchInsights(),
+            fetchAiInsights(),
         ]);
 
         state.allFixtures = fixtures;
-        state.visibleFixtures = fixtures;
         state.standings = standings;
         state.insights = insights;
         state.aiInsights = aiInsights;
-        state.playerStats = playerStats;
 
         populateFilters(state.allFixtures);
-        updateSummary(state.allFixtures, state.visibleFixtures);
         renderInsights(state.insights);
         renderAiInsights(state.aiInsights);
-        renderPlayerStats(state.playerStats);
         renderStandings(state.standings);
-        renderFixtures(state.visibleFixtures);
+        renderFixtureBrowser(state.allFixtures, { selectFirst: true });
     } catch (error) {
         console.error(error);
         elements.dashboardMessage.textContent = "Unable to load fixtures.";
+        if (elements.fixtureBrowserMessage) {
+            elements.fixtureBrowserMessage.textContent = "The fixture browser could not load match data.";
+        }
         elements.fixturesContainer.innerHTML = `
             <div class="empty-state">
                 The dashboard could not load fixture data. Please check that the API server is running.
@@ -1427,12 +2685,7 @@ async function initializeDashboard() {
                 The dashboard could not load group insight data. Please check that the insights API is running.
             </div>
         `;
-        elements.playerStatsMessage.textContent = "Unable to load player statistics.";
-        elements.playerStatsContainer.innerHTML = `
-            <div class="empty-state">
-                The dashboard could not load player statistics. Please check that the player stats API is running.
-            </div>
-        `;
+        setProviderLeadersError();
     }
 }
 

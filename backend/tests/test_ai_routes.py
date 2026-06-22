@@ -358,7 +358,7 @@ def test_ai_insights_after_sample_sync(client):
     assert "Fixture data available" in titles
     assert "Completed results detected" in titles
     assert "Group leaders available" in titles
-    assert "Strongest attacks identified" in titles
+    assert "Top two group positions" in titles
     assert "Provider sync runtime status" in titles
 
     summary = data["summary"].lower()

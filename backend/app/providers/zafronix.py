@@ -195,7 +195,172 @@ class ZafronixProvider(FootballProvider):
             "status": self._normalize_status(item.get("status")),
             "home_score": item.get("homeScore"),
             "away_score": item.get("awayScore"),
+            "match_detail": self._normalize_match_detail(item),
         }
+
+    def _normalize_match_detail(self, item: dict) -> dict:
+        raw_lineups = item.get("lineups")
+        raw_formations = item.get("formations")
+        raw_statistics = item.get("statistics")
+
+        return {
+            "provider": "zafronix",
+            "provider_match_id": self._clean_text(item.get("id")),
+            "goals": self._normalize_goals(item.get("goals")),
+            "cards": self._normalize_cards(item.get("cards")),
+            "substitutions": self._normalize_substitutions(item.get("substitutions")),
+            "formations": self._normalize_formations(raw_formations),
+            "lineups": self._normalize_lineups(raw_lineups),
+            "statistics": self._normalize_statistics(raw_statistics),
+            "referee": self._normalize_scalar_object(item.get("referee")),
+            "weather": self._normalize_scalar_object(item.get("weather")),
+        }
+
+    def _normalize_goals(self, raw_goals: Any) -> list[dict]:
+        if not isinstance(raw_goals, list):
+            return []
+
+        goals = []
+
+        for goal in raw_goals:
+            if not isinstance(goal, dict):
+                continue
+
+            goals.append(
+                {
+                    "minute": self._normalize_minute(goal.get("minute")),
+                    "team": self._clean_text(goal.get("team")),
+                    "scorer": self._clean_text(goal.get("scorer")),
+                }
+            )
+
+        return goals
+
+    def _normalize_cards(self, raw_cards: Any) -> list[dict]:
+        if not isinstance(raw_cards, list):
+            return []
+
+        cards = []
+
+        for card in raw_cards:
+            if not isinstance(card, dict):
+                continue
+
+            cards.append(
+                {
+                    "minute": self._normalize_minute(card.get("minute")),
+                    "team": self._clean_text(card.get("team")),
+                    "player": self._clean_text(card.get("player")),
+                    "color": self._clean_text(card.get("color")),
+                }
+            )
+
+        return cards
+
+    def _normalize_substitutions(self, raw_substitutions: Any) -> list[dict]:
+        if not isinstance(raw_substitutions, list):
+            return []
+
+        substitutions = []
+
+        for substitution in raw_substitutions:
+            if not isinstance(substitution, dict):
+                continue
+
+            substitutions.append(
+                {
+                    "minute": self._normalize_minute(substitution.get("minute")),
+                    "team": self._clean_text(substitution.get("team")),
+                    "on": self._clean_text(substitution.get("on")),
+                    "off": self._clean_text(substitution.get("off")),
+                }
+            )
+
+        return substitutions
+
+    def _normalize_formations(self, raw_formations: Any) -> dict:
+        if not isinstance(raw_formations, dict):
+            return {
+                "home": None,
+                "away": None,
+            }
+
+        return {
+            "home": self._clean_text(raw_formations.get("home")),
+            "away": self._clean_text(raw_formations.get("away")),
+        }
+
+    def _normalize_lineups(self, raw_lineups: Any) -> dict:
+        if not isinstance(raw_lineups, dict):
+            return {
+                "home": [],
+                "away": [],
+            }
+
+        return {
+            "home": self._normalize_lineup_entries(raw_lineups.get("home")),
+            "away": self._normalize_lineup_entries(raw_lineups.get("away")),
+        }
+
+    def _normalize_lineup_entries(self, raw_lineup: Any) -> list[dict]:
+        if not isinstance(raw_lineup, list):
+            return []
+
+        lineup = []
+
+        for player in raw_lineup:
+            if not isinstance(player, dict):
+                continue
+
+            shirt_number = player.get("number")
+
+            try:
+                shirt_number = int(shirt_number) if shirt_number is not None else None
+            except (TypeError, ValueError):
+                shirt_number = None
+
+            lineup.append(
+                {
+                    "player": self._clean_text(player.get("player")),
+                    "number": shirt_number,
+                    "position": self._clean_text(player.get("position")),
+                    "starter": bool(player.get("starter")),
+                    "captain": bool(player.get("captain")),
+                }
+            )
+
+        return lineup
+
+    def _normalize_statistics(self, raw_statistics: Any) -> dict:
+        if not isinstance(raw_statistics, dict):
+            return {
+                "home": {},
+                "away": {},
+            }
+
+        return {
+            "home": self._normalize_scalar_object(raw_statistics.get("home")),
+            "away": self._normalize_scalar_object(raw_statistics.get("away")),
+        }
+
+    def _normalize_scalar_object(self, raw_value: Any) -> dict:
+        if not isinstance(raw_value, dict):
+            return {}
+
+        return {
+            str(key): value
+            for key, value in raw_value.items()
+            if value is None or isinstance(value, (str, int, float, bool))
+        }
+
+    def _normalize_minute(self, value: Any) -> int | str | None:
+        if value is None:
+            return None
+
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return self._clean_text(value)
 
     def _normalize_status(self, status: Any) -> str:
         cleaned_status = self._clean_text(status)

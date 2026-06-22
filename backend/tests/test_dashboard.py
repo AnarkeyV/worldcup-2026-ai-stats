@@ -84,15 +84,15 @@ def test_dashboard_page_includes_group_insights_section():
     assert "Loading insights..." in response.text
 
 
-def test_dashboard_page_includes_player_stats_section():
+def test_dashboard_page_includes_provider_player_leaders_section():
     response = client.get("/dashboard")
 
     assert response.status_code == 200
-    assert "Player Statistics" in response.text
+    assert "Player Leaders" in response.text
+    assert "Provider-backed match detail" in response.text
     assert 'id="player-stats-message"' in response.text
     assert 'id="player-stats-container"' in response.text
-    assert "Loading player statistics..." in response.text
-
+    assert "Loading provider-backed scorer and card leaderboards" in response.text
 
 def test_static_dashboard_css_loads():
     response = client.get("/static/dashboard.css")
@@ -132,9 +132,9 @@ def test_static_dashboard_css_includes_standings_styles():
     assert response.status_code == 200
     assert "standings-section" in response.text
     assert "standings-container" in response.text
-    assert "standings-table-wrapper" in response.text
-    assert "standings-table" in response.text
-
+    assert "group-standings-grid" in response.text
+    assert "group-standings-card" in response.text
+    assert "standings-compact-row" in response.text
 
 def test_static_dashboard_css_includes_insight_styles():
     response = client.get("/static/dashboard.css")
@@ -146,15 +146,16 @@ def test_static_dashboard_css_includes_insight_styles():
     assert "insight-label" in response.text
 
 
-def test_static_dashboard_css_includes_player_stats_styles():
+def test_static_dashboard_css_includes_provider_player_leader_styles():
     response = client.get("/static/dashboard.css")
 
     assert response.status_code == 200
     assert "player-stats-section" in response.text
     assert "player-stats-grid" in response.text
-    assert "player-stat-card" in response.text
-    assert "player-stat-label" in response.text
-
+    assert "provider-coverage-card" in response.text
+    assert "player-leaderboard-card" in response.text
+    assert "player-leader-list" in response.text
+    assert "assist-availability-note" in response.text
 
 def test_static_dashboard_js_loads():
     response = client.get("/static/dashboard.js")
@@ -227,18 +228,35 @@ def test_dashboard_js_includes_insights_logic():
     assert "Winless Teams" in response.text
 
 
-def test_dashboard_js_includes_player_stats_logic():
+def test_dashboard_js_uses_provider_backed_player_leaders():
     response = client.get("/static/dashboard.js")
 
     assert response.status_code == 200
-    assert "fetchPlayerStats" in response.text
-    assert "fetchPlayerStatsSummary" in response.text
-    assert "renderPlayerStats" in response.text
-    assert "/players/stats" in response.text
-    assert "Top Scorers" in response.text
-    assert "Top Assists" in response.text
-    assert "Yellow Cards" in response.text
-    assert "Red Cards" in response.text
+    assert "fetchProviderLeaders" in response.text
+    assert "refreshProviderLeaders" in response.text
+    assert "renderProviderLeaders" in response.text
+    assert "/players/leaders" in response.text
+    assert "assist_data" in response.text
+    assert "Generic sample player records are intentionally hidden" not in response.text
+
+def test_dashboard_page_includes_latest_completed_match_summary():
+    response = client.get("/dashboard")
+
+    assert response.status_code == 200
+    assert 'id="latest-completed-summary"' in response.text
+    assert "Latest provider-backed completed match" in response.text
+    assert "Loading the latest provider-backed completed match" in response.text
+
+
+def test_dashboard_js_includes_latest_completed_match_summary_logic():
+    response = client.get("/static/dashboard.js")
+
+    assert response.status_code == 200
+    assert "fetchLatestCompletedSummary" in response.text
+    assert "refreshLatestCompletedSummary" in response.text
+    assert "renderLatestCompletedSummary" in response.text
+    assert "/ai/latest-completed/summary" in response.text
+    assert "Major incidents" in response.text
 
 
 def test_root_includes_dashboard_ai_summary_standings_insights_and_player_stats_links():
@@ -262,25 +280,147 @@ def test_dashboard_page_includes_match_detail_panel():
     assert 'id="selected-match-detail"' in response.text
 
 
-def test_static_dashboard_css_includes_match_detail_styles():
+def test_static_dashboard_css_includes_rich_match_detail_styles():
     response = client.get("/static/dashboard.css")
 
     assert response.status_code == 200
     assert "match-detail-panel" in response.text
-    assert "match-detail-scoreboard" in response.text
-    assert "match-detail-grid" in response.text
-    assert "match-detail-placeholder-grid" in response.text
-    assert "fixture-card-hint" in response.text
+    assert "match-detail-tabs" in response.text
+    assert "match-timeline" in response.text
+    assert "stat-comparison-row" in response.text
+    assert "lineup-grid" in response.text
+
+def test_dashboard_page_includes_fixture_group_tabs():
+    response = client.get("/dashboard")
+
+    assert response.status_code == 200
+    assert 'id="fixture-group-tabs"' in response.text
+    assert "Browse fixtures by group" in response.text
+    assert "Provider-backed Rich Match Dashboard" in response.text
+    assert "dashboard.js?v=1.11.0-ui5" in response.text
+    assert "dashboard.css?v=1.11.0-ui5" in response.text
+
+def test_dashboard_page_includes_fixture_status_browser_controls():
+    response = client.get("/dashboard")
+
+    assert response.status_code == 200
+    assert 'id="fixture-status-tabs"' in response.text
+    assert 'id="fixture-browser-message"' in response.text
+    assert "Browse fixtures by status" in response.text
+    assert "Completed" in response.text
+    assert "Upcoming" in response.text
+    assert "fixture-browser-layout" in response.text
 
 
-def test_dashboard_js_includes_match_detail_logic():
+
+def test_static_dashboard_css_includes_fixture_group_tab_styles():
+    response = client.get("/static/dashboard.css")
+
+    assert response.status_code == 200
+    assert "fixture-group-tabs" in response.text
+    assert "fixture-group-tab" in response.text
+    assert "fixture-group-tab.is-active" in response.text
+
+
+def test_dashboard_js_includes_rich_match_detail_logic():
     response = client.get("/static/dashboard.js")
 
     assert response.status_code == 200
     assert "data-fixture-card-id" in response.text
-    assert "selectFixture" in response.text
-    assert "renderFixtureDetail" in response.text
-    assert "getMatchDetailElements" in response.text
-    assert "/fixtures/${fixtureId}" in response.text
-    assert "Match context" in response.text
+    assert "data-fixture-scope" in response.text
+    assert "fixtureScope" in response.text
+    assert "renderFixtureGroupTabs" in response.text
+    assert "setFixtureScope" in response.text
+    assert "Knockout" in response.text
+    assert "fetchFixtureDetail" in response.text
+    assert "/fixtures/${fixtureId}/detail" in response.text
+    assert "renderMatchTimelineTab" in response.text
+    assert "renderMatchStatsTab" in response.text
+    assert "renderMatchLineupsTab" in response.text
+    assert "match-detail-tab" in response.text
 
+
+def test_static_dashboard_css_includes_status_first_fixture_browser_styles():
+    response = client.get("/static/dashboard.css")
+
+    assert response.status_code == 200
+    assert "fixture-status-tabs" in response.text
+    assert "fixture-status-tab" in response.text
+    assert "fixture-browser-layout" in response.text
+    assert "fixture-group-section" in response.text
+    assert "fixture-card.is-selected" in response.text
+
+
+def test_dashboard_js_includes_status_first_fixture_browser_logic():
+    response = client.get("/static/dashboard.js")
+
+    assert response.status_code == 200
+    assert "fixtureStatusScope" in response.text
+    assert "getFixtureStatusCategory" in response.text
+    assert "renderFixtureStatusTabs" in response.text
+    assert "setFixtureStatusScope" in response.text
+    assert "ensureFixtureBrowserSelection" in response.text
+    assert "renderFixtureBrowser" in response.text
+    assert "fixture-group-section" in response.text
+
+
+def test_dashboard_page_includes_persistent_quick_navigation():
+    response = client.get("/dashboard")
+
+    assert response.status_code == 200
+    assert 'id="dashboard-section-nav"' in response.text
+    assert "Quick dashboard navigation" in response.text
+    assert 'data-section-nav-link="dashboard-overview"' in response.text
+    assert 'href="#fixtures"' in response.text
+    assert 'id="group-standings"' in response.text
+    assert 'id="fixtures"' in response.text
+
+
+def test_static_dashboard_css_includes_persistent_quick_navigation_styles():
+    response = client.get("/static/dashboard.css")
+
+    assert response.status_code == 200
+    assert "dashboard-section-nav" in response.text
+    assert "dashboard-section-nav-link" in response.text
+    assert "position: sticky" in response.text
+    assert "scroll-margin-top" in response.text
+
+
+def test_dashboard_js_includes_section_navigation_logic():
+    response = client.get("/static/dashboard.js")
+
+    assert response.status_code == 200
+    assert "initializeSectionNavigation" in response.text
+    assert "setActiveSectionNavLink" in response.text
+    assert "IntersectionObserver" in response.text
+    assert "data-section-nav-link" in response.text
+
+
+def test_dashboard_page_includes_group_race_board():
+    response = client.get("/dashboard")
+
+    assert response.status_code == 200
+    assert "Group Race" in response.text
+    assert "Top two teams in each group" in response.text
+    assert 'id="group-race-message"' in response.text
+    assert 'id="group-race-container"' in response.text
+
+
+def test_static_dashboard_css_includes_group_race_styles():
+    response = client.get("/static/dashboard.css")
+
+    assert response.status_code == 200
+    assert "group-race-board" in response.text
+    assert "group-race-grid" in response.text
+    assert "group-race-card" in response.text
+    assert "group-race-row" in response.text
+
+
+def test_dashboard_js_includes_group_race_logic():
+    response = client.get("/static/dashboard.js")
+
+    assert response.status_code == 200
+    assert "renderGroupRace" in response.text
+    assert "group_race" in response.text
+    assert "Top-two group positions" in response.text
+    assert "fetchAiInsights(state.filters)" in response.text

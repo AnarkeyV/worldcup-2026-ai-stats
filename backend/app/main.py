@@ -14,6 +14,8 @@ from app.routes.insights import router as insights_router
 from app.routes.metrics import router as metrics_router
 from app.routes.notifications import router as notifications_router
 from app.routes.players import router as players_router
+from app.routes.provider_ai import router as provider_ai_router
+from app.routes.provider_leaders import router as provider_leaders_router
 from app.routes.standings import router as standings_router
 from app.services.metrics_service import record_http_request_metrics
 
@@ -71,8 +73,10 @@ def root():
         "standings": "/standings",
         "group_insights": "/insights/groups",
         "player_stats": "/players/stats",
+        "player_leaders": "/players/leaders",
         "metrics": "/metrics",
         "ai_summary": "/ai/fixtures/summary",
+        "latest_completed_summary": "/ai/latest-completed/summary",
     }
 
 
@@ -86,10 +90,12 @@ def health_check():
 
 
 app.include_router(ai_router)
+app.include_router(provider_ai_router)
 app.include_router(dashboard_router)
 app.include_router(fixtures_router)
 app.include_router(insights_router)
 app.include_router(metrics_router)
 app.include_router(notifications_router)
 app.include_router(players_router)
+app.include_router(provider_leaders_router)
 app.include_router(standings_router)
