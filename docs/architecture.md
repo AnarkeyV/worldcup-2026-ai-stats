@@ -4,7 +4,7 @@
 
 World Cup 2026 AI Stats is a self-hosted football analytics platform built around a FastAPI backend, PostgreSQL, provider-backed match detail, a static browser dashboard, local AI summaries, Telegram notifications, and Prometheus/Grafana observability.
 
-The current release is **v1.14.0**. It adds a read-only tournament-wide Match Data Coverage view over locally stored fixture and match-detail records, while preserving the project's local-first and no-live-lookup boundaries.
+The current release is **v1.15.0**. It adds a visual Matchday home experience, CSS-based comparative bars, a visual local-coverage treatment, and mobile navigation while preserving the project's local-first and no-live-lookup boundaries.
 
 The canonical user interface is the FastAPI-served dashboard:
 
@@ -240,6 +240,38 @@ The missing-detail list is bounded for dashboard follow-up. This is a local-read
 
 ---
 
+## Visual Matchday UX Contract
+
+v1.15.0 adds presentation-only dashboard behavior over the existing API surface:
+
+```text
+GET /fixtures
+        |
+        +--> visual Matchday cards
+        |
+        +--> existing fixture browser
+
+GET /fixtures/data-quality
+        |
+        +--> Data health badge
+        |
+        +--> Match Data Coverage donut
+
+GET /players/leaders
+        |
+        +--> comparative leader bars
+
+GET /ai/insights
+        |
+        +--> Group Race points bars
+```
+
+The browser selects live fixtures first when they exist, otherwise the latest completed and next scheduled fixture. Visual bars are scaled within their displayed list or group and are descriptive only. They do not create a forecast, probability, provider call, sync, backfill, or write operation.
+
+The mobile bottom navigation is an in-page link layer for existing Matchday, Matches, Groups, Players, and Data sections. It does not expose a separate API or authentication model.
+
+---
+
 ## Main API Surface
 
 ### Application and Observability
@@ -434,6 +466,7 @@ backend/app/static/dashboard.js
 Major sections:
 
 ```text
+Matchday home
 Overview
 Provider Sync Runtime
 Match Data Coverage
@@ -447,6 +480,7 @@ Player Leaders
 Group Standings
 Status-first Fixture Browser
 Rich Match Detail
+Mobile bottom navigation
 ```
 
 Match Detail has four tabs:
@@ -462,7 +496,9 @@ The Overview tab includes a compact, mobile-friendly stored-detail coverage bloc
 
 The Match Data Coverage panel aggregates that local stored state across completed fixtures. It displays scope-aware coverage, event-array counts, and a bounded set of completed fixtures without stored detail. Its refresh action makes a GET request only.
 
-The dashboard has sticky Quick Links navigation and responsive layouts for desktop and smaller screens.
+The dashboard has sticky Quick Links navigation and responsive layouts for desktop and smaller screens. At small-screen widths it also shows a compact bottom navigation for Matchday, Matches, Groups, Players, and Data.
+
+The visual Matchday cards, leader bars, Group Race points bars, and Match Data Coverage donut use CSS and existing browser data only. No charting package, new endpoint, or additional provider request is required.
 
 ---
 
@@ -546,6 +582,12 @@ The v1.14.0 release verification is:
 205 passed
 ```
 
+The v1.15.0 release verification is:
+
+```text
+209 passed
+```
+
 Coverage includes:
 
 - provider fixture and rich-detail sync
@@ -555,6 +597,7 @@ Coverage includes:
 - aggregate Match Data Coverage states, filters, event counters, and bounded missing-detail follow-up
 - leaderboards and latest-result summaries
 - dashboard static assets and logic markers
+- visual Matchday cards, data-health presentation, comparative leader/group bars, coverage donut, and mobile navigation
 - AI summaries and deterministic fallbacks
 - Group Race, standings, group insights, player stats, notifications, metrics, and release workflow
 
@@ -572,3 +615,4 @@ Coverage includes:
 - The public dashboard is dependent on the Windows runtime and Cloudflare Tunnel remaining online.
 - Automatic sync and sync-generated Telegram alerts remain disabled unless explicitly configured.
 - Match Data Coverage measures local stored-data presence; it does not certify provider completeness or factual correctness.
+- Dashboard charts and bars are comparative stored-data visuals, not predictive analytics or qualification simulations.
