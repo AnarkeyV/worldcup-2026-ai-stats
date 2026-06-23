@@ -500,3 +500,49 @@ def test_static_dashboard_css_includes_match_data_quality_styles():
     assert "match-data-quality-event-card" in response.text
     assert "missing-detail-fixtures" in response.text
     assert "missing-detail-fixture-button" in response.text
+def test_dashboard_page_includes_visual_matchday_home_and_mobile_navigation():
+    response = client.get("/dashboard")
+
+    assert response.status_code == 200
+    assert 'id="matchday-home"' in response.text
+    assert "Matchday" in response.text
+    assert 'id="matchday-home-content"' in response.text
+    assert 'id="data-health-badge"' in response.text
+    assert 'id="mobile-bottom-nav"' in response.text
+    assert 'data-section-nav-link="matchday-home"' in response.text
+
+
+def test_dashboard_js_includes_visual_matchday_and_chart_rendering_logic():
+    response = client.get("/static/dashboard.js")
+
+    assert response.status_code == 200
+    assert "renderMatchdayHome" in response.text
+    assert "getMatchdayHeroFixtures" in response.text
+    assert "data-matchday-fixture-id" in response.text
+    assert "dataHealthBadge" in response.text
+    assert "player-leader-bar-fill" in response.text
+    assert "group-race-points-fill" in response.text
+    assert "match-data-quality-donut" in response.text
+    assert "mobile-bottom-nav" in response.text
+
+
+def test_static_dashboard_css_includes_visual_matchday_and_chart_styles():
+    response = client.get("/static/dashboard.css")
+
+    assert response.status_code == 200
+    assert "matchday-home-panel" in response.text
+    assert "matchday-hero-grid" in response.text
+    assert "matchday-score-card" in response.text
+    assert "player-leader-bar-fill" in response.text
+    assert "group-race-points-track" in response.text
+    assert "match-data-quality-donut" in response.text
+    assert "mobile-bottom-nav" in response.text
+
+
+def test_dashboard_page_keeps_read_only_data_coverage_in_visual_home():
+    response = client.get("/dashboard")
+
+    assert response.status_code == 200
+    assert "Data health" in response.text
+    assert "Stored match data" in response.text
+    assert "No provider request was made by this panel." in response.text

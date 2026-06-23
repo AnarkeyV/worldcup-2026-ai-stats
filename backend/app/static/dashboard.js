@@ -9,6 +9,7 @@ const state = {
     fixtureSummaries: {},
     fixtureSyncStatus: null,
     matchDataQuality: null,
+    matchdayFixtures: [],
     aiAvailable: false,
     fixtureStatusScope: "completed",
     fixtureScope: "all",
@@ -76,6 +77,10 @@ const elements = {
     matchDataQualitySummary: document.querySelector("#match-data-quality-summary"),
     matchDataQualityEvents: document.querySelector("#match-data-quality-events"),
     missingDetailFixtures: document.querySelector("#missing-detail-fixtures"),
+    matchdayHomeContent: document.querySelector("#matchday-home-content"),
+    matchdayHomeMessage: document.querySelector("#matchday-home-message"),
+    dataHealthBadge: document.querySelector("#data-health-badge"),
+    mobileBottomNav: document.querySelector("#mobile-bottom-nav"),
     fixtureStatusTabs: document.querySelector("#fixture-status-tabs"),
     fixtureGroupTabs: document.querySelector("#fixture-group-tabs"),
     fixtureBrowserMessage: document.querySelector("#fixture-browser-message"),
@@ -344,6 +349,117 @@ async function refreshFixtureSyncStatus() {
 
 
 
+
+function getDataHealthPresentation() {
+    const summary = state.matchDataQuality?.summary || {};
+    const coverage = Number(summary.coverage_percent);
+    const stateName = summary.state || "unavailable";
+
+    if (!Number.isFinite(coverage)) {
+        return {
+            className: "unavailable",
+            value: "Unavailable",
+            detail: "Stored match data",
+        };
+    }
+
+    return {
+        className: stateName,
+        value: `${coverage.toFixed(1)}%`,
+        detail: "Stored match data",
+    };
+}
+
+function getMatchdayHeroFixtures(fixtures = []) {
+    const safeFixtures = Array.isArray(fixtures) ? fixtures : [];
+    const sortedByNewest = [...safeFixtures].sort((left, right) =>
+        new Date(right?.kickoff_time || 0) - new Date(left?.kickoff_time || 0)
+    );
+    const sortedBySoonest = [...safeFixtures].sort((left, right) =>
+        new Date(left?.kickoff_time || 0) - new Date(right?.kickoff_time || 0)
+    );
+
+    return {
+        live: sortedByNewest.find((fixture) => getFixtureStatusCategory(fixture) === "live") || null,
+        latestCompleted: sortedByNewest.find((fixture) => getFixtureStatusCategory(fixture) === "completed") || null,
+        nextUpcoming: sortedBySoonest.find((fixture) => getFixtureStatusCategory(fixture) === "upcoming") || null,
+    };
+}
+
+function renderMatchdayScoreCard(fixture, label, tone) {
+    if (!fixture) {
+        return "";
+    }
+
+    const matchLabel = `${fixture.home_team || "Home team"} vs ${fixture.away_team || "Away team"}`;
+    const scoreLine = `${formatScore(fixture.home_score)} – ${formatScore(fixture.away_score)}`;
+    const timeLabel = getFixtureStatusCategory(fixture) === "upcoming"
+        ? formatDateTime(fixture.kickoff_time)
+        : formatStatus(fixture.status);
+
+    return `
+        <button
+            class="matchday-score-card ${escapeHtml(tone)}"
+            type="button"
+            data-matchday-fixture-id="${escapeHtml(fixture.id)}"
+            aria-label="Open match detail for ${escapeHtml(matchLabel)}"
+        >
+            <span class="matchday-card-label">${escapeHtml(label)}</span>
+            <span class="matchday-card-context">${escapeHtml(fixture.group_name || fixture.stage || "World Cup 2026")}</span>
+            <span class="matchday-card-teams">
+                <strong>${escapeHtml(fixture.home_team || "Home team")}</strong>
+                <strong>${escapeHtml(fixture.away_team || "Away team")}</strong>
+            </span>
+            <strong class="matchday-card-score">${escapeHtml(scoreLine)}</strong>
+            <span class="matchday-card-meta">${escapeHtml(timeLabel)}</span>
+            <span class="matchday-card-action">Open match</span>
+        </button>
+    `;
+}
+
+function renderMatchdayHome(fixtures = state.matchdayFixtures) {
+    if (
+        !elements.matchdayHomeContent
+        || !elements.matchdayHomeMessage
+        || !elements.dataHealthBadge
+    ) {
+        return;
+    }
+
+    const safeFixtures = Array.isArray(fixtures) ? fixtures : [];
+    const health = getDataHealthPresentation();
+    const heroes = getMatchdayHeroFixtures(safeFixtures);
+    const cards = [
+        heroes.live ? renderMatchdayScoreCard(heroes.live, "Live now", "live") : "",
+        renderMatchdayScoreCard(heroes.latestCompleted, "Latest result", "completed"),
+        renderMatchdayScoreCard(heroes.nextUpcoming, "Next up", "upcoming"),
+    ].filter(Boolean);
+
+    elements.dataHealthBadge.className = `data-health-badge ${health.className}`;
+    elements.dataHealthBadge.innerHTML = `
+        <span>Data health</span>
+        <strong>${escapeHtml(health.value)}</strong>
+        <small>${escapeHtml(health.detail)}</small>
+    `;
+
+    if (safeFixtures.length === 0 || cards.length === 0) {
+        elements.matchdayHomeMessage.textContent =
+            "No fixtures are available in the current view yet.";
+        elements.matchdayHomeContent.innerHTML = `
+            <div class="matchday-home-empty">
+                Matchday cards will appear as stored fixture data becomes available.
+            </div>
+        `;
+        return;
+    }
+
+    const liveMessage = heroes.live
+        ? "A live match is available."
+        : "Latest result and next fixture are ready.";
+    elements.matchdayHomeMessage.textContent = `${liveMessage} ${safeFixtures.length} fixture${safeFixtures.length === 1 ? "" : "s"} in this view.`;
+    elements.matchdayHomeContent.innerHTML = cards.join("");
+}
+
 async function refreshMatchDataQuality(filters = state.filters) {
     setMatchDataQualityLoading();
 
@@ -352,9 +468,11 @@ async function refreshMatchDataQuality(filters = state.filters) {
 
         state.matchDataQuality = data;
         renderMatchDataQuality(data);
+        renderMatchdayHome();
     } catch (error) {
         console.error(error);
         setMatchDataQualityError();
+        renderMatchdayHome();
     }
 }
 
@@ -458,9 +576,20 @@ function renderMatchDataQuality(data) {
         `${message} No provider request was made by this panel.`;
 
     elements.matchDataQualitySummary.innerHTML = `
-        <article class="match-data-quality-card">
-            <span>Stored match-detail coverage</span>
-            <strong>${escapeHtml(formatCoveragePercent(summary.coverage_percent))}</strong>
+        <article class="match-data-quality-card match-data-quality-coverage-card">
+            <div class="match-data-quality-coverage-row">
+                <div>
+                    <span>Stored match-detail coverage</span>
+                    <strong>${escapeHtml(formatCoveragePercent(summary.coverage_percent))}</strong>
+                </div>
+                <span
+                    class="match-data-quality-donut"
+                    style="--coverage: ${Math.max(0, Math.min(100, Number(summary.coverage_percent) || 0))}%;"
+                    aria-label="${escapeHtml(formatCoveragePercent(summary.coverage_percent))} stored match-detail coverage"
+                >
+                    <span>${escapeHtml(formatCoveragePercent(summary.coverage_percent))}</span>
+                </span>
+            </div>
             <small>
                 ${escapeHtml(`${formatNumber(summary.fixtures_with_stored_detail)} of ${formatNumber(summary.completed_fixture_count)} completed fixtures with stored detail`)}
             </small>
@@ -1184,10 +1313,12 @@ async function applyFilters() {
             fetchAiInsights(state.filters),
         ]);
 
+        state.matchdayFixtures = fixtures;
         state.standings = standings;
         state.insights = insights;
         state.aiInsights = aiInsights;
 
+        renderMatchdayHome(state.matchdayFixtures);
         renderInsights(state.insights);
         renderAiInsights(state.aiInsights);
         void refreshProviderLeaders(state.filters);
@@ -1354,6 +1485,10 @@ function renderGroupRace(groupRace, filters = {}) {
 
     elements.groupRaceContainer.innerHTML = groups.map((group) => {
         const teams = Array.isArray(group.teams) ? group.teams : [];
+        const leaderPoints = Math.max(
+            1,
+            ...teams.map((team) => Math.max(0, Number(team?.points) || 0)),
+        );
 
         return `
             <article class="group-race-card">
@@ -1379,6 +1514,12 @@ function renderGroupRace(groupRace, filters = {}) {
                             <span class="group-race-team" role="cell">
                                 <strong>${escapeHtml(team.team || "Team unavailable")}</strong>
                                 <small>${escapeHtml(team.team_code || "")}</small>
+                                <span class="group-race-points-track" aria-hidden="true">
+                                    <span
+                                        class="group-race-points-fill"
+                                        style="width: ${Math.max(0, Math.min(100, ((Number(team.points) || 0) / leaderPoints) * 100)).toFixed(2)}%"
+                                    ></span>
+                                </span>
                             </span>
                             <span role="cell">${formatNumber(team.played)}</span>
                             <span role="cell">${formatSignedNumber(team.goal_difference)}</span>
@@ -1520,6 +1661,11 @@ function renderPlayerLeaderList(players, metricKey, singularLabel, pluralLabel) 
         `;
     }
 
+    const leaderMetric = Math.max(
+        1,
+        ...players.map((player) => Math.max(0, Number(player?.[metricKey]) || 0)),
+    );
+
     return `
         <ol class="player-leader-list">
             ${players.map((player, index) => {
@@ -1539,6 +1685,12 @@ function renderPlayerLeaderList(players, metricKey, singularLabel, pluralLabel) 
                         <span class="player-leader-identity">
                             <strong>${escapeHtml(playerName)}</strong>
                             <small>${escapeHtml(`${team}${teamCode} · ${groupName}`)}</small>
+                            <span class="player-leader-bar" aria-hidden="true">
+                                <span
+                                    class="player-leader-bar-fill"
+                                    style="width: ${Math.max(0, Math.min(100, ((Number(player?.[metricKey]) || 0) / leaderMetric) * 100)).toFixed(2)}%"
+                                ></span>
+                            </span>
                         </span>
                         <span class="player-leader-metric">${escapeHtml(metricText)}</span>
                     </li>
@@ -2917,6 +3069,20 @@ function bindEvents() {
         });
     }
 
+    if (elements.matchdayHomeContent) {
+        elements.matchdayHomeContent.addEventListener("click", (event) => {
+            const card = event.target.closest("[data-matchday-fixture-id]");
+
+            if (!card) {
+                return;
+            }
+
+            selectFixture(card.dataset.matchdayFixtureId, {
+                scroll: true,
+            });
+        });
+    }
+
     if (elements.fixtureStatusTabs) {
         elements.fixtureStatusTabs.addEventListener("click", (event) => {
             const tab = event.target.closest("[data-fixture-status-scope]");
@@ -3030,10 +3196,12 @@ async function initializeDashboard() {
         ]);
 
         state.allFixtures = fixtures;
+        state.matchdayFixtures = fixtures;
         state.standings = standings;
         state.insights = insights;
         state.aiInsights = aiInsights;
 
+        renderMatchdayHome(state.matchdayFixtures);
         populateFilters(state.allFixtures);
         renderInsights(state.insights);
         renderAiInsights(state.aiInsights);
