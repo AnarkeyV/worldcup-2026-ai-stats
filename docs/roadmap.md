@@ -8,7 +8,7 @@ World Cup 2026 AI Stats is developed through small, test-backed milestones. Each
 
 ```text
 Current release: v1.16.0 — Fixed-Time Scheduled Sync and Telegram Digest
-Release verification: 217 tests passed
+Release verification: 218 tests passed
 Previous v1.15.0 verification: 209 tests passed
 Primary runtime: Windows laptop + Docker Compose
 Development machine: MacBook Pro + VS Code + Python venv

@@ -24,7 +24,7 @@ v1.16.0 — Fixed-Time Scheduled Sync and Telegram Digest
 **Release verification**
 
 ```text
-217 automated tests passed
+218 automated tests passed
 ```
 
 ---
@@ -70,7 +70,7 @@ The scheduler and scheduled Telegram digest remain disabled by default. The exis
 **Release verification**
 
 ```text
-217 automated tests passed
+218 automated tests passed
 ```
 
 ## Architecture at a Glance
@@ -453,7 +453,7 @@ The v1.15.0 release verification is:
 The v1.16.0 release verification is:
 
 ```text
-217 passed
+218 passed
 ```
 
 Python 3.14 may emit FastAPI/Starlette deprecation warnings related to `asyncio.iscoroutinefunction`. They are currently warnings, not failing tests.

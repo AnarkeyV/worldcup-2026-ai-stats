@@ -701,7 +701,7 @@ The v1.15.0 release verification is:
 The v1.16.0 release verification is:
 
 ```text
-217 passed
+218 passed
 ```
 
 Coverage includes:
