@@ -5,7 +5,7 @@
     <title>World Cup 2026 AI Stats Dashboard</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <link rel="stylesheet" href="/static/dashboard.css?v=v1.13.0">
+    <link rel="stylesheet" href="/static/dashboard.css?v=v1.12.0">
 </head>
 <body id="dashboard-top">
     <header class="app-header">
@@ -27,6 +27,7 @@
             <span class="dashboard-section-nav-label">Quick links</span>
             <a class="dashboard-section-nav-link is-active" href="#dashboard-overview" data-section-nav-link="dashboard-overview" aria-current="page">Overview</a>
             <a class="dashboard-section-nav-link" href="#sync-runtime" data-section-nav-link="sync-runtime">Sync</a>
+            <a class="dashboard-section-nav-link" href="#match-data-quality" data-section-nav-link="match-data-quality">Data Coverage</a>
             <a class="dashboard-section-nav-link" href="#ai-summary" data-section-nav-link="ai-summary">AI Summary</a>
             <a class="dashboard-section-nav-link" href="#ai-insights" data-section-nav-link="ai-insights">AI Insights</a>
             <a class="dashboard-section-nav-link" href="#group-insights" data-section-nav-link="group-insights">Group Insights</a>
@@ -141,6 +142,56 @@
             <div id="sync-error-message" class="sync-error-message">
                 No sync errors recorded.
             </div>
+        </section>
+
+
+        <section
+            id="match-data-quality"
+            class="match-data-quality-panel"
+            data-dashboard-section
+            aria-label="Stored match data coverage"
+        >
+            <div class="match-data-quality-heading">
+                <div>
+                    <p class="eyebrow">Read-only stored data</p>
+                    <h2>Match Data Coverage</h2>
+                    <p id="match-data-quality-message">
+                        Checking stored match-detail coverage for completed fixtures...
+                    </p>
+                </div>
+
+                <button id="refresh-match-data-quality" type="button">
+                    Refresh Coverage
+                </button>
+            </div>
+
+            <div
+                id="match-data-quality-summary"
+                class="match-data-quality-grid"
+                aria-live="polite"
+            >
+                <div class="match-data-quality-loading">
+                    Checking stored match-detail coverage...
+                </div>
+            </div>
+
+            <div
+                id="match-data-quality-events"
+                class="match-data-quality-events"
+                aria-live="polite"
+            ></div>
+
+            <section
+                id="missing-detail-fixtures"
+                class="missing-detail-fixtures"
+                aria-label="Completed fixtures without stored detail"
+                aria-live="polite"
+            >
+                <p>
+                    Completed fixtures without stored detail will appear here.
+                    No provider request was made by this panel.
+                </p>
+            </section>
         </section>
 
         <section id="ai-summary" class="ai-summary-panel" data-dashboard-section aria-label="AI fixture summary">
@@ -357,6 +408,6 @@
         </p>
     </footer>
 
-    <script src="/static/dashboard.js?v=v1.13.0"></script>
+    <script src="/static/dashboard.js?v=v1.12.0"></script>
 </body>
 </html>

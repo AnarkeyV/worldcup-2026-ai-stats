@@ -8,13 +8,13 @@ const state = {
     latestCompletedSummary: null,
     fixtureSummaries: {},
     fixtureSyncStatus: null,
+    matchDataQuality: null,
     aiAvailable: false,
     fixtureStatusScope: "completed",
     fixtureScope: "all",
     fixtureBrowserFixtures: [],
     selectedFixture: null,
     selectedFixtureDetail: null,
-    selectedFixtureCoverage: null,
     selectedFixtureId: null,
     activeMatchDetailTab: "overview",
     filters: {
@@ -71,6 +71,11 @@ const elements = {
     syncSchedulerMode: document.querySelector("#sync-scheduler-mode"),
     syncAlertPolicy: document.querySelector("#sync-alert-policy"),
     syncErrorMessage: document.querySelector("#sync-error-message"),
+    matchDataQualityMessage: document.querySelector("#match-data-quality-message"),
+    refreshMatchDataQuality: document.querySelector("#refresh-match-data-quality"),
+    matchDataQualitySummary: document.querySelector("#match-data-quality-summary"),
+    matchDataQualityEvents: document.querySelector("#match-data-quality-events"),
+    missingDetailFixtures: document.querySelector("#missing-detail-fixtures"),
     fixtureStatusTabs: document.querySelector("#fixture-status-tabs"),
     fixtureGroupTabs: document.querySelector("#fixture-group-tabs"),
     fixtureBrowserMessage: document.querySelector("#fixture-browser-message"),
@@ -124,6 +129,48 @@ async function fetchFixtureSyncStatus() {
     }
 
     throw new Error("Unable to load fixture sync runtime status.");
+}
+
+
+
+function buildMatchDataQualityQueryString(filters = {}) {
+    const params = new URLSearchParams();
+
+    if (filters.group) {
+        params.set("group_name", filters.group);
+    }
+
+    if (filters.team && filters.team.trim()) {
+        params.set("team", filters.team.trim());
+    }
+
+    const queryString = params.toString();
+
+    return queryString ? `?${queryString}` : "";
+}
+
+async function fetchMatchDataQuality(filters = {}) {
+    const queryString = buildMatchDataQualityQueryString(filters);
+    const possibleEndpoints = [
+        `/api/fixtures/data-quality${queryString}`,
+        `/fixtures/data-quality${queryString}`,
+    ];
+
+    for (const endpoint of possibleEndpoints) {
+        try {
+            const response = await fetch(endpoint);
+
+            if (!response.ok) {
+                continue;
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.warn(`Unable to fetch match data quality from ${endpoint}`, error);
+        }
+    }
+
+    throw new Error("Unable to load stored match-detail coverage.");
 }
 
 async function fetchStandings(filters = {}) {
@@ -293,6 +340,223 @@ async function refreshFixtureSyncStatus() {
         console.error(error);
         setSyncStatusError("Unable to load fixture sync runtime status.");
     }
+}
+
+
+
+async function refreshMatchDataQuality(filters = state.filters) {
+    setMatchDataQualityLoading();
+
+    try {
+        const data = await fetchMatchDataQuality(filters);
+
+        state.matchDataQuality = data;
+        renderMatchDataQuality(data);
+    } catch (error) {
+        console.error(error);
+        setMatchDataQualityError();
+    }
+}
+
+function setMatchDataQualityLoading() {
+    if (
+        !elements.matchDataQualityMessage
+        || !elements.matchDataQualitySummary
+        || !elements.matchDataQualityEvents
+        || !elements.missingDetailFixtures
+    ) {
+        return;
+    }
+
+    elements.matchDataQualityMessage.textContent =
+        "Checking stored match-detail coverage for completed fixtures.";
+    elements.matchDataQualitySummary.innerHTML = `
+        <div class="match-data-quality-loading">
+            Checking local stored match detail. No provider request was made by this panel.
+        </div>
+    `;
+    elements.matchDataQualityEvents.innerHTML = "";
+    elements.missingDetailFixtures.innerHTML = `
+        <p>
+            Completed fixtures without stored detail will appear here.
+            No provider request was made by this panel.
+        </p>
+    `;
+}
+
+function setMatchDataQualityError() {
+    if (
+        !elements.matchDataQualityMessage
+        || !elements.matchDataQualitySummary
+        || !elements.matchDataQualityEvents
+        || !elements.missingDetailFixtures
+    ) {
+        return;
+    }
+
+    elements.matchDataQualityMessage.textContent =
+        "Stored match-detail coverage could not be loaded.";
+    elements.matchDataQualitySummary.innerHTML = `
+        <article class="match-data-quality-card">
+            <span>Stored match-detail coverage</span>
+            <strong>Unavailable</strong>
+            <small>No provider request was made by this panel.</small>
+        </article>
+    `;
+    elements.matchDataQualityEvents.innerHTML = "";
+    elements.missingDetailFixtures.innerHTML = `
+        <p>
+            Missing-detail fixtures are unavailable until the local coverage response can be read.
+            No provider request was made by this panel.
+        </p>
+    `;
+}
+
+function formatCoveragePercent(value) {
+    if (value === null || value === undefined) {
+        return "Not available";
+    }
+
+    const percentage = Number(value);
+
+    return Number.isFinite(percentage)
+        ? `${percentage.toFixed(1)}%`
+        : "Not available";
+}
+
+function formatMatchDataQualityState(value) {
+    const labels = {
+        complete: "Complete",
+        partial: "Partial",
+        unavailable: "Unavailable",
+    };
+
+    return labels[value] || "Unavailable";
+}
+
+function renderMatchDataQuality(data) {
+    if (
+        !elements.matchDataQualityMessage
+        || !elements.matchDataQualitySummary
+        || !elements.matchDataQualityEvents
+        || !elements.missingDetailFixtures
+    ) {
+        return;
+    }
+
+    const summary = data?.summary || {};
+    const eventCoverage = data?.event_coverage || {};
+    const missingFixtures = Array.isArray(data?.missing_detail_fixtures)
+        ? data.missing_detail_fixtures
+        : [];
+    const missingCount = formatNumber(data?.missing_detail_fixture_count);
+    const missingLimit = formatNumber(data?.missing_detail_limit);
+    const state = summary.state || "unavailable";
+    const message = data?.message || "Stored match-detail coverage is unavailable.";
+
+    elements.matchDataQualityMessage.textContent =
+        `${message} No provider request was made by this panel.`;
+
+    elements.matchDataQualitySummary.innerHTML = `
+        <article class="match-data-quality-card">
+            <span>Stored match-detail coverage</span>
+            <strong>${escapeHtml(formatCoveragePercent(summary.coverage_percent))}</strong>
+            <small>
+                ${escapeHtml(`${formatNumber(summary.fixtures_with_stored_detail)} of ${formatNumber(summary.completed_fixture_count)} completed fixtures with stored detail`)}
+            </small>
+        </article>
+        <article class="match-data-quality-card">
+            <span>Coverage state</span>
+            <strong><span class="match-data-quality-state ${escapeHtml(state)}">${escapeHtml(formatMatchDataQualityState(state))}</span></strong>
+            <small>${escapeHtml(`${formatNumber(summary.scope_fixture_count)} fixtures in the current group/team scope`)}</small>
+        </article>
+        <article class="match-data-quality-card">
+            <span>Missing detail</span>
+            <strong>${escapeHtml(formatNumber(summary.fixtures_without_stored_detail))}</strong>
+            <small>Completed fixtures without a locally stored provider detail payload.</small>
+        </article>
+        <article class="match-data-quality-card">
+            <span>Latest stored refresh</span>
+            <strong>${escapeHtml(formatStoredDetailRefresh(summary.latest_stored_detail_updated_at))}</strong>
+            <small>Latest local detail timestamp, not a live provider request.</small>
+        </article>
+    `;
+
+    const eventTypes = [
+        ["Goals", eventCoverage.goals || {}],
+        ["Cards", eventCoverage.cards || {}],
+        ["Substitutions", eventCoverage.substitutions || {}],
+    ];
+
+    elements.matchDataQualityEvents.innerHTML = eventTypes.map(([label, coverage]) => `
+        <article class="match-data-quality-event-card">
+            <span>${escapeHtml(label)}</span>
+            <strong>${escapeHtml(`${formatNumber(coverage.total_stored_events)} stored`)}</strong>
+            <div class="match-data-quality-event-stats">
+                <span>${escapeHtml(`${formatNumber(coverage.fixtures_with_recorded_events)} fixture(s) with recorded events`)}</span>
+                <span>${escapeHtml(`${formatNumber(coverage.fixtures_with_no_stored_events)} detailed fixture(s) with no stored events`)}</span>
+                <span>${escapeHtml(`${formatNumber(coverage.fixtures_without_stored_detail)} fixture(s) without stored detail`)}</span>
+            </div>
+        </article>
+    `).join("");
+
+    if (missingCount === 0) {
+        elements.missingDetailFixtures.innerHTML = `
+            <div class="missing-detail-fixtures-heading">
+                <div>
+                    <h3>Completed fixtures without stored detail</h3>
+                    <p>
+                        No missing stored detail is currently recorded in this scope.
+                        No provider request was made by this panel.
+                    </p>
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    const fixtureButtons = missingFixtures.map((fixture) => {
+        const fixtureId = fixture?.id;
+        const label = `${fixture?.home_team || "Home team"} vs ${fixture?.away_team || "Away team"}`;
+        const context = [
+            fixture?.group_name || fixture?.stage || "Fixture",
+            formatDateTime(fixture?.kickoff_time),
+        ].filter(Boolean).join(" · ");
+
+        return `
+            <button
+                class="missing-detail-fixture-button"
+                type="button"
+                data-missing-detail-fixture-id="${escapeHtml(fixtureId)}"
+            >
+                <span>
+                    <strong>${escapeHtml(label)}</strong>
+                    <small>${escapeHtml(context)}</small>
+                </span>
+                <span>Open match</span>
+            </button>
+        `;
+    }).join("");
+
+    const omittedCount = Math.max(0, missingCount - missingFixtures.length);
+    const limitNote = omittedCount > 0
+        ? ` Showing ${formatNumber(missingFixtures.length)} of ${missingCount} fixtures (limit ${missingLimit}).`
+        : "";
+
+    elements.missingDetailFixtures.innerHTML = `
+        <div class="missing-detail-fixtures-heading">
+            <div>
+                <h3>Completed fixtures without stored detail</h3>
+                <p>
+                    ${escapeHtml(`${missingCount} completed fixture${missingCount === 1 ? "" : "s"} need stored provider detail in this scope.${limitNote}`)}
+                    No provider request was made by this panel.
+                </p>
+            </div>
+        </div>
+        <div class="missing-detail-fixture-list">
+            ${fixtureButtons}
+        </div>
+    `;
 }
 
 async function refreshAiInsights() {
@@ -927,6 +1191,7 @@ async function applyFilters() {
         renderInsights(state.insights);
         renderAiInsights(state.aiInsights);
         void refreshProviderLeaders(state.filters);
+        void refreshMatchDataQuality(state.filters);
         renderStandings(state.standings);
         renderFixtureBrowser(fixtures, { selectFirst: true });
     } catch (error) {
@@ -1890,76 +2155,11 @@ function formatWeather(weather) {
     return parts.length ? parts.join(" · ") : "Weather data unavailable";
 }
 
-function renderStoredProviderDetailCoverage(coverage) {
-    const hasStoredDetail = coverage?.detail_state === "available";
-    const message = coverage?.message || (
-        "Stored provider event coverage is unavailable for this fixture. "
-        + "No live provider lookup was attempted."
-    );
-
-    if (!hasStoredDetail) {
-        return `
-            <section class="stored-detail-coverage unavailable">
-                <div class="stored-detail-coverage-heading">
-                    <div>
-                        <span>Stored provider detail</span>
-                        <h4>Unavailable</h4>
-                    </div>
-                    <strong>Read-only</strong>
-                </div>
-                <p>${escapeHtml(message)}</p>
-            </section>
-        `;
-    }
-
-    const eventTypes = coverage.event_types || {};
-    const eventCoverage = [
-        ["Goals", eventTypes.goals || {}],
-        ["Cards", eventTypes.cards || {}],
-        ["Substitutions", eventTypes.substitutions || {}],
-    ];
-
-    return `
-        <section class="stored-detail-coverage available">
-            <div class="stored-detail-coverage-heading">
-                <div>
-                    <span>Stored provider detail</span>
-                    <h4>${escapeHtml(coverage.provider || "Provider not recorded")}</h4>
-                </div>
-                <strong>${escapeHtml(formatStoredDetailRefresh(coverage.stored_detail_updated_at))}</strong>
-            </div>
-
-            <div class="stored-detail-coverage-grid">
-                ${eventCoverage.map(([label, eventType]) => {
-                    const state = eventType.state || "unavailable";
-                    const count = eventType.count;
-                    const status = state === "recorded"
-                        ? `${formatNumber(count)} recorded`
-                        : state === "no_stored_events"
-                            ? "No stored events"
-                            : "Unavailable";
-
-                    return `
-                        <article class="stored-detail-event-coverage ${escapeHtml(state)}">
-                            <span>${escapeHtml(label)}</span>
-                            <strong>${escapeHtml(status)}</strong>
-                            <p>${escapeHtml(eventType.message || "Stored event coverage is unavailable.")}</p>
-                        </article>
-                    `;
-                }).join("")}
-            </div>
-
-            <p class="stored-detail-coverage-note">${escapeHtml(message)}</p>
-        </section>
-    `;
-}
-
 function renderMatchDetailOverview(fixture, detail, options = {}) {
     const savedSummary = state.fixtureSummaries[fixture.id];
     const formations = detail?.formations || {};
     const referee = detail?.referee || {};
     const weather = detail?.weather || {};
-    const storedEventCoverage = options.coverage || null;
 
     if (options.isLoading) {
         return `
@@ -1975,7 +2175,6 @@ function renderMatchDetailOverview(fixture, detail, options = {}) {
             : "Provider match detail has not been stored for this fixture yet.";
 
         return `
-            ${renderStoredProviderDetailCoverage(storedEventCoverage)}
             <div class="match-detail-note ${options.error ? "error" : ""}">
                 <strong>Provider detail status:</strong> ${escapeHtml(reason)}
             </div>
@@ -2012,8 +2211,6 @@ function renderMatchDetailOverview(fixture, detail, options = {}) {
                 <small>Stored provider payload; not a live detail request.</small>
             </article>
         </div>
-
-        ${renderStoredProviderDetailCoverage(storedEventCoverage)}
 
         <div class="match-detail-context">
             <h4>Key incidents</h4>
@@ -2244,10 +2441,6 @@ function renderMatchDetailContent(fixture, detail, options = {}) {
 
 function renderFixtureDetail(fixture, detail = null, options = {}) {
     const matchDetail = getMatchDetailElements();
-    const detailOptions = {
-        ...options,
-        coverage: options.coverage ?? state.selectedFixtureCoverage,
-    };
 
     if (!matchDetail.panel || !matchDetail.title || !matchDetail.status || !matchDetail.detail) {
         return;
@@ -2299,7 +2492,7 @@ function renderFixtureDetail(fixture, detail = null, options = {}) {
         ${renderMatchDetailTabs()}
 
         <div class="match-detail-tab-panel" role="tabpanel">
-            ${renderMatchDetailContent(fixture, detail, detailOptions)}
+            ${renderMatchDetailContent(fixture, detail, options)}
         </div>
     `;
 }
@@ -2315,7 +2508,6 @@ async function selectFixture(fixtureId, options = {}) {
     state.selectedFixture = fixtureFromState;
     state.selectedFixtureId = String(fixtureId);
     state.selectedFixtureDetail = null;
-    state.selectedFixtureCoverage = null;
     state.activeMatchDetailTab = "overview";
     syncSelectedFixtureCard();
 
@@ -2328,13 +2520,11 @@ async function selectFixture(fixtureId, options = {}) {
         const payload = await fetchFixtureDetail(fixtureId);
         const fixture = payload.fixture || fixtureFromState;
         const detail = payload.detail_available ? payload.detail : null;
-        const coverage = payload.stored_event_coverage || null;
 
         state.selectedFixture = fixture;
         state.selectedFixtureDetail = detail;
-        state.selectedFixtureCoverage = coverage;
 
-        renderFixtureDetail(fixture, detail, { coverage });
+        renderFixtureDetail(fixture, detail);
     } catch (error) {
         console.error(error);
 
@@ -2721,6 +2911,12 @@ function bindEvents() {
     elements.refreshSyncStatus.addEventListener("click", refreshFixtureSyncStatus);
     elements.refreshAiInsights.addEventListener("click", refreshAiInsights);
 
+    if (elements.refreshMatchDataQuality) {
+        elements.refreshMatchDataQuality.addEventListener("click", () => {
+            void refreshMatchDataQuality(state.filters);
+        });
+    }
+
     if (elements.fixtureStatusTabs) {
         elements.fixtureStatusTabs.addEventListener("click", (event) => {
             const tab = event.target.closest("[data-fixture-status-scope]");
@@ -2742,6 +2938,20 @@ function bindEvents() {
             }
 
             setFixtureScope(tab.dataset.fixtureScope);
+        });
+    }
+
+    if (elements.missingDetailFixtures) {
+        elements.missingDetailFixtures.addEventListener("click", (event) => {
+            const button = event.target.closest("[data-missing-detail-fixture-id]");
+
+            if (!button) {
+                return;
+            }
+
+            selectFixture(button.dataset.missingDetailFixtureId, {
+                scroll: true,
+            });
         });
     }
 
@@ -2807,6 +3017,7 @@ async function initializeDashboard() {
     setLoadingState();
     checkAiHealth();
     refreshFixtureSyncStatus();
+    void refreshMatchDataQuality();
     void refreshLatestCompletedSummary();
     void refreshProviderLeaders();
 

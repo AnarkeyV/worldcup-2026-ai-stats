@@ -80,99 +80,6 @@ def serialize_match_detail(match_detail: MatchDetail) -> dict:
     }
 
 
-def _build_unavailable_event_coverage(event_label: str) -> dict:
-    return {
-        "state": "unavailable",
-        "count": None,
-        "message": (
-            f"{event_label.capitalize()} event coverage is unavailable because no "
-            "stored provider detail exists."
-        ),
-    }
-
-
-def _build_stored_event_type_coverage(
-    event_label: str,
-    raw_events: object,
-) -> dict:
-    event_count = len(raw_events) if isinstance(raw_events, list) else 0
-
-    if event_count == 0:
-        return {
-            "state": "no_stored_events",
-            "count": 0,
-            "message": (
-                f"No stored {event_label} events are present in the last provider "
-                "payload. This does not confirm that none occurred."
-            ),
-        }
-
-    event_word = "event" if event_count == 1 else "events"
-    return {
-        "state": "recorded",
-        "count": event_count,
-        "message": (
-            f"{event_count} stored {event_label} {event_word} "
-            "are available in the last provider payload."
-            if event_count != 1
-            else (
-                f"{event_count} stored {event_label} event "
-                "is available in the last provider payload."
-            )
-        ),
-    }
-
-
-def build_stored_event_coverage(match_detail: MatchDetail | None) -> dict:
-    """
-    Describe only the stored provider event payload for one fixture.
-
-    This is read-only coverage metadata. It does not trigger a provider request,
-    infer missing events, or claim a provider payload is match-complete.
-    """
-    if match_detail is None:
-        return {
-            "detail_state": "unavailable",
-            "provider": None,
-            "stored_detail_updated_at": None,
-            "event_types": {
-                "goals": _build_unavailable_event_coverage("goal"),
-                "cards": _build_unavailable_event_coverage("card"),
-                "substitutions": _build_unavailable_event_coverage(
-                    "substitution"
-                ),
-            },
-            "message": (
-                "No stored provider match detail is available for this fixture. "
-                "No live provider lookup was attempted."
-            ),
-        }
-
-    return {
-        "detail_state": "available",
-        "provider": match_detail.provider or None,
-        "stored_detail_updated_at": match_detail.updated_at,
-        "event_types": {
-            "goals": _build_stored_event_type_coverage(
-                "goal",
-                match_detail.goals,
-            ),
-            "cards": _build_stored_event_type_coverage(
-                "card",
-                match_detail.cards,
-            ),
-            "substitutions": _build_stored_event_type_coverage(
-                "substitution",
-                match_detail.substitutions,
-            ),
-        },
-        "message": (
-            "Stored provider match detail is available. Event counts describe only "
-            "the last stored provider payload and do not confirm match completeness."
-        ),
-    }
-
-
 def notify_newly_completed_fixtures(
     db: Session,
     newly_completed_external_ids: list[str],
@@ -385,6 +292,226 @@ def get_fixture_sync_history(
     }
 
 
+
+
+COMPLETED_FIXTURE_STATUSES = {
+    "complete",
+    "completed",
+    "finished",
+    "final",
+    "ft",
+    "aet",
+    "pen",
+    "full-time",
+    "full time",
+    "match finished",
+}
+
+
+def _is_completed_fixture_status(status: str | None) -> bool:
+    normalized_status = (
+        str(status or "")
+        .strip()
+        .lower()
+        .replace("_", " ")
+    )
+    return normalized_status in COMPLETED_FIXTURE_STATUSES
+
+
+def _build_empty_event_quality_coverage() -> dict:
+    return {
+        "fixtures_with_recorded_events": 0,
+        "fixtures_with_no_stored_events": 0,
+        "fixtures_without_stored_detail": 0,
+        "total_stored_events": 0,
+    }
+
+
+def _build_match_data_quality_response(
+    fixtures: list[Fixture],
+    detail_by_fixture_id: dict[int, MatchDetail],
+    group_name: str | None,
+    team: str | None,
+    missing_detail_limit: int,
+) -> dict:
+    """
+    Aggregate only local stored match-detail coverage.
+
+    This is a read-only dashboard contract. It never triggers a provider request,
+    sync, backfill, notification, or any database write.
+    """
+    completed_fixtures = [
+        fixture
+        for fixture in fixtures
+        if _is_completed_fixture_status(fixture.status)
+    ]
+    completed_fixture_count = len(completed_fixtures)
+
+    event_coverage = {
+        "goals": _build_empty_event_quality_coverage(),
+        "cards": _build_empty_event_quality_coverage(),
+        "substitutions": _build_empty_event_quality_coverage(),
+    }
+
+    fixtures_with_stored_detail = 0
+    missing_detail_fixtures: list[Fixture] = []
+    stored_detail_updated_at: list[str] = []
+
+    for fixture in completed_fixtures:
+        match_detail = detail_by_fixture_id.get(fixture.id)
+
+        if match_detail is None:
+            missing_detail_fixtures.append(fixture)
+
+            for coverage in event_coverage.values():
+                coverage["fixtures_without_stored_detail"] += 1
+
+            continue
+
+        fixtures_with_stored_detail += 1
+
+        if match_detail.updated_at:
+            stored_detail_updated_at.append(match_detail.updated_at)
+
+        for event_name in event_coverage:
+            raw_events = getattr(match_detail, event_name, None)
+            event_count = len(raw_events) if isinstance(raw_events, list) else 0
+            coverage = event_coverage[event_name]
+
+            if event_count > 0:
+                coverage["fixtures_with_recorded_events"] += 1
+                coverage["total_stored_events"] += event_count
+            else:
+                coverage["fixtures_with_no_stored_events"] += 1
+
+    fixtures_without_stored_detail = len(missing_detail_fixtures)
+
+    if completed_fixture_count == 0:
+        state = "unavailable"
+        coverage_percent = None
+        message = (
+            "No completed fixtures are available in this scope. "
+            "Stored match-detail coverage cannot be calculated."
+        )
+    else:
+        coverage_percent = round(
+            (fixtures_with_stored_detail / completed_fixture_count) * 100,
+            1,
+        )
+
+        if fixtures_with_stored_detail == completed_fixture_count:
+            state = "complete"
+        elif fixtures_with_stored_detail > 0:
+            state = "partial"
+        else:
+            state = "unavailable"
+
+        message = (
+            f"{fixtures_with_stored_detail} of {completed_fixture_count} completed "
+            "fixtures have stored provider match detail in this scope."
+        )
+
+    return {
+        "filters": {
+            "group_name": group_name,
+            "team": team,
+        },
+        "summary": {
+            "state": state,
+            "scope_fixture_count": len(fixtures),
+            "completed_fixture_count": completed_fixture_count,
+            "fixtures_with_stored_detail": fixtures_with_stored_detail,
+            "fixtures_without_stored_detail": fixtures_without_stored_detail,
+            "coverage_percent": coverage_percent,
+            "latest_stored_detail_updated_at": (
+                max(stored_detail_updated_at)
+                if stored_detail_updated_at
+                else None
+            ),
+        },
+        "event_coverage": event_coverage,
+        "missing_detail_fixture_count": fixtures_without_stored_detail,
+        "missing_detail_limit": missing_detail_limit,
+        "missing_detail_fixtures": [
+            serialize_fixture(fixture)
+            for fixture in missing_detail_fixtures[:missing_detail_limit]
+        ],
+        "message": message,
+    }
+
+
+@router.get("/data-quality")
+def get_match_data_quality(
+    group_name: str | None = Query(
+        default=None,
+        description="Limit stored match-detail coverage to one group.",
+    ),
+    team: str | None = Query(
+        default=None,
+        description="Limit stored match-detail coverage to a team name or code.",
+    ),
+    missing_detail_limit: int = Query(
+        default=12,
+        ge=1,
+        le=50,
+        description="Maximum missing-detail fixtures returned for dashboard follow-up.",
+    ),
+    db: Session = Depends(get_db),
+):
+    """
+    Return local stored match-detail coverage without contacting a provider.
+
+    The scope includes all fixtures matching the optional group/team filters. The
+    coverage counters themselves apply only to completed fixtures in that scope.
+    """
+    try:
+        query = db.query(Fixture)
+
+        if group_name:
+            query = query.filter(Fixture.group_name == group_name)
+
+        if team:
+            team_search = f"%{team}%"
+            query = query.filter(
+                or_(
+                    Fixture.home_team.ilike(team_search),
+                    Fixture.away_team.ilike(team_search),
+                    Fixture.home_team_code.ilike(team_search),
+                    Fixture.away_team_code.ilike(team_search),
+                )
+            )
+
+        fixtures = query.order_by(Fixture.kickoff_time.asc()).all()
+        fixture_ids = [fixture.id for fixture in fixtures]
+
+        detail_by_fixture_id: dict[int, MatchDetail] = {}
+
+        if fixture_ids:
+            details = (
+                db.query(MatchDetail)
+                .filter(MatchDetail.fixture_id.in_(fixture_ids))
+                .all()
+            )
+            detail_by_fixture_id = {
+                detail.fixture_id: detail
+                for detail in details
+            }
+
+        return _build_match_data_quality_response(
+            fixtures=fixtures,
+            detail_by_fixture_id=detail_by_fixture_id,
+            group_name=group_name,
+            team=team,
+            missing_detail_limit=missing_detail_limit,
+        )
+
+    except SQLAlchemyError as error:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Database error while reading match data quality: {error}",
+        ) from error
+
+
 @router.get("/{fixture_id}/detail")
 def get_fixture_detail(fixture_id: int, db: Session = Depends(get_db)):
     try:
@@ -410,7 +537,6 @@ def get_fixture_detail(fixture_id: int, db: Session = Depends(get_db)):
                 if match_detail is not None
                 else None
             ),
-            "stored_event_coverage": build_stored_event_coverage(match_detail),
         }
 
     except SQLAlchemyError as error:
