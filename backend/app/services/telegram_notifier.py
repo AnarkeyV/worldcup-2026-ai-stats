@@ -9,15 +9,19 @@ class TelegramNotificationError(RuntimeError):
     """Raised when Telegram is configured but the Telegram API request fails."""
 
 
-def build_dashboard_link_text() -> str:
+def build_dashboard_link_text(public_dashboard_url: str | None = None) -> str:
     """
     Build a clickable dashboard link block for Telegram messages.
 
-    PUBLIC_DASHBOARD_URL should point to a mobile-reachable URL, such as a
-    Cloudflare Tunnel URL. localhost is useful for desktop testing, but it will
-    not open the Windows dashboard from a phone.
+    The optional URL keeps scheduled digests explicit and testable. When it is
+    omitted, the configured public dashboard URL is used for existing messages.
     """
-    dashboard_url = (settings.public_dashboard_url or "").strip()
+    dashboard_url = (
+        public_dashboard_url
+        if public_dashboard_url is not None
+        else settings.public_dashboard_url
+    )
+    dashboard_url = str(dashboard_url or "").strip()
 
     if not dashboard_url or dashboard_url == "replace_me":
         return ""
@@ -53,6 +57,33 @@ def build_completed_fixture_message(fixture: dict) -> str:
         f"{stage}\n\n"
         f"{home_team} {home_score} - {away_score} {away_team}\n\n"
         f"Venue: {venue}"
+        f"{dashboard_link}"
+    )
+
+
+def build_scheduled_completed_fixture_digest(
+    fixtures: list[dict],
+    public_dashboard_url: str | None = None,
+) -> str:
+    """Build one Telegram roundup for all fixtures completed in a sync run."""
+    result_lines = []
+
+    for fixture in fixtures:
+        home_team = escape(str(fixture.get("home_team", "Home team")))
+        away_team = escape(str(fixture.get("away_team", "Away team")))
+        home_score = escape(str(fixture.get("home_score", "?")))
+        away_score = escape(str(fixture.get("away_score", "?")))
+
+        result_lines.append(
+            f"• {home_team} {home_score}–{away_score} {away_team}"
+        )
+
+    dashboard_link = build_dashboard_link_text(public_dashboard_url)
+
+    return (
+        "🏁 World Cup Matchday Update\n\n"
+        "Newly completed matches:\n"
+        f"{chr(10).join(result_lines)}"
         f"{dashboard_link}"
     )
 
@@ -141,4 +172,42 @@ def send_completed_fixture_notifications(fixtures: list[dict]) -> dict:
     return {
         "sent": sent,
         "messages": messages,
+    }
+
+
+def send_scheduled_completed_fixture_digest(
+    fixtures: list[dict],
+    enabled: bool,
+    public_dashboard_url: str,
+) -> dict:
+    """
+    Send one scheduled Telegram digest for newly completed fixtures.
+
+    Scheduled delivery is opt-in. An empty completion set is intentionally
+    silent so a scheduled provider sync does not create Telegram noise.
+    """
+    if not enabled:
+        return {
+            "status": "skipped",
+            "reason": "Scheduled Telegram digest is disabled by configuration.",
+            "sent": 0,
+        }
+
+    if not fixtures:
+        return {
+            "status": "skipped",
+            "reason": "No newly completed fixtures",
+            "sent": 0,
+        }
+
+    message = build_scheduled_completed_fixture_digest(
+        fixtures=fixtures,
+        public_dashboard_url=public_dashboard_url,
+    )
+    send_telegram_message(message)
+
+    return {
+        "status": "sent",
+        "sent": 1,
+        "fixture_count": len(fixtures),
     }

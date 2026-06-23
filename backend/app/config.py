@@ -22,9 +22,16 @@ class Settings(BaseSettings):
     telegram_bot_token: str = ""
     telegram_chat_id: str = ""
     telegram_completed_match_alerts_enabled: bool = False
+    telegram_scheduled_digest_enabled: bool = False
 
     provider_sync_scheduler_enabled: bool = False
+    provider_sync_schedule_timezone: str = "Asia/Singapore"
+    provider_sync_schedule_times: str = "03:45,09:45,12:45"
+
+    # Retained for backward-compatible status output and existing local
+    # configuration. The runtime scheduler now uses fixed daily times above.
     provider_sync_interval_minutes: int = Field(default=30, ge=5, le=1440)
+
     fixture_sync_fresh_after_minutes: int = Field(default=60, ge=1, le=10080)
     fixture_sync_stale_after_minutes: int = Field(default=180, ge=2, le=20160)
 
