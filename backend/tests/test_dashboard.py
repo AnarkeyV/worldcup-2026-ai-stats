@@ -460,3 +460,23 @@ def test_dashboard_js_includes_sync_freshness_and_stored_detail_refresh_logic():
     assert "formatStoredDetailRefresh" in response.text
     assert "Stored detail refresh" in response.text
     assert "Stored provider payload; not a live detail request." in response.text
+
+def test_dashboard_js_includes_stored_provider_detail_coverage_logic():
+    response = client.get("/static/dashboard.js")
+
+    assert response.status_code == 200
+    assert "stored_event_coverage" in response.text
+    assert "renderStoredProviderDetailCoverage" in response.text
+    assert "Stored provider detail" in response.text
+    assert "No live provider lookup was attempted." in response.text
+    assert "No stored events" in response.text
+
+
+def test_static_dashboard_css_includes_stored_provider_detail_coverage_styles():
+    response = client.get("/static/dashboard.css")
+
+    assert response.status_code == 200
+    assert "stored-detail-coverage" in response.text
+    assert "stored-detail-coverage-grid" in response.text
+    assert "stored-detail-event-coverage" in response.text
+    assert "stored-detail-coverage.unavailable" in response.text

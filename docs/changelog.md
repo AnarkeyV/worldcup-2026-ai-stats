@@ -6,6 +6,79 @@ The project follows semantic versioning and milestone-based releases.
 
 ---
 
+## [Unreleased] — v1.13.0 Provider Event Integrity and Stored Detail Coverage
+
+### Added
+
+- Shared `provider_event_integrity` service for canonical goals, cards, and substitutions.
+- Read-only `stored_event_coverage` in `GET /fixtures/{fixture_id}/detail`.
+- Explicit stored-detail states for:
+  - unavailable provider detail
+  - recorded event arrays
+  - stored detail with no event records in the last payload
+- Compact **Stored provider detail** coverage block in the match-detail Overview tab.
+- Focused acceptance tests for:
+  - canonical goal, card, and substitution events
+  - exact duplicate handling
+  - later provider-detail replacement behaviour
+  - unavailable and empty stored-event coverage states
+  - dashboard coverage logic and styling
+
+### Changed
+
+- Zafronix match-detail normalization now canonicalizes goals, cards, and substitutions before they enter fixture sync.
+- Match-detail persistence canonicalizes event arrays before storing them.
+- Provider player leaders and latest completed-result summaries canonicalize stored event arrays at read time, protecting reader views from duplicate or malformed legacy arrays.
+- Event ordering is stable and chronological for timed events; valid untimed events are retained after timed events instead of being discarded.
+- The README, architecture, and roadmap now distinguish the released v1.12.0 baseline from the unreleased v1.13.0 development milestone.
+
+### Verified
+
+```text
+202 automated tests passed
+```
+
+### Boundaries
+
+- No external provider request is made by `GET /fixtures/{fixture_id}/detail`.
+- No Docker, scheduler, Telegram, Cloudflare, or live runtime operation is required for the tests.
+- No database migration, provider event ID, historical event-correction/version store, automatic backfill, score reconciliation, or assist inference was added.
+- An empty stored event array does not prove that no such event occurred in the match.
+
+---
+
+## [1.12.0] — Safe Matchday Sync, Audit History, and Data Freshness
+
+### Added
+
+- Persisted fixture sync-run history for successful and failed attempts.
+- Read-only latest sync status and recent sync-history endpoints backed by stored audit records.
+- Optional provider-only scheduler, disabled by default.
+- No immediate provider call on application start and no overlapping scheduled runs.
+- Completed-match Telegram alerts disabled by default and controlled separately from Telegram test messages.
+- Dashboard freshness states for no sync, fresh, aging, stale, unavailable, and last-sync-failed data.
+- Stored match-detail refresh time based only on the locally stored provider payload.
+- Redacted, bounded persisted sync errors to avoid exposing configured secrets.
+
+### Changed
+
+- Sync runtime reporting now distinguishes current status from freshness of the last successful stored data.
+- Dashboard copy makes the manual-only default, disabled alert policy, and stored-data semantics visible.
+
+### Verified
+
+```text
+196 automated tests passed
+```
+
+### Notes
+
+- No automatic rich-detail backfill was added.
+- No automatic scheduler-triggered Telegram alerting was enabled.
+- Event deduplication and historical event-correction/version storage were deferred to a future milestone.
+
+---
+
 ## [1.11.0] — Mobile Rich Match Dashboard, Provider Leaders, and Group Race
 
 ### Added
@@ -27,22 +100,11 @@ The project follows semantic versioning and milestone-based releases.
 - Replaced the dashboard player-statistics placeholder with live provider-derived leaderboards.
 - Reframed Structured AI Insights around qualification position and Group Race rather than generic strongest-attacks emphasis.
 - Kept assist data explicitly unavailable when the provider payload does not supply assist events.
-- Updated application version metadata to `1.11.0`.
-- Refreshed README, architecture, roadmap, demo walkthrough, portfolio release summary, and release notes.
 
 ### Verified
 
 ```text
 184 automated tests passed
-```
-
-### Release Runtime Snapshot
-
-```text
-72 provider fixtures available
-40 completed fixtures
-40 of 40 completed fixtures with stored match details
-12 populated Group Race boards
 ```
 
 ### Notes

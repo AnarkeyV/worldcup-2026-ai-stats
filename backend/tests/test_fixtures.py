@@ -329,6 +329,32 @@ def test_get_fixture_detail_returns_unavailable_without_provider_detail(client):
     assert data["fixture"]["id"] == fixture_id
     assert data["detail_available"] is False
     assert data["detail"] is None
+    assert data["stored_event_coverage"] == {
+        "detail_state": "unavailable",
+        "provider": None,
+        "stored_detail_updated_at": None,
+        "event_types": {
+            "goals": {
+                "state": "unavailable",
+                "count": None,
+                "message": "Goal event coverage is unavailable because no stored provider detail exists.",
+            },
+            "cards": {
+                "state": "unavailable",
+                "count": None,
+                "message": "Card event coverage is unavailable because no stored provider detail exists.",
+            },
+            "substitutions": {
+                "state": "unavailable",
+                "count": None,
+                "message": "Substitution event coverage is unavailable because no stored provider detail exists.",
+            },
+        },
+        "message": (
+            "No stored provider match detail is available for this fixture. "
+            "No live provider lookup was attempted."
+        ),
+    }
 
 
 def test_provider_sync_persists_rich_match_detail(client, monkeypatch):
@@ -450,6 +476,119 @@ def test_provider_sync_persists_rich_match_detail(client, monkeypatch):
     assert data["detail"]["statistics"]["away"]["expectedGoals"] == 0.07
     assert data["detail"]["referee"]["name"] == "Test Referee"
     assert data["detail"]["weather"]["tempC"] == 24
+    assert data["stored_event_coverage"] == {
+        "detail_state": "available",
+        "provider": "zafronix",
+        "stored_detail_updated_at": data["detail"]["updated_at"],
+        "event_types": {
+            "goals": {
+                "state": "recorded",
+                "count": 2,
+                "message": "2 stored goal events are available in the last provider payload.",
+            },
+            "cards": {
+                "state": "recorded",
+                "count": 1,
+                "message": "1 stored card event is available in the last provider payload.",
+            },
+            "substitutions": {
+                "state": "recorded",
+                "count": 1,
+                "message": "1 stored substitution event is available in the last provider payload.",
+            },
+        },
+        "message": (
+            "Stored provider match detail is available. Event counts describe only "
+            "the last stored provider payload and do not confirm match completeness."
+        ),
+    }
+
+def test_get_fixture_detail_marks_empty_stored_event_arrays_as_no_stored_events(
+    client,
+    monkeypatch,
+):
+    class MockProvider:
+        def get_world_cup_fixtures(self):
+            return [
+                {
+                    "external_id": "zafronix-empty-events-001",
+                    "competition": "FIFA World Cup 2026",
+                    "stage": "Group Stage",
+                    "group_name": "Group B",
+                    "home_team": "Canada",
+                    "away_team": "Japan",
+                    "home_team_code": "CAN",
+                    "away_team_code": "JPN",
+                    "kickoff_time": "2026-06-12T19:00:00+00:00",
+                    "venue": "Toronto Stadium",
+                    "status": "complete",
+                    "home_score": 0,
+                    "away_score": 0,
+                    "match_detail": {
+                        "provider": "zafronix",
+                        "provider_match_id": "empty-events-001",
+                        "goals": [],
+                        "cards": [],
+                        "substitutions": [],
+                        "formations": {},
+                        "lineups": {},
+                        "statistics": {},
+                        "referee": {},
+                        "weather": {},
+                    },
+                }
+            ]
+
+    monkeypatch.setattr(
+        fixtures_routes,
+        "get_configured_football_provider",
+        lambda: ("zafronix", MockProvider()),
+    )
+
+    sync_response = client.post("/fixtures/sync/provider")
+    assert sync_response.status_code == 200
+
+    fixture_id = client.get("/fixtures").json()["fixtures"][0]["id"]
+    response = client.get(f"/fixtures/{fixture_id}/detail")
+
+    assert response.status_code == 200
+
+    coverage = response.json()["stored_event_coverage"]
+
+    assert coverage["detail_state"] == "available"
+    assert coverage["provider"] == "zafronix"
+    assert coverage["stored_detail_updated_at"] is not None
+    assert coverage["message"] == (
+        "Stored provider match detail is available. Event counts describe only "
+        "the last stored provider payload and do not confirm match completeness."
+    )
+    assert coverage["event_types"] == {
+        "goals": {
+            "state": "no_stored_events",
+            "count": 0,
+            "message": (
+                "No stored goal events are present in the last provider payload. "
+                "This does not confirm that none occurred."
+            ),
+        },
+        "cards": {
+            "state": "no_stored_events",
+            "count": 0,
+            "message": (
+                "No stored card events are present in the last provider payload. "
+                "This does not confirm that none occurred."
+            ),
+        },
+        "substitutions": {
+            "state": "no_stored_events",
+            "count": 0,
+            "message": (
+                "No stored substitution events are present in the last provider payload. "
+                "This does not confirm that none occurred."
+            ),
+        },
+    }
+
 
 
 def test_sync_generated_completed_match_alerts_are_disabled_by_default(client, monkeypatch):

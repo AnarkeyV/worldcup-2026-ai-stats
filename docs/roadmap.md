@@ -8,16 +8,17 @@ World Cup 2026 AI Stats is developed through small, test-backed milestones. Each
 
 ```text
 Current release: v1.12.0 — Safe Matchday Sync, Audit History, and Data Freshness
-Release verification: 196 tests passed before release
+Current development milestone: v1.13.0 — Provider Event Integrity and Stored Detail Coverage
+Current development verification: 202 tests passed
+Released v1.12.0 verification: 196 tests passed
 Primary runtime: Windows laptop + Docker Compose
 Development machine: MacBook Pro + VS Code + Python venv
 Public dashboard: https://wc2026.khairulrizal.qzz.io/dashboard
-Next planning stage: choose the next small, testable milestone after Windows runtime verification
 ```
 
 Current live capabilities:
 
-- provider-backed fixtures and rich match details
+- provider-backed fixtures and stored rich match details
 - status-first fixture browser and responsive match detail
 - local Ollama health and summary workflow with deterministic fallback
 - provider-backed goals and card leaderboards
@@ -27,6 +28,42 @@ Current live capabilities:
 - disabled-by-default provider-only scheduling and completed-match Telegram alert policy
 - Telegram status/testing and mobile dashboard links
 - Prometheus, Grafana, sync observability, and Cloudflare access
+
+---
+
+## Current Development Milestone
+
+### v1.13.0 — Provider Event Integrity and Stored Detail Coverage
+
+**Goal:** Make stored provider event data more trustworthy and make event-data coverage transparent in the match-detail dashboard, without triggering provider writes or inventing football facts.
+
+Delivered development scope:
+
+- canonical goals, cards, and substitutions through a shared service
+- safe participant and side validation for supported event shapes
+- exact normalized duplicate removal
+- stable ordering of timed events with valid untimed events retained after them
+- canonical handling at provider normalization, match-detail persistence, and reader paths
+- reader protection for provider leaderboards and latest-result summaries
+- read-only `stored_event_coverage` in the fixture-detail endpoint
+- dashboard coverage block that distinguishes:
+  - no stored provider detail
+  - stored event records
+  - stored detail with no event records in the last payload
+- focused test coverage and full development-suite verification
+
+Current boundaries retained:
+
+- no provider event IDs
+- no historical event-correction/version storage
+- no database migration
+- no automatic provider sync or rich-detail backfill
+- no score reconciliation
+- no inferred assists or player data
+- no factual match-report export
+- no runtime, Docker, scheduler, Telegram, or Cloudflare changes
+
+Release preparation remains separate. The application version stays at v1.12.0 until that step.
 
 ---
 
@@ -57,6 +94,7 @@ Current live capabilities:
 | v1.10.0 | Completed | Match-detail dashboard and README polish |
 | v1.11.0 | Completed | Rich match details, provider leaders, latest result, sticky navigation, Group Race |
 | v1.12.0 | Completed | Safe matchday sync audit history, opt-in scheduler/alerts, and factual freshness indicators |
+| v1.13.0 | In development | Provider event integrity and stored detail coverage |
 
 ---
 
@@ -82,21 +120,22 @@ Release boundaries retained:
 - no automatic rich-detail backfill
 - no automatic Telegram alerts from the scheduler
 - no meaningful-event alerting
-- no event deduplication or historical event-correction/version storage
 - no inferred assists, player analytics, or data not supplied reliably by a provider
 - no factual match-report export
 
 Validation completed before release preparation:
 
-- focused test suite: 100 passed
-- full regression suite: 196 passed
-- `git diff --check`: passed with no whitespace errors
+```text
+Focused test suite: 100 passed
+Full regression suite: 196 passed
+git diff --check: passed with no whitespace errors
+```
 
 ---
 
 ## Longer-Term Ideas
 
-- provider event-quality normalization with provider-specific event IDs and correction handling
+- provider-specific event IDs and historical correction/version handling
 - factual stored-data match report export
 - authentication and per-user preferences
 - team comparison views
