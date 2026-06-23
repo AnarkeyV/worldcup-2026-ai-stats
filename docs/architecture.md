@@ -4,7 +4,7 @@
 
 World Cup 2026 AI Stats is a self-hosted football analytics platform built around a FastAPI backend, PostgreSQL, provider-backed match detail, a static browser dashboard, local AI summaries, Telegram notifications, and Prometheus/Grafana observability.
 
-The current release is **v1.13.0**. It adds canonical provider-event integrity and clear stored-detail coverage while preserving the project's local-first and read-only match-detail boundaries.
+The current release is **v1.14.0**. It adds a read-only tournament-wide Match Data Coverage view over locally stored fixture and match-detail records, while preserving the project's local-first and no-live-lookup boundaries.
 
 The canonical user interface is the FastAPI-served dashboard:
 
@@ -202,6 +202,44 @@ It also exposes the stored provider name and stored-detail refresh timestamp. Th
 
 ---
 
+## Match Data Quality Contract
+
+`GET /fixtures/data-quality` provides a local aggregate for the selected fixture scope.
+
+Optional filters:
+
+```text
+group_name
+team
+missing_detail_limit
+```
+
+The endpoint returns:
+
+```text
+filters
+summary
+event_coverage
+missing_detail_fixture_count
+missing_detail_limit
+missing_detail_fixtures
+message
+```
+
+`summary` distinguishes:
+
+| State | Meaning |
+|---|---|
+| `unavailable` | The selected scope contains no completed fixtures, so stored-detail coverage cannot be calculated. |
+| `partial` | At least one completed fixture has stored detail and at least one does not. |
+| `complete` | Every completed fixture in scope has stored detail. |
+
+The aggregate counts stored detail only for completed fixtures. It also reports goal, card, and substitution coverage as counts of fixtures with recorded events, fixtures with an empty stored event array, fixtures without stored detail, and total stored events.
+
+The missing-detail list is bounded for dashboard follow-up. This is a local-read quality signal: it does not trigger provider sync, backfill missing records, infer events, validate provider completeness, or mutate stored history.
+
+---
+
 ## Main API Surface
 
 ### Application and Observability
@@ -219,6 +257,7 @@ It also exposes the stored provider name and stored-detail refresh timestamp. Th
 | Method | Route | Purpose |
 |---|---|---|
 | `GET` | `/fixtures` | List/filter fixtures |
+| `GET` | `/fixtures/data-quality` | Get aggregate local stored-detail coverage |
 | `GET` | `/fixtures/{fixture_id}` | Get a fixture |
 | `GET` | `/fixtures/{fixture_id}/detail` | Get fixture, stored detail, and stored event coverage |
 | `POST` | `/fixtures/sync/sample` | Sync sample fixtures |
@@ -300,6 +339,26 @@ Overview / Timeline / Stats / Lineups tabs
 
 The Overview tab shows a compact stored-detail coverage block before the provider-backed facts. It is a transparent representation of local stored data, not a live match lookup.
 
+### Match Data Quality View
+
+```text
+Browser dashboard panel
+        |
+        v
+GET /fixtures/data-quality
+        |
+        v
+Filtered local Fixture rows + local MatchDetail rows
+        |
+        v
+Completed-fixture coverage, event coverage, bounded missing-detail list
+        |
+        v
+Match Data Coverage panel and fixture follow-up links
+```
+
+This flow remains read-only. It does not request provider data, trigger sync, or write to the database.
+
 ### Provider Leaderboards
 
 ```text
@@ -377,6 +436,7 @@ Major sections:
 ```text
 Overview
 Provider Sync Runtime
+Match Data Coverage
 AI Fixture Summary
 Latest Completed Match
 Structured AI Insights
@@ -399,6 +459,8 @@ Lineups
 ```
 
 The Overview tab includes a compact, mobile-friendly stored-detail coverage block that states whether the dashboard has stored detail, when that local payload was refreshed, and whether goals, cards, or substitutions were recorded in it.
+
+The Match Data Coverage panel aggregates that local stored state across completed fixtures. It displays scope-aware coverage, event-array counts, and a bounded set of completed fixtures without stored detail. Its refresh action makes a GET request only.
 
 The dashboard has sticky Quick Links navigation and responsive layouts for desktop and smaller screens.
 
@@ -478,12 +540,19 @@ The v1.13.0 release verification is:
 202 passed
 ```
 
+The v1.14.0 release verification is:
+
+```text
+205 passed
+```
+
 Coverage includes:
 
 - provider fixture and rich-detail sync
 - canonical goals, cards, and substitutions
 - duplicate handling and later-detail replacement behaviour
 - stored-detail coverage semantics
+- aggregate Match Data Coverage states, filters, event counters, and bounded missing-detail follow-up
 - leaderboards and latest-result summaries
 - dashboard static assets and logic markers
 - AI summaries and deterministic fallbacks
@@ -502,3 +571,4 @@ Coverage includes:
 - Local Llama depends on Ollama availability on the Windows host.
 - The public dashboard is dependent on the Windows runtime and Cloudflare Tunnel remaining online.
 - Automatic sync and sync-generated Telegram alerts remain disabled unless explicitly configured.
+- Match Data Coverage measures local stored-data presence; it does not certify provider completeness or factual correctness.

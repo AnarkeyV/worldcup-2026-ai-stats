@@ -6,6 +6,41 @@ The project follows semantic versioning and milestone-based releases.
 
 ---
 
+## [1.14.0] — Match Data Quality Dashboard
+
+### Added
+
+- Read-only `GET /fixtures/data-quality` endpoint over locally stored `Fixture` and `MatchDetail` records.
+- Scope-aware coverage for completed fixtures with stored detail, without stored detail, coverage percentage, and latest local stored-detail refresh.
+- Goal, card, and substitution coverage counters that distinguish:
+  - fixtures with recorded stored events
+  - fixtures with empty stored event arrays
+  - fixtures without stored detail
+  - total stored events
+- Optional `group_name` and `team` filters plus bounded missing-detail fixture follow-up.
+- Dashboard **Match Data Coverage** panel with manual refresh and direct follow-up links for completed fixtures without stored detail.
+- Focused acceptance tests for unavailable, partial, and group-filtered coverage states.
+
+### Changed
+
+- Dashboard Quick Links now include Match Data Coverage.
+- Dashboard cache-busting assets and release metadata are updated for v1.14.0.
+- README, architecture, and roadmap now describe the local-only aggregate quality contract.
+
+### Verified
+
+```text
+205 automated tests passed
+```
+
+### Boundaries
+
+- `GET /fixtures/data-quality` performs local database reads only.
+- No provider sync, backfill, scheduler, Telegram, Docker, Cloudflare, Windows runtime, or database migration behavior was added.
+- The aggregate does not infer missing events, request provider data, validate provider truth, or claim that a stored payload is complete.
+
+---
+
 ## [1.13.0] — Provider Event Integrity and Stored Detail Coverage
 
 ### Added
