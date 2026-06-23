@@ -38,7 +38,8 @@ async def lifespan(app: FastAPI):
         if settings.provider_sync_scheduler_enabled:
             scheduler = ProviderSyncScheduler(
                 run_sync=run_scheduled_provider_sync,
-                interval_seconds=settings.provider_sync_interval_minutes * 60,
+                schedule_times=settings.provider_sync_schedule_times,
+                timezone_name=settings.provider_sync_schedule_timezone,
             )
             scheduler.start()
 

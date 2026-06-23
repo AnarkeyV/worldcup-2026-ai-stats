@@ -106,6 +106,11 @@ def test_scheduled_provider_sync_records_audit_history_without_telegram(
 
     assert result["status"] == "success"
     assert result["provider"] == "api_football"
+    assert result["notifications"] == {
+        "status": "skipped",
+        "reason": "Scheduled Telegram digest is disabled by configuration.",
+        "sent": 0,
+    }
     assert telegram_calls == []
 
     runs = db_session.query(FixtureSyncRun).all()
@@ -114,3 +119,90 @@ def test_scheduled_provider_sync_records_audit_history_without_telegram(
     assert runs[0].trigger_type == "scheduled"
     assert runs[0].status == "success"
     assert runs[0].newly_completed == ["scheduled-completed-001"]
+
+
+def test_scheduled_provider_sync_sends_one_digest_for_newly_completed_fixtures(
+    db_session,
+    monkeypatch,
+):
+    class MockProvider:
+        def get_world_cup_fixtures(self):
+            return [
+                {
+                    "external_id": "scheduled-digest-001",
+                    "competition": "FIFA World Cup 2026",
+                    "stage": "Group Stage",
+                    "group_name": "Group A",
+                    "home_team": "France",
+                    "away_team": "Iraq",
+                    "home_team_code": "FRA",
+                    "away_team_code": "IRQ",
+                    "kickoff_time": "2026-06-22T21:00:00+00:00",
+                    "venue": "Boston Stadium",
+                    "status": "complete",
+                    "home_score": 3,
+                    "away_score": 0,
+                }
+            ]
+
+    captured = {}
+
+    def fake_send_digest(fixtures, enabled, public_dashboard_url):
+        captured["fixtures"] = fixtures
+        captured["enabled"] = enabled
+        captured["public_dashboard_url"] = public_dashboard_url
+        return {
+            "status": "sent",
+            "sent": 1,
+            "fixture_count": len(fixtures),
+        }
+
+    monkeypatch.setattr(
+        provider_sync_scheduler,
+        "SessionLocal",
+        lambda: db_session,
+    )
+    monkeypatch.setattr(
+        provider_sync_scheduler,
+        "get_configured_football_provider",
+        lambda: ("zafronix", MockProvider()),
+    )
+    monkeypatch.setattr(
+        provider_sync_scheduler.settings,
+        "telegram_scheduled_digest_enabled",
+        True,
+    )
+    monkeypatch.setattr(
+        provider_sync_scheduler.settings,
+        "public_dashboard_url",
+        "https://wc2026.khairulrizal.qzz.io/dashboard",
+    )
+    monkeypatch.setattr(
+        provider_sync_scheduler,
+        "send_scheduled_completed_fixture_digest",
+        fake_send_digest,
+    )
+
+    result = provider_sync_scheduler.run_scheduled_provider_sync()
+
+    assert result["status"] == "success"
+    assert result["notifications"] == {
+        "status": "sent",
+        "sent": 1,
+        "fixture_count": 1,
+    }
+    assert captured["enabled"] is True
+    assert captured["public_dashboard_url"] == (
+        "https://wc2026.khairulrizal.qzz.io/dashboard"
+    )
+    assert captured["fixtures"] == [
+        {
+            "external_id": "scheduled-digest-001",
+            "home_team": "France",
+            "away_team": "Iraq",
+            "home_score": 3,
+            "away_score": 0,
+            "status": "complete",
+            "kickoff_time": "2026-06-22T21:00:00+00:00",
+        }
+    ]

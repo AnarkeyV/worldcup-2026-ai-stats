@@ -5,6 +5,9 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.models.fixture_sync_run import FixtureSyncRun
+from app.services.scheduled_sync_schedule import (
+    get_scheduled_sync_runtime_status,
+)
 
 
 def _utc_now_iso() -> str:
@@ -135,6 +138,38 @@ def _build_freshness(
     }
 
 
+def _build_scheduler_status() -> dict:
+    """
+    Return safe, read-only scheduling metadata for the dashboard and API.
+
+    Startup validates the same configuration before a scheduler is created.
+    This fallback keeps the status route readable if an invalid value is
+    introduced into a running process configuration.
+    """
+    try:
+        status = get_scheduled_sync_runtime_status(
+            enabled=settings.provider_sync_scheduler_enabled,
+            schedule_times_raw=settings.provider_sync_schedule_times,
+            timezone_name=settings.provider_sync_schedule_timezone,
+        )
+    except ValueError:
+        status = {
+            "enabled": bool(settings.provider_sync_scheduler_enabled),
+            "mode": "fixed_daily_times",
+            "timezone": str(settings.provider_sync_schedule_timezone or "").strip()
+            or None,
+            "scheduled_times": [],
+            "next_run_at": None,
+            "configuration_error": "Invalid fixed-time provider sync schedule.",
+        }
+
+    # Preserve this legacy field for dashboard compatibility while the runtime
+    # uses fixed daily slots.
+    status["interval_minutes"] = int(settings.provider_sync_interval_minutes)
+
+    return status
+
+
 def _serialize_sync_run(run: FixtureSyncRun) -> dict:
     return {
         "id": run.id,
@@ -177,12 +212,12 @@ def _default_fixture_sync_status() -> dict:
             "fresh_after_seconds": fresh_after_seconds,
             "stale_after_seconds": stale_after_seconds,
         },
-        "scheduler": {
-            "enabled": bool(settings.provider_sync_scheduler_enabled),
-            "interval_minutes": int(settings.provider_sync_interval_minutes),
-        },
+        "scheduler": _build_scheduler_status(),
         "completed_match_alerts_enabled": bool(
             settings.telegram_completed_match_alerts_enabled
+        ),
+        "scheduled_telegram_digest_enabled": bool(
+            settings.telegram_scheduled_digest_enabled
         ),
     }
 
@@ -229,12 +264,12 @@ def get_fixture_sync_status(db: Session) -> dict:
         "newly_completed": list(latest_run.newly_completed or []),
         "last_error": latest_run.last_error,
         "freshness": _build_freshness(latest_run, last_successful_run),
-        "scheduler": {
-            "enabled": bool(settings.provider_sync_scheduler_enabled),
-            "interval_minutes": int(settings.provider_sync_interval_minutes),
-        },
+        "scheduler": _build_scheduler_status(),
         "completed_match_alerts_enabled": bool(
             settings.telegram_completed_match_alerts_enabled
+        ),
+        "scheduled_telegram_digest_enabled": bool(
+            settings.telegram_scheduled_digest_enabled
         ),
     }
 
