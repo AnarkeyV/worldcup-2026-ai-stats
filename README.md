@@ -1,13 +1,13 @@
 # World Cup 2026 AI Stats
 
-![Version](https://img.shields.io/badge/version-v1.11.0-purple)
+![Version](https://img.shields.io/badge/version-v1.12.0-purple)
 ![Backend](https://img.shields.io/badge/backend-FastAPI-009688)
 ![Database](https://img.shields.io/badge/database-PostgreSQL-336791)
 ![AI](https://img.shields.io/badge/AI-Ollama%20%2B%20Local%20Llama-green)
 ![Notifications](https://img.shields.io/badge/notifications-Telegram-lightblue)
 ![Monitoring](https://img.shields.io/badge/monitoring-Prometheus%20%2B%20Grafana-orange)
 
-A self-hosted World Cup 2026 intelligence dashboard for provider-backed fixtures, rich match detail, standings, player event leaders, local AI summaries, Telegram alerts, and runtime observability.
+A self-hosted World Cup 2026 intelligence dashboard for provider-backed fixtures, stored match detail, standings, player event leaders, local AI summaries, Telegram alerts, and runtime observability.
 
 **Public dashboard**
 
@@ -18,8 +18,16 @@ https://wc2026.khairulrizal.qzz.io/dashboard
 **Current release**
 
 ```text
-v1.11.0 — Mobile Rich Match Dashboard, Provider Leaders, and Group Race
+v1.12.0 — Safe Matchday Sync, Audit History, and Data Freshness
 ```
+
+**Current development milestone**
+
+```text
+v1.13.0 — Provider Event Integrity and Stored Detail Coverage
+```
+
+The v1.13.0 work is documented as an unreleased development milestone in this repository. Release/version metadata remains at v1.12.0 until release preparation.
 
 ---
 
@@ -31,6 +39,7 @@ It is designed to answer useful matchday questions:
 
 - Which fixtures are complete, live, or upcoming?
 - What happened in a completed match beyond the final score?
+- Which provider event facts are stored, and which are unavailable?
 - Which players are leading in goals, yellow cards, and red cards?
 - Who currently occupies the top two positions in each group?
 - Can a local model provide summaries without a paid cloud LLM?
@@ -41,65 +50,60 @@ The project is intentionally self-hosted, provider-backed, explainable, and safe
 
 ---
 
-## v1.11.0 Highlights
+## Current Release: v1.12.0
 
-### Rich Match Detail Dashboard
+### Safe Matchday Sync, Audit History, and Data Freshness
 
-Fixtures are browsed by **Completed**, **Live**, and **Upcoming** status, then narrowed by group. Selecting a fixture opens a provider-backed detail dashboard with:
+v1.12.0 made matchday operation safer and easier to verify without automatically enabling side effects.
 
-- scoreline, kickoff, venue, stage, group, and provider context
-- match event timeline
-- goals and cards
-- team statistics
-- formations and lineups when present
-- referee and weather context when present
-- local AI match-summary controls
+It added:
 
-The layout keeps fixture browsing and match detail together on desktop, then prioritises the selected match detail on narrower screens.
+- persisted fixture sync-run history for successful and failed attempts
+- read-only latest sync status and recent sync-history endpoints
+- visible dashboard freshness states for no sync, fresh, aging, stale, unavailable, and last-sync-failed data
+- stored match-detail refresh times based only on the local provider payload
+- optional provider-only scheduling, disabled by default
+- completed-match Telegram alert policy, disabled by default and separate from Telegram test messages
+- redacted, bounded stored sync errors
 
-### Persistent Quick Links
+Safety boundaries retained:
 
-A sticky Quick Links bar makes it easy to move between:
+- no immediate provider sync on application start
+- no automatic rich-detail backfill
+- no automatic Telegram alerts from the scheduler
+- no inferred assists, fabricated player data, or factual match-report export
+
+---
+
+## Current Development: v1.13.0
+
+### Provider Event Integrity and Stored Detail Coverage
+
+The current development milestone strengthens the trust boundary around rich provider events already stored in the application.
+
+It adds:
+
+- canonical handling for goals, cards, and substitutions
+- safe string cleanup, supported `home`/`away` side validation, and required-participant checks
+- exact duplicate removal after normalization
+- stable chronological ordering, while retaining valid untimed events after timed events
+- canonical handling at provider ingestion, match-detail persistence, and leaderboard/latest-result reads
+- a read-only `stored_event_coverage` contract in `GET /fixtures/{fixture_id}/detail`
+- clear distinctions between:
+  - no stored provider detail
+  - stored event records
+  - stored detail with no event records in the last payload
+- a compact mobile-friendly **Stored provider detail** block in the existing match-detail Overview tab
+
+The milestone does not infer event facts, assists, team sides, or event minutes. It also does not add database migrations, historical event-correction storage, provider event IDs, automatic backfill, or a live provider lookup from the read endpoint.
+
+**Development verification**
 
 ```text
-Overview · Sync · AI Summary · AI Insights · Group Insights · Players · Standings · Fixtures
+202 automated tests passed
 ```
 
-The active link follows the currently viewed section. The navigation remains horizontally usable on smaller screens.
-
-### Provider-Backed Player Leaders
-
-The dashboard now derives player leaderboards only from stored provider match details:
-
-- top scorers
-- yellow-card leaders
-- red-card leaders
-- team and group filters
-- clear match-detail coverage information
-
-Assist leaders are intentionally shown as unavailable when the provider payload does not include assist events. No generic sample player records are presented as live data.
-
-### Latest Completed Result
-
-The AI area includes an always-visible provider-backed latest-result card. It prioritises major incidents when present, then provides the final result and scorer context from stored detail events.
-
-### Group Race
-
-Structured AI Insights now includes a **Group Race** board that shows the top two teams in every populated group, ordered by the existing standings rules. This gives a concise qualification-picture view without relying on a generic strongest-attacks card.
-
-### Release Verification Snapshot
-
-At v1.11.0 release validation, the self-hosted runtime showed:
-
-```text
-72 provider fixtures available
-40 completed fixtures
-40 of 40 completed fixtures with stored match details
-12 populated Group Race boards
-184 automated tests passing
-```
-
-These are runtime verification values, not hard-coded product limits. They may change after future provider syncs.
+This is development-branch verification, not a new release baseline.
 
 ---
 
@@ -147,7 +151,7 @@ Read the detailed design in [docs/architecture.md](docs/architecture.md).
 
 The backend stores:
 
-- competition, stage, group, teams, team codes
+- competition, stage, group, teams, and team codes
 - kickoff time and venue
 - fixture status and score
 - provider external ID
@@ -160,10 +164,27 @@ Core fixture routes:
 |---|---|---|
 | `GET` | `/fixtures` | List and filter fixtures |
 | `GET` | `/fixtures/{fixture_id}` | Read one fixture |
-| `GET` | `/fixtures/{fixture_id}/detail` | Read fixture plus stored rich detail |
+| `GET` | `/fixtures/{fixture_id}/detail` | Read fixture, stored rich detail, and stored event coverage |
 | `POST` | `/fixtures/sync/sample` | Seed deterministic sample fixtures |
 | `POST` | `/fixtures/sync/provider` | Sync configured provider data |
-| `GET` | `/fixtures/sync/status` | Read latest in-process sync status |
+| `GET` | `/fixtures/sync/status` | Read latest persisted sync state |
+| `GET` | `/fixtures/sync/history` | Read recent persisted sync-run history |
+
+`GET /fixtures/{fixture_id}/detail` is read-only. It returns only locally stored detail and explicitly indicates that no live provider lookup was attempted when no detail exists.
+
+### Provider Event Integrity
+
+Stored rich-event arrays remain factual provider records. The canonical event layer:
+
+- accepts only supported event shapes
+- normalizes `home` and `away` side values
+- keeps the dedicated event-minute field separate from player text
+- removes exact normalized duplicates
+- preserves valid untimed entries without inventing a minute
+- orders timed events chronologically before untimed events
+- protects provider leaderboards and latest-result summaries from duplicate or malformed stored arrays
+
+An empty stored event array means only that the last stored provider payload contains no such records. It does not prove that no event occurred in the match.
 
 ### Standings and Group Analysis
 
@@ -184,7 +205,7 @@ Completed results feed deterministic standings and group analytics:
 | `GET` | `/players/leaders` | Provider-derived scorer and card leaderboards |
 | `GET` | `/ai/latest-completed/summary` | Latest completed result with stored incidents and scorers |
 
-The project does not infer assists when the provider does not supply them.
+The project does not infer assists when the provider does not supply assist events.
 
 ### Local AI With Ollama
 
@@ -228,7 +249,7 @@ Prometheus:     http://localhost:9090
 Grafana:        http://localhost:3000
 ```
 
-Observability includes HTTP metrics, fixture-sync metrics, provider sync runtime state, local AI health visibility, Prometheus scraping, and Grafana dashboards.
+Observability includes HTTP metrics, fixture-sync metrics, persisted sync status and history, local AI health visibility, Prometheus scraping, and Grafana dashboards.
 
 ---
 
@@ -260,6 +281,7 @@ worldcup-2026-ai-stats/
 │   │   ├── providers/
 │   │   ├── routes/
 │   │   ├── services/
+│   │   │   └── provider_event_integrity.py
 │   │   └── static/
 │   │       ├── dashboard.html
 │   │       ├── dashboard.css
@@ -293,7 +315,7 @@ worldcup-2026-ai-stats/
 cd ~/documents/worldcup-2026-ai-stats
 source .venv/bin/activate
 
-pytest -q
+python -m pytest -q
 git status --short
 git diff --check
 ```
@@ -319,6 +341,7 @@ curl.exe http://localhost:8000/health
 curl.exe http://localhost:8000/ai/health
 curl.exe http://localhost:8000/players/leaders
 curl.exe http://localhost:8000/ai/insights
+curl.exe http://localhost:8000/fixtures/sync/status
 ```
 
 Stop the stack:
@@ -375,11 +398,12 @@ Never commit:
 1. Open the public dashboard.
 2. Use Quick Links to open **AI Insights**.
 3. Show the top-two **Group Race** board.
-4. Open **Players** and explain that goals and cards are derived from provider event data.
+4. Open **Players** and explain that goals and cards are derived from stored provider event data.
 5. Open **AI Summary** and show the provider-backed latest completed result.
-6. Open **Fixtures**, select a completed match, and show timeline, statistics, and lineups.
-7. Open **Sync** for runtime observability.
-8. Show `/docs`, `/metrics`, Prometheus, or Grafana as needed.
+6. Open **Fixtures**, select a completed match, and show the **Stored provider detail** coverage block.
+7. Open the Timeline, Statistics, and Lineups tabs when their stored data is available.
+8. Open **Sync** for runtime observability.
+9. Show `/docs`, `/metrics`, Prometheus, or Grafana as needed.
 
 For a detailed walkthrough, read [docs/demo-walkthrough.md](docs/demo-walkthrough.md).
 
@@ -392,22 +416,28 @@ For a detailed walkthrough, read [docs/demo-walkthrough.md](docs/demo-walkthroug
 Run the full suite:
 
 ```bash
-pytest -q
+python -m pytest -q
 ```
 
 Run focused groups:
 
 ```bash
-pytest backend/tests/test_dashboard.py -q
-pytest backend/tests/test_provider_player_leaders.py -q
-pytest backend/tests/test_ai_group_race.py -q
-pytest backend/tests/test_release_workflow.py -q
+python -m pytest backend/tests/test_provider_event_integrity.py -q
+python -m pytest backend/tests/test_fixtures.py -q
+python -m pytest backend/tests/test_dashboard.py -q
+python -m pytest backend/tests/test_provider_player_leaders.py -q
 ```
 
-The v1.11.0 release verification baseline is:
+The v1.12.0 release verification baseline is:
 
 ```text
-184 passed
+196 passed
+```
+
+The current v1.13.0 development verification is:
+
+```text
+202 passed
 ```
 
 Python 3.14 may emit FastAPI/Starlette deprecation warnings related to `asyncio.iscoroutinefunction`. They are currently warnings, not failing tests.
@@ -422,7 +452,7 @@ git pull --ff-only origin main
 
 git checkout -b feature/vX.Y.Z-description
 source .venv/bin/activate
-pytest -q
+python -m pytest -q
 
 git add .
 git commit -m "Implement vX.Y.Z"
@@ -436,18 +466,10 @@ Then:
 3. Pull the merged `main` branch locally.
 4. Tag the release.
 5. Publish the GitHub release.
-6. Delete the merged feature branch locally and remotely.
-7. Refresh the Windows runtime from `main`.
+6. Refresh the Windows runtime from merged `main`.
+7. Delete the merged feature branch locally and remotely.
 
-Example v1.11.0 tag:
-
-```bash
-git checkout main
-git pull --ff-only origin main
-
-git tag -a v1.11.0 -m "v1.11.0 Mobile Rich Match Dashboard, Provider Leaders, and Group Race"
-git push origin v1.11.0
-```
+Use the tag and release title only after the version is intentionally prepared for release.
 
 ---
 
@@ -458,7 +480,6 @@ git push origin v1.11.0
 - [Roadmap](docs/roadmap.md)
 - [Demo Walkthrough](docs/demo-walkthrough.md)
 - [Portfolio Release Summary](docs/portfolio-release.md)
-- [v1.11.0 Milestone Guide](docs/v1.11.0-mobile-rich-match-dashboard.md)
 
 ---
 
@@ -486,6 +507,8 @@ git push origin v1.11.0
 | v1.9.0 | Live local AI, Telegram, Cloudflare, and Windows runtime resilience | Completed |
 | v1.10.0 | Match detail dashboard and README polish | Completed |
 | v1.11.0 | Mobile rich match dashboard, provider leaders, and Group Race | Completed |
+| v1.12.0 | Safe matchday sync, audit history, and data freshness | Completed |
+| v1.13.0 | Provider event integrity and stored detail coverage | In development |
 
 ---
 
@@ -493,10 +516,12 @@ git push origin v1.11.0
 
 - The application is self-hosted and local-first, not a production SaaS deployment.
 - Provider coverage depends on the configured provider and its payload quality.
+- A stored empty event array does not prove a match had no goals, cards, or substitutions.
+- Historical event-correction/version storage and provider event IDs are not implemented.
 - Assist leaderboards remain unavailable until the provider supplies assist events.
 - Local Llama requires Ollama to be running on the Windows host.
 - The default local stack does not implement production authentication or hardened secret management.
-- Dashboard data is a current provider snapshot and changes after future syncs.
+- Dashboard data is a stored provider snapshot and changes after future approved syncs.
 
 ---
 

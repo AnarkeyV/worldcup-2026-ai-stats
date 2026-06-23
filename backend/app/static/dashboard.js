@@ -14,6 +14,7 @@ const state = {
     fixtureBrowserFixtures: [],
     selectedFixture: null,
     selectedFixtureDetail: null,
+    selectedFixtureCoverage: null,
     selectedFixtureId: null,
     activeMatchDetailTab: "overview",
     filters: {
@@ -1889,11 +1890,76 @@ function formatWeather(weather) {
     return parts.length ? parts.join(" · ") : "Weather data unavailable";
 }
 
+function renderStoredProviderDetailCoverage(coverage) {
+    const hasStoredDetail = coverage?.detail_state === "available";
+    const message = coverage?.message || (
+        "Stored provider event coverage is unavailable for this fixture. "
+        + "No live provider lookup was attempted."
+    );
+
+    if (!hasStoredDetail) {
+        return `
+            <section class="stored-detail-coverage unavailable">
+                <div class="stored-detail-coverage-heading">
+                    <div>
+                        <span>Stored provider detail</span>
+                        <h4>Unavailable</h4>
+                    </div>
+                    <strong>Read-only</strong>
+                </div>
+                <p>${escapeHtml(message)}</p>
+            </section>
+        `;
+    }
+
+    const eventTypes = coverage.event_types || {};
+    const eventCoverage = [
+        ["Goals", eventTypes.goals || {}],
+        ["Cards", eventTypes.cards || {}],
+        ["Substitutions", eventTypes.substitutions || {}],
+    ];
+
+    return `
+        <section class="stored-detail-coverage available">
+            <div class="stored-detail-coverage-heading">
+                <div>
+                    <span>Stored provider detail</span>
+                    <h4>${escapeHtml(coverage.provider || "Provider not recorded")}</h4>
+                </div>
+                <strong>${escapeHtml(formatStoredDetailRefresh(coverage.stored_detail_updated_at))}</strong>
+            </div>
+
+            <div class="stored-detail-coverage-grid">
+                ${eventCoverage.map(([label, eventType]) => {
+                    const state = eventType.state || "unavailable";
+                    const count = eventType.count;
+                    const status = state === "recorded"
+                        ? `${formatNumber(count)} recorded`
+                        : state === "no_stored_events"
+                            ? "No stored events"
+                            : "Unavailable";
+
+                    return `
+                        <article class="stored-detail-event-coverage ${escapeHtml(state)}">
+                            <span>${escapeHtml(label)}</span>
+                            <strong>${escapeHtml(status)}</strong>
+                            <p>${escapeHtml(eventType.message || "Stored event coverage is unavailable.")}</p>
+                        </article>
+                    `;
+                }).join("")}
+            </div>
+
+            <p class="stored-detail-coverage-note">${escapeHtml(message)}</p>
+        </section>
+    `;
+}
+
 function renderMatchDetailOverview(fixture, detail, options = {}) {
     const savedSummary = state.fixtureSummaries[fixture.id];
     const formations = detail?.formations || {};
     const referee = detail?.referee || {};
     const weather = detail?.weather || {};
+    const storedEventCoverage = options.coverage || null;
 
     if (options.isLoading) {
         return `
@@ -1909,6 +1975,7 @@ function renderMatchDetailOverview(fixture, detail, options = {}) {
             : "Provider match detail has not been stored for this fixture yet.";
 
         return `
+            ${renderStoredProviderDetailCoverage(storedEventCoverage)}
             <div class="match-detail-note ${options.error ? "error" : ""}">
                 <strong>Provider detail status:</strong> ${escapeHtml(reason)}
             </div>
@@ -1945,6 +2012,8 @@ function renderMatchDetailOverview(fixture, detail, options = {}) {
                 <small>Stored provider payload; not a live detail request.</small>
             </article>
         </div>
+
+        ${renderStoredProviderDetailCoverage(storedEventCoverage)}
 
         <div class="match-detail-context">
             <h4>Key incidents</h4>
@@ -2175,6 +2244,10 @@ function renderMatchDetailContent(fixture, detail, options = {}) {
 
 function renderFixtureDetail(fixture, detail = null, options = {}) {
     const matchDetail = getMatchDetailElements();
+    const detailOptions = {
+        ...options,
+        coverage: options.coverage ?? state.selectedFixtureCoverage,
+    };
 
     if (!matchDetail.panel || !matchDetail.title || !matchDetail.status || !matchDetail.detail) {
         return;
@@ -2226,7 +2299,7 @@ function renderFixtureDetail(fixture, detail = null, options = {}) {
         ${renderMatchDetailTabs()}
 
         <div class="match-detail-tab-panel" role="tabpanel">
-            ${renderMatchDetailContent(fixture, detail, options)}
+            ${renderMatchDetailContent(fixture, detail, detailOptions)}
         </div>
     `;
 }
@@ -2242,6 +2315,7 @@ async function selectFixture(fixtureId, options = {}) {
     state.selectedFixture = fixtureFromState;
     state.selectedFixtureId = String(fixtureId);
     state.selectedFixtureDetail = null;
+    state.selectedFixtureCoverage = null;
     state.activeMatchDetailTab = "overview";
     syncSelectedFixtureCard();
 
@@ -2254,11 +2328,13 @@ async function selectFixture(fixtureId, options = {}) {
         const payload = await fetchFixtureDetail(fixtureId);
         const fixture = payload.fixture || fixtureFromState;
         const detail = payload.detail_available ? payload.detail : null;
+        const coverage = payload.stored_event_coverage || null;
 
         state.selectedFixture = fixture;
         state.selectedFixtureDetail = detail;
+        state.selectedFixtureCoverage = coverage;
 
-        renderFixtureDetail(fixture, detail);
+        renderFixtureDetail(fixture, detail, { coverage });
     } catch (error) {
         console.error(error);
 

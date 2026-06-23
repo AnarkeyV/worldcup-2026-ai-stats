@@ -5,6 +5,11 @@ from sqlalchemy.orm import Session
 
 from app.models.fixture import Fixture
 from app.models.match_detail import MatchDetail
+from app.services.provider_event_integrity import (
+    canonicalize_card_events,
+    canonicalize_goal_events,
+    canonicalize_substitution_events,
+)
 
 
 def _utc_now_iso() -> str:
@@ -13,10 +18,6 @@ def _utc_now_iso() -> str:
 
 def _as_dict(value: Any) -> dict:
     return value.copy() if isinstance(value, dict) else {}
-
-
-def _as_list(value: Any) -> list:
-    return value.copy() if isinstance(value, list) else []
 
 
 def _clean_text(value: Any, fallback: str | None = None) -> str | None:
@@ -40,9 +41,11 @@ def upsert_match_detail(
     item = {
         "provider": _clean_text(detail_data.get("provider"), "unknown"),
         "provider_match_id": _clean_text(detail_data.get("provider_match_id")),
-        "goals": _as_list(detail_data.get("goals")),
-        "cards": _as_list(detail_data.get("cards")),
-        "substitutions": _as_list(detail_data.get("substitutions")),
+        "goals": canonicalize_goal_events(detail_data.get("goals")),
+        "cards": canonicalize_card_events(detail_data.get("cards")),
+        "substitutions": canonicalize_substitution_events(
+            detail_data.get("substitutions")
+        ),
         "formations": _as_dict(detail_data.get("formations")),
         "lineups": _as_dict(detail_data.get("lineups")),
         "statistics": _as_dict(detail_data.get("statistics")),

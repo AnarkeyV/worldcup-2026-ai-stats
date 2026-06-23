@@ -2,7 +2,9 @@
 
 ## Overview
 
-World Cup 2026 AI Stats v1.11.0 is a self-hosted football analytics platform built around a FastAPI backend, PostgreSQL, provider-backed match detail, a static browser dashboard, local AI summaries, Telegram notifications, and Prometheus/Grafana observability.
+World Cup 2026 AI Stats is a self-hosted football analytics platform built around a FastAPI backend, PostgreSQL, provider-backed match detail, a static browser dashboard, local AI summaries, Telegram notifications, and Prometheus/Grafana observability.
+
+The current released baseline is **v1.12.0**. The active **v1.13.0 development milestone** adds canonical provider-event integrity and clear stored-detail coverage without changing release/version metadata yet.
 
 The canonical user interface is the FastAPI-served dashboard:
 
@@ -56,7 +58,7 @@ The architecture is local-first:
 | Component | Responsibility |
 |---|---|
 | FastAPI backend | API routes, dashboard assets, provider orchestration, summaries, standings, metrics |
-| PostgreSQL | Fixture and match-detail persistence |
+| PostgreSQL | Fixture, match-detail, and persisted sync-run state |
 | Static dashboard | Responsive HTML, CSS, and JavaScript served by FastAPI |
 | Zafronix | Provider-backed fixture and match-detail source |
 | Ollama | Optional local LLM health and summary generation |
@@ -110,6 +112,94 @@ timestamps
 
 Keeping rich detail separate lets the application preserve core fixture functionality even when a provider detail payload is missing or incomplete.
 
+The v1.13.0 event-integrity work deliberately does not add a new database table or migration. It operates on the existing stored JSON-style event arrays.
+
+---
+
+## Canonical Provider Event Integrity
+
+The shared `provider_event_integrity` service is used at three boundaries:
+
+```text
+provider payload
+        |
+        v
+Zafronix detail normalization
+        |
+        v
+match-detail persistence
+        |
+        v
+stored MatchDetail event arrays
+        |
+        +--> provider leaderboards
+        |
+        +--> latest completed-result summary
+        |
+        +--> match-detail dashboard timeline
+```
+
+### Canonical event rules
+
+For goals, cards, and substitutions, the service:
+
+- accepts only supported object shapes
+- trims safe string fields
+- accepts only supported sides: `home` or `away`
+- requires the meaningful participant fields for that event type
+- normalizes event minutes without inventing a value
+- removes exact duplicates after normalization
+- orders timed events chronologically
+- retains valid untimed events after timed events
+
+The implementation does not infer assists, player identities, teams, event minutes, score reconciliation, or unprovided event facts.
+
+### Read-time protection
+
+Provider leaderboards and latest-result summaries canonicalize stored event arrays again when reading them. This makes those reader paths resilient to older or malformed persisted event arrays without mutating history as a side effect.
+
+Current-record correction behaviour remains simple:
+
+```text
+later approved provider refresh
+        |
+        v
+replace existing stored match-detail event arrays
+```
+
+Historical event-correction/version storage, provider event IDs, and event-level audit history are deferred to a future milestone.
+
+---
+
+## Stored Detail Coverage Contract
+
+`GET /fixtures/{fixture_id}/detail` is read-only and returns:
+
+```text
+fixture
+detail_available
+detail
+stored_event_coverage
+```
+
+`stored_event_coverage` is a factual description of the local record:
+
+| State | Meaning |
+|---|---|
+| `unavailable` | No stored `MatchDetail` record exists. No live provider lookup was attempted. |
+| `recorded` | The last stored provider payload contains one or more events of that type. |
+| `no_stored_events` | A stored detail record exists, but the last payload contains zero events of that type. This does not prove none occurred in the match. |
+
+The contract includes separate coverage for:
+
+```text
+goals
+cards
+substitutions
+```
+
+It also exposes the stored provider name and stored-detail refresh timestamp. The endpoint does not call an external provider on read.
+
 ---
 
 ## Main API Surface
@@ -130,10 +220,11 @@ Keeping rich detail separate lets the application preserve core fixture function
 |---|---|---|
 | `GET` | `/fixtures` | List/filter fixtures |
 | `GET` | `/fixtures/{fixture_id}` | Get a fixture |
-| `GET` | `/fixtures/{fixture_id}/detail` | Get fixture plus stored detail |
+| `GET` | `/fixtures/{fixture_id}/detail` | Get fixture, stored detail, and stored event coverage |
 | `POST` | `/fixtures/sync/sample` | Sync sample fixtures |
 | `POST` | `/fixtures/sync/provider` | Sync configured provider |
-| `GET` | `/fixtures/sync/status` | Get latest in-process sync status |
+| `GET` | `/fixtures/sync/status` | Get latest persisted sync status |
+| `GET` | `/fixtures/sync/history` | Get recent persisted sync-run history |
 
 ### Standings, Insights, and Players
 
@@ -154,6 +245,7 @@ Keeping rich detail separate lets the application preserve core fixture function
 | `GET` | `/ai/fixtures/summary` | Tournament summary |
 | `GET` | `/ai/fixtures/{fixture_id}/summary` | Fixture summary |
 | `GET` | `/ai/latest-completed/summary` | Provider-backed latest result |
+| `GET` | `/ai/insights` | Deterministic structured insights |
 
 ### Notifications
 
@@ -175,14 +267,14 @@ POST /fixtures/sync/provider
 configured provider adapter
         |
         v
-normalized fixture payload + optional match_detail
+normalized fixture payload + canonical optional match_detail events
         |
         v
 fixture sync service
         |
         +--> upsert Fixture
         |
-        +--> upsert MatchDetail
+        +--> upsert MatchDetail with canonical event arrays
         |
         v
 PostgreSQL
@@ -200,16 +292,21 @@ Browser selects fixture
 GET /fixtures/{fixture_id}/detail
         |
         v
-Fixture + MatchDetail response
+Fixture + stored MatchDetail + stored_event_coverage
         |
         v
 Overview / Timeline / Stats / Lineups tabs
 ```
 
+The Overview tab shows a compact stored-detail coverage block before the provider-backed facts. It is a transparent representation of local stored data, not a live match lookup.
+
 ### Provider Leaderboards
 
 ```text
 Completed fixtures + stored MatchDetail events
+        |
+        v
+canonical provider event reader
         |
         v
 provider_leaderboard_service
@@ -261,7 +358,7 @@ Local Llama client -> Ollama
         +--> unavailable/contradictory output -> deterministic fallback
 ```
 
-Structured AI Insights, Group Race, player leaders, and latest-result data do not require Ollama.
+Structured AI Insights, Group Race, player leaders, latest-result data, and stored-event coverage do not require Ollama.
 
 ---
 
@@ -292,6 +389,17 @@ Status-first Fixture Browser
 Rich Match Detail
 ```
 
+Match Detail has four tabs:
+
+```text
+Overview
+Timeline
+Stats
+Lineups
+```
+
+The Overview tab includes a compact, mobile-friendly stored-detail coverage block that states whether the dashboard has stored detail, when that local payload was refreshed, and whether goals, cards, or substitutions were recorded in it.
+
 The dashboard has sticky Quick Links navigation and responsive layouts for desktop and smaller screens.
 
 ---
@@ -317,7 +425,8 @@ The system records:
 - application version metrics
 - fixture-sync status and duration
 - fetched, created, updated, and newly completed fixture counts
-- dashboard-visible runtime sync state
+- persisted sync-run status and history
+- dashboard-visible freshness state
 
 ---
 
@@ -357,21 +466,28 @@ database credentials
 
 ## Testing and Release Verification
 
-The v1.11.0 verification baseline is:
+The v1.12.0 release verification baseline is:
 
 ```text
-184 passed
+196 passed
+```
+
+The current v1.13.0 development verification is:
+
+```text
+202 passed
 ```
 
 Coverage includes:
 
-- fixtures and provider sync
-- rich match-detail persistence
-- AI summaries and deterministic fallbacks
-- Group Race
-- provider leaderboards
+- provider fixture and rich-detail sync
+- canonical goals, cards, and substitutions
+- duplicate handling and later-detail replacement behaviour
+- stored-detail coverage semantics
+- leaderboards and latest-result summaries
 - dashboard static assets and logic markers
-- standings, group insights, player stats, notifications, metrics, and release workflow
+- AI summaries and deterministic fallbacks
+- Group Race, standings, group insights, player stats, notifications, metrics, and release workflow
 
 ---
 
@@ -379,7 +495,10 @@ Coverage includes:
 
 - The system is self-hosted and does not implement production authentication.
 - Provider data quality determines available event detail.
+- A stored empty event array does not prove a match had no events.
+- Historical event correction/version storage is not implemented.
+- Provider event identifiers are not currently stored.
 - Assist leaders are unavailable when the provider does not supply assist events.
 - Local Llama depends on Ollama availability on the Windows host.
 - The public dashboard is dependent on the Windows runtime and Cloudflare Tunnel remaining online.
-- Sync runtime state is intentionally lightweight; future work can persist historical sync runs.
+- Automatic sync and sync-generated Telegram alerts remain disabled unless explicitly configured.

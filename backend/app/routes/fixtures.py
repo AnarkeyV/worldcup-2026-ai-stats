@@ -80,6 +80,99 @@ def serialize_match_detail(match_detail: MatchDetail) -> dict:
     }
 
 
+def _build_unavailable_event_coverage(event_label: str) -> dict:
+    return {
+        "state": "unavailable",
+        "count": None,
+        "message": (
+            f"{event_label.capitalize()} event coverage is unavailable because no "
+            "stored provider detail exists."
+        ),
+    }
+
+
+def _build_stored_event_type_coverage(
+    event_label: str,
+    raw_events: object,
+) -> dict:
+    event_count = len(raw_events) if isinstance(raw_events, list) else 0
+
+    if event_count == 0:
+        return {
+            "state": "no_stored_events",
+            "count": 0,
+            "message": (
+                f"No stored {event_label} events are present in the last provider "
+                "payload. This does not confirm that none occurred."
+            ),
+        }
+
+    event_word = "event" if event_count == 1 else "events"
+    return {
+        "state": "recorded",
+        "count": event_count,
+        "message": (
+            f"{event_count} stored {event_label} {event_word} "
+            "are available in the last provider payload."
+            if event_count != 1
+            else (
+                f"{event_count} stored {event_label} event "
+                "is available in the last provider payload."
+            )
+        ),
+    }
+
+
+def build_stored_event_coverage(match_detail: MatchDetail | None) -> dict:
+    """
+    Describe only the stored provider event payload for one fixture.
+
+    This is read-only coverage metadata. It does not trigger a provider request,
+    infer missing events, or claim a provider payload is match-complete.
+    """
+    if match_detail is None:
+        return {
+            "detail_state": "unavailable",
+            "provider": None,
+            "stored_detail_updated_at": None,
+            "event_types": {
+                "goals": _build_unavailable_event_coverage("goal"),
+                "cards": _build_unavailable_event_coverage("card"),
+                "substitutions": _build_unavailable_event_coverage(
+                    "substitution"
+                ),
+            },
+            "message": (
+                "No stored provider match detail is available for this fixture. "
+                "No live provider lookup was attempted."
+            ),
+        }
+
+    return {
+        "detail_state": "available",
+        "provider": match_detail.provider or None,
+        "stored_detail_updated_at": match_detail.updated_at,
+        "event_types": {
+            "goals": _build_stored_event_type_coverage(
+                "goal",
+                match_detail.goals,
+            ),
+            "cards": _build_stored_event_type_coverage(
+                "card",
+                match_detail.cards,
+            ),
+            "substitutions": _build_stored_event_type_coverage(
+                "substitution",
+                match_detail.substitutions,
+            ),
+        },
+        "message": (
+            "Stored provider match detail is available. Event counts describe only "
+            "the last stored provider payload and do not confirm match completeness."
+        ),
+    }
+
+
 def notify_newly_completed_fixtures(
     db: Session,
     newly_completed_external_ids: list[str],
@@ -317,6 +410,7 @@ def get_fixture_detail(fixture_id: int, db: Session = Depends(get_db)):
                 if match_detail is not None
                 else None
             ),
+            "stored_event_coverage": build_stored_event_coverage(match_detail),
         }
 
     except SQLAlchemyError as error:

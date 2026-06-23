@@ -5,6 +5,11 @@ import httpx
 
 from app.config import settings
 from app.providers.base import FootballProvider
+from app.services.provider_event_integrity import (
+    canonicalize_card_events,
+    canonicalize_goal_events,
+    canonicalize_substitution_events,
+)
 
 
 class ZafronixProviderError(RuntimeError):
@@ -217,66 +222,13 @@ class ZafronixProvider(FootballProvider):
         }
 
     def _normalize_goals(self, raw_goals: Any) -> list[dict]:
-        if not isinstance(raw_goals, list):
-            return []
-
-        goals = []
-
-        for goal in raw_goals:
-            if not isinstance(goal, dict):
-                continue
-
-            goals.append(
-                {
-                    "minute": self._normalize_minute(goal.get("minute")),
-                    "team": self._clean_text(goal.get("team")),
-                    "scorer": self._clean_text(goal.get("scorer")),
-                }
-            )
-
-        return goals
+        return canonicalize_goal_events(raw_goals)
 
     def _normalize_cards(self, raw_cards: Any) -> list[dict]:
-        if not isinstance(raw_cards, list):
-            return []
-
-        cards = []
-
-        for card in raw_cards:
-            if not isinstance(card, dict):
-                continue
-
-            cards.append(
-                {
-                    "minute": self._normalize_minute(card.get("minute")),
-                    "team": self._clean_text(card.get("team")),
-                    "player": self._clean_text(card.get("player")),
-                    "color": self._clean_text(card.get("color")),
-                }
-            )
-
-        return cards
+        return canonicalize_card_events(raw_cards)
 
     def _normalize_substitutions(self, raw_substitutions: Any) -> list[dict]:
-        if not isinstance(raw_substitutions, list):
-            return []
-
-        substitutions = []
-
-        for substitution in raw_substitutions:
-            if not isinstance(substitution, dict):
-                continue
-
-            substitutions.append(
-                {
-                    "minute": self._normalize_minute(substitution.get("minute")),
-                    "team": self._clean_text(substitution.get("team")),
-                    "on": self._clean_text(substitution.get("on")),
-                    "off": self._clean_text(substitution.get("off")),
-                }
-            )
-
-        return substitutions
+        return canonicalize_substitution_events(raw_substitutions)
 
     def _normalize_formations(self, raw_formations: Any) -> dict:
         if not isinstance(raw_formations, dict):

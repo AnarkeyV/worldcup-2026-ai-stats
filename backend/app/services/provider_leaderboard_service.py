@@ -4,6 +4,10 @@ from datetime import datetime, timezone
 import re
 from typing import Any
 
+from app.services.provider_event_integrity import (
+    canonicalize_card_events,
+    canonicalize_goal_events,
+)
 from app.services.standings_service import COMPLETED_STATUSES
 
 
@@ -175,7 +179,7 @@ def _aggregate_goal_events(
     fixture: Any,
     events: list[Any],
 ) -> None:
-    for event in events:
+    for event in canonicalize_goal_events(events):
         if not isinstance(event, dict):
             continue
 
@@ -205,7 +209,7 @@ def _aggregate_card_events(
     fixture: Any,
     events: list[Any],
 ) -> None:
-    for event in events:
+    for event in canonicalize_card_events(events):
         if not isinstance(event, dict):
             continue
 
@@ -263,7 +267,7 @@ def _build_goal_events(fixture: Any, detail: Any | None) -> list[dict[str, Any]]
 
     goals = []
 
-    for event in get_value(detail, "goals", []) or []:
+    for event in canonicalize_goal_events(get_value(detail, "goals", []) or []):
         if not isinstance(event, dict):
             continue
 
@@ -297,7 +301,7 @@ def _build_card_events(
 
     cards = []
 
-    for event in get_value(detail, "cards", []) or []:
+    for event in canonicalize_card_events(get_value(detail, "cards", []) or []):
         if not isinstance(event, dict):
             continue
 
