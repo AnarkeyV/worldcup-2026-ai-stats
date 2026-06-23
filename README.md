@@ -1,6 +1,6 @@
 # World Cup 2026 AI Stats
 
-![Version](https://img.shields.io/badge/version-v1.12.0-purple)
+![Version](https://img.shields.io/badge/version-v1.13.0-purple)
 ![Backend](https://img.shields.io/badge/backend-FastAPI-009688)
 ![Database](https://img.shields.io/badge/database-PostgreSQL-336791)
 ![AI](https://img.shields.io/badge/AI-Ollama%20%2B%20Local%20Llama-green)
@@ -18,16 +18,14 @@ https://wc2026.khairulrizal.qzz.io/dashboard
 **Current release**
 
 ```text
-v1.12.0 — Safe Matchday Sync, Audit History, and Data Freshness
-```
-
-**Current development milestone**
-
-```text
 v1.13.0 — Provider Event Integrity and Stored Detail Coverage
 ```
 
-The v1.13.0 work is documented as an unreleased development milestone in this repository. Release/version metadata remains at v1.12.0 until release preparation.
+**Release verification**
+
+```text
+202 automated tests passed
+```
 
 ---
 
@@ -50,36 +48,11 @@ The project is intentionally self-hosted, provider-backed, explainable, and safe
 
 ---
 
-## Current Release: v1.12.0
-
-### Safe Matchday Sync, Audit History, and Data Freshness
-
-v1.12.0 made matchday operation safer and easier to verify without automatically enabling side effects.
-
-It added:
-
-- persisted fixture sync-run history for successful and failed attempts
-- read-only latest sync status and recent sync-history endpoints
-- visible dashboard freshness states for no sync, fresh, aging, stale, unavailable, and last-sync-failed data
-- stored match-detail refresh times based only on the local provider payload
-- optional provider-only scheduling, disabled by default
-- completed-match Telegram alert policy, disabled by default and separate from Telegram test messages
-- redacted, bounded stored sync errors
-
-Safety boundaries retained:
-
-- no immediate provider sync on application start
-- no automatic rich-detail backfill
-- no automatic Telegram alerts from the scheduler
-- no inferred assists, fabricated player data, or factual match-report export
-
----
-
-## Current Development: v1.13.0
+## Current Release: v1.13.0
 
 ### Provider Event Integrity and Stored Detail Coverage
 
-The current development milestone strengthens the trust boundary around rich provider events already stored in the application.
+v1.13.0 strengthens the trust boundary around rich provider events already stored in the application.
 
 It adds:
 
@@ -97,15 +70,11 @@ It adds:
 
 The milestone does not infer event facts, assists, team sides, or event minutes. It also does not add database migrations, historical event-correction storage, provider event IDs, automatic backfill, or a live provider lookup from the read endpoint.
 
-**Development verification**
+**Release verification**
 
 ```text
 202 automated tests passed
 ```
-
-This is development-branch verification, not a new release baseline.
-
----
 
 ## Architecture at a Glance
 
@@ -434,7 +403,7 @@ The v1.12.0 release verification baseline is:
 196 passed
 ```
 
-The current v1.13.0 development verification is:
+The v1.13.0 release verification is:
 
 ```text
 202 passed
@@ -508,7 +477,7 @@ Use the tag and release title only after the version is intentionally prepared f
 | v1.10.0 | Match detail dashboard and README polish | Completed |
 | v1.11.0 | Mobile rich match dashboard, provider leaders, and Group Race | Completed |
 | v1.12.0 | Safe matchday sync, audit history, and data freshness | Completed |
-| v1.13.0 | Provider event integrity and stored detail coverage | In development |
+| v1.13.0 | Provider event integrity and stored detail coverage | Completed |
 
 ---
 

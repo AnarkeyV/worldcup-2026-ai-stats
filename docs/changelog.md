@@ -6,7 +6,7 @@ The project follows semantic versioning and milestone-based releases.
 
 ---
 
-## [Unreleased] — v1.13.0 Provider Event Integrity and Stored Detail Coverage
+## [1.13.0] — Provider Event Integrity and Stored Detail Coverage
 
 ### Added
 
@@ -30,7 +30,7 @@ The project follows semantic versioning and milestone-based releases.
 - Match-detail persistence canonicalizes event arrays before storing them.
 - Provider player leaders and latest completed-result summaries canonicalize stored event arrays at read time, protecting reader views from duplicate or malformed legacy arrays.
 - Event ordering is stable and chronological for timed events; valid untimed events are retained after timed events instead of being discarded.
-- The README, architecture, and roadmap now distinguish the released v1.12.0 baseline from the unreleased v1.13.0 development milestone.
+- Updated README, architecture, roadmap, and version metadata for the v1.13.0 release.
 
 ### Verified
 
