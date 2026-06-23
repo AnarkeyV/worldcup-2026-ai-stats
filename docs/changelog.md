@@ -6,6 +6,38 @@ The project follows semantic versioning and milestone-based releases.
 
 ---
 
+## [1.15.0] — Visual Matchday UX and Charts
+
+### Added
+
+- Visual **Matchday** home area with stored-fixture cards for the current live match when one exists, plus the latest completed result and next scheduled fixture.
+- Compact **Data health** badge that reuses the existing read-only `GET /fixtures/data-quality` response.
+- CSS-based visual bars for scorer and card leaderboards, scaled against the leading displayed metric.
+- Group Race points bars, scaled against the current group leader for quick comparison.
+- Visual donut/progress treatment in Match Data Coverage.
+- Mobile-only bottom navigation for Matchday, Matches, Groups, Players, and Data.
+- Focused dashboard acceptance checks for Matchday, visual rendering markers, Data health, and mobile navigation.
+
+### Changed
+
+- Reordered dashboard emphasis so matchday context appears before operational and detailed sections.
+- Shortened dashboard helper copy while preserving provider, storage, and read-only boundaries.
+- Updated dashboard asset cache-busters and release metadata for v1.15.0.
+
+### Verified
+
+```text
+209 automated tests passed
+```
+
+### Boundaries
+
+- Frontend-only dashboard release using existing stored API data.
+- No new backend route, charting-library dependency, provider request, sync, backfill, scheduler, Telegram behaviour, database migration, Docker, Cloudflare, or Windows runtime change.
+- Visual bars and the coverage donut are descriptive comparisons, not forecasts, probabilities, qualification simulations, or proof of provider completeness.
+
+---
+
 ## [1.14.0] — Match Data Quality Dashboard
 
 ### Added

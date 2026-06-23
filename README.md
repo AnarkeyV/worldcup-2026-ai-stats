@@ -1,13 +1,13 @@
 # World Cup 2026 AI Stats
 
-![Version](https://img.shields.io/badge/version-v1.14.0-purple)
+![Version](https://img.shields.io/badge/version-v1.15.0-purple)
 ![Backend](https://img.shields.io/badge/backend-FastAPI-009688)
 ![Database](https://img.shields.io/badge/database-PostgreSQL-336791)
 ![AI](https://img.shields.io/badge/AI-Ollama%20%2B%20Local%20Llama-green)
 ![Notifications](https://img.shields.io/badge/notifications-Telegram-lightblue)
 ![Monitoring](https://img.shields.io/badge/monitoring-Prometheus%20%2B%20Grafana-orange)
 
-A self-hosted World Cup 2026 intelligence dashboard for provider-backed fixtures, stored match detail, tournament-wide match data-quality coverage, standings, player event leaders, local AI summaries, Telegram alerts, and runtime observability.
+A self-hosted World Cup 2026 intelligence dashboard for provider-backed fixtures, visual matchday context, stored match detail, transparent match-data coverage, standings, player event leaders, local AI summaries, Telegram alerts, and runtime observability.
 
 **Public dashboard**
 
@@ -18,13 +18,13 @@ https://wc2026.khairulrizal.qzz.io/dashboard
 **Current release**
 
 ```text
-v1.14.0 — Match Data Quality Dashboard
+v1.15.0 — Visual Matchday UX and Charts
 ```
 
 **Release verification**
 
 ```text
-205 automated tests passed
+209 automated tests passed
 ```
 
 ---
@@ -48,28 +48,28 @@ The project is intentionally self-hosted, provider-backed, explainable, and safe
 
 ---
 
-## Current Release: v1.14.0
+## Current Release: v1.15.0
 
-### Match Data Quality Dashboard
+### Visual Matchday UX and Charts
 
-v1.14.0 adds a tournament-wide, read-only view of what the application has already stored for completed fixtures.
+v1.15.0 turns the dashboard into a faster, more visual matchday companion while keeping its data boundaries unchanged.
 
 It adds:
 
-- `GET /fixtures/data-quality`, calculated only from local `Fixture` and `MatchDetail` records
-- coverage counts for completed fixtures with and without stored match detail
-- a coverage percentage and latest locally stored-detail refresh timestamp
-- goals, cards, and substitutions coverage that distinguishes recorded events, empty stored arrays, and missing stored detail
-- optional group and team scope filters, plus a bounded list of completed fixtures missing stored detail
-- a compact **Match Data Coverage** dashboard panel with refresh control and direct follow-up links to missing-detail fixtures
-- focused acceptance tests for unavailable, partial, and filtered stored-data states
+- a **Matchday** home section with visual cards for live fixtures, the latest completed result, and the next scheduled match
+- a compact **Data health** badge that reflects the existing read-only stored-detail coverage response
+- CSS-based visual leader bars for scorers and discipline leaders, scaled against the leading value in each displayed list
+- Group Race points bars that compare each displayed team with its current group leader; they are not qualification probabilities or forecasts
+- a visual coverage donut in Match Data Coverage, based only on the existing local aggregate
+- a mobile-only bottom navigation for Matchday, Matches, Groups, Players, and Data
+- shorter dashboard copy and clearer visual hierarchy while preserving existing fixture browser, detail, AI, standings, and observability views
 
-The endpoint does not contact a provider, trigger sync, backfill data, infer missing events, assess provider truth, or claim that a stored payload is complete. It adds no database migration, scheduler, Telegram, Docker, Cloudflare, or Windows runtime behaviour.
+The release does not add a charting dependency, backend route, provider request, sync, backfill, scheduler, Telegram behaviour, database migration, Docker change, Cloudflare change, or Windows-runtime change. Every visual is derived from the same stored API data already used by the dashboard.
 
 **Release verification**
 
 ```text
-205 automated tests passed
+209 automated tests passed
 ```
 
 ## Architecture at a Glance
@@ -111,6 +111,16 @@ Read the detailed design in [docs/architecture.md](docs/architecture.md).
 ---
 
 ## Core Capabilities
+
+### Visual Matchday Experience
+
+The dashboard prioritises an at-a-glance matchday view before deeper operational detail:
+
+- visual cards select the most relevant live, completed, and upcoming fixtures from the current stored fixture response
+- the Data health badge reuses the existing local-only coverage result and does not start sync or contact a provider
+- player and Group Race bars are comparative UI indicators, not predictive models
+- the Match Data Coverage donut visualises the returned stored-detail percentage
+- the mobile bottom navigation links only to existing page sections and does not create a separate mobile application
 
 ### Fixture and Provider Data
 
@@ -363,13 +373,13 @@ Never commit:
 
 ## Dashboard Demo Flow
 
-1. Open the public dashboard.
-2. Use Quick Links to open **AI Insights**.
-3. Show the top-two **Group Race** board.
-4. Open **Players** and explain that goals and cards are derived from stored provider event data.
-5. Open **AI Summary** and show the provider-backed latest completed result.
-6. Open **Fixtures**, select a completed match, and show the **Stored provider detail** coverage block.
-7. Open the Timeline, Statistics, and Lineups tabs when their stored data is available.
+1. Open the public dashboard and start at the visual **Matchday** section.
+2. Show the live/latest/next fixture cards and explain that they come from the stored fixture response.
+3. Point out the **Data health** badge; it reflects read-only local stored-detail coverage.
+4. Open **Groups** and show the Group Race point bars, which are comparative rather than predictive.
+5. Open **Players** and explain that leader bars use stored provider goal and card events.
+6. Open **Fixtures**, select a completed match, and show the score, timeline, comparison bars, and lineups when stored data is available.
+7. Open **Match Data Coverage** for the fuller local quality view.
 8. Open **Sync** for runtime observability.
 9. Show `/docs`, `/metrics`, Prometheus, or Grafana as needed.
 
@@ -412,6 +422,12 @@ The v1.14.0 release verification is:
 
 ```text
 205 passed
+```
+
+The v1.15.0 release verification is:
+
+```text
+209 passed
 ```
 
 Python 3.14 may emit FastAPI/Starlette deprecation warnings related to `asyncio.iscoroutinefunction`. They are currently warnings, not failing tests.
@@ -484,6 +500,7 @@ Use the tag and release title only after the version is intentionally prepared f
 | v1.12.0 | Safe matchday sync, audit history, and data freshness | Completed |
 | v1.13.0 | Provider event integrity and stored detail coverage | Completed |
 | v1.14.0 | Match data quality dashboard | Completed |
+| v1.15.0 | Visual Matchday UX and charts | Completed |
 
 ---
 
@@ -498,6 +515,7 @@ Use the tag and release title only after the version is intentionally prepared f
 - The default local stack does not implement production authentication or hardened secret management.
 - Dashboard data is a stored provider snapshot and changes after future approved syncs.
 - Match Data Coverage reports local storage coverage; it does not validate or complete provider history.
+- Visual bars and coverage graphics are descriptive views of the current stored response; they do not predict outcomes or calculate qualification odds.
 
 ---
 

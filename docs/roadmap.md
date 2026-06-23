@@ -7,9 +7,9 @@ World Cup 2026 AI Stats is developed through small, test-backed milestones. Each
 ## Current Status
 
 ```text
-Current release: v1.14.0 — Match Data Quality Dashboard
-Release verification: 205 tests passed
-Previous v1.13.0 verification: 202 tests passed
+Current release: v1.15.0 — Visual Matchday UX and Charts
+Release verification: 209 tests passed
+Previous v1.14.0 verification: 205 tests passed
 Primary runtime: Windows laptop + Docker Compose
 Development machine: MacBook Pro + VS Code + Python venv
 Public dashboard: https://wc2026.khairulrizal.qzz.io/dashboard
@@ -17,8 +17,10 @@ Public dashboard: https://wc2026.khairulrizal.qzz.io/dashboard
 
 Current live capabilities:
 
+- visual Matchday home with live/latest/next stored-fixture cards and a local Data health badge
 - provider-backed fixtures and stored rich match details
-- read-only Match Data Coverage for completed-fixture stored detail and missing-detail follow-up
+- read-only Match Data Coverage with visual coverage progress and missing-detail follow-up
+- comparative player and Group Race bars derived from existing stored responses
 - status-first fixture browser and responsive match detail
 - local Ollama health and summary workflow with deterministic fallback
 - provider-backed goals and card leaderboards
@@ -28,6 +30,30 @@ Current live capabilities:
 - disabled-by-default provider-only scheduling and completed-match Telegram alert policy
 - Telegram status/testing and mobile dashboard links
 - Prometheus, Grafana, sync observability, and Cloudflare access
+
+---
+
+## v1.15.0 Release Notes
+
+### v1.15.0 — Visual Matchday UX and Charts
+
+**Goal:** Make the dashboard quicker to scan on desktop and mobile with visual matchday context, comparison bars, and clearer data-health presentation, without changing the stored-data or runtime contract.
+
+Delivered scope:
+
+- visual Matchday cards for live, latest completed, and next scheduled fixtures
+- compact Data health badge using the existing read-only Match Data Coverage response
+- CSS-based visual bars for player leader metrics and Group Race points
+- visual Match Data Coverage donut/progress treatment
+- mobile-only bottom navigation for the key fan-facing sections
+- focused dashboard acceptance checks and full regression-suite verification
+
+Current boundaries retained:
+
+- no new API route or chart library
+- no provider request, sync, automatic rich-detail backfill, scheduler, or Telegram change
+- no database migration, Docker, Cloudflare, or Windows runtime change
+- no forecasts, qualification probabilities, or provider-completeness claim from visual indicators
 
 ---
 
@@ -120,6 +146,7 @@ Current boundaries retained:
 | v1.12.0 | Completed | Safe matchday sync audit history, opt-in scheduler/alerts, and factual freshness indicators |
 | v1.13.0 | Completed | Provider event integrity and stored detail coverage |
 | v1.14.0 | Completed | Read-only match data quality dashboard and missing-detail follow-up |
+| v1.15.0 | Completed | Visual Matchday home, descriptive charts, data-health badge, and mobile navigation |
 
 ---
 
