@@ -4,7 +4,7 @@
 
 World Cup 2026 AI Stats is a self-hosted football analytics platform built around a FastAPI backend, PostgreSQL, provider-backed match detail, a static browser dashboard, local AI summaries, Telegram notifications, and Prometheus/Grafana observability.
 
-The current release is **v1.15.0**. It adds a visual Matchday home experience, CSS-based comparative bars, a visual local-coverage treatment, and mobile navigation while preserving the project's local-first and no-live-lookup boundaries.
+The current release is **v1.16.0**. It adds fixed-time provider sync scheduling and an opt-in Telegram digest for newly completed fixtures, while retaining the existing visual Matchday experience, local-first runtime, and explicit safety boundaries.
 
 The canonical user interface is the FastAPI-served dashboard:
 
@@ -62,7 +62,7 @@ The architecture is local-first:
 | Static dashboard | Responsive HTML, CSS, and JavaScript served by FastAPI |
 | Zafronix | Provider-backed fixture and match-detail source |
 | Ollama | Optional local LLM health and summary generation |
-| Telegram Bot API | Optional status and test notifications |
+| Telegram Bot API | Optional test notifications and one-message scheduled matchday digests |
 | Prometheus | Metrics collection |
 | Grafana | Metrics visualization |
 | Cloudflare Tunnel | Optional public/mobile access |
@@ -270,6 +270,74 @@ The browser selects live fixtures first when they exist, otherwise the latest co
 
 The mobile bottom navigation is an in-page link layer for existing Matchday, Matches, Groups, Players, and Data sections. It does not expose a separate API or authentication model.
 
+## Fixed-Time Scheduled Sync and Telegram Digest
+
+v1.16.0 replaces the configured runtime scheduler path with fixed daily local-time slots.
+
+Default configuration:
+
+```text
+timezone: Asia/Singapore
+slots:    03:45, 09:45, 12:45
+```
+
+The schedule is configurable through environment variables. The provider scheduler remains disabled by default.
+
+### Scheduler behaviour
+
+```text
+backend starts or restarts
+        |
+        v
+parse configured timezone and fixed daily slots
+        |
+        v
+calculate first slot strictly after the current local time
+        |
+        +--> wait for that next slot
+        |
+        +--> do not run an immediate catch-up sync
+        |
+        v
+one provider fixture sync
+```
+
+A run lock prevents overlapping scheduled executions. The older interval field remains in configuration/status output for compatibility, but it is not used by the configured application startup path.
+
+### Scheduled digest behaviour
+
+```text
+scheduled provider sync
+        |
+        v
+fixture sync result
+        |
+        +--> newly completed external IDs for this run
+        |
+        +--> no new completions -> no Telegram message
+        |
+        +--> new completions + digest enabled
+                 |
+                 v
+             one Telegram roundup with final scores
+             and the public dashboard link
+```
+
+The digest is controlled separately by `TELEGRAM_SCHEDULED_DIGEST_ENABLED` and remains disabled by default. It is independent of the existing manual-sync per-fixture alert policy.
+
+`GET /fixtures/sync/status` exposes safe scheduler metadata:
+
+```text
+enabled
+mode
+timezone
+scheduled_times
+next_run_at
+interval_minutes (legacy compatibility field)
+```
+
+Invalid schedule configuration is returned as bounded status metadata rather than causing the read-only status route to fail.
+
 ---
 
 ## Main API Surface
@@ -353,6 +421,35 @@ PostgreSQL
         v
 dashboard, standings, leaders, summaries, metrics
 ```
+
+### Scheduled Provider Sync and Telegram Digest
+
+```text
+fixed local-time scheduler
+        |
+        v
+configured provider adapter
+        |
+        v
+fixture sync service
+        |
+        +--> upsert Fixture and optional MatchDetail
+        +--> identify only status transitions into completed
+        |
+        v
+persisted sync-run history + Prometheus metrics
+        |
+        +--> digest disabled -> record skipped outcome
+        |
+        +--> no newly completed fixtures -> record skipped outcome
+        |
+        +--> digest enabled + new completions
+                 |
+                 v
+             one Telegram roundup with dashboard link
+```
+
+No scheduled run is triggered on process startup. The first execution is always the next future configured slot.
 
 ### Match Detail View
 
@@ -525,6 +622,8 @@ The system records:
 - fetched, created, updated, and newly completed fixture counts
 - persisted sync-run status and history
 - dashboard-visible freshness state
+- fixed-time scheduler mode, configured timezone/slots, and next-run visibility
+- scheduled Telegram digest outcomes
 
 ---
 
@@ -548,6 +647,17 @@ VERSION
 APP_VERSION in .env.example
 default app_version in backend/app/config.py
 ```
+
+Scheduled runtime settings are explicit:
+
+```text
+PROVIDER_SYNC_SCHEDULER_ENABLED=false
+PROVIDER_SYNC_SCHEDULE_TIMEZONE=Asia/Singapore
+PROVIDER_SYNC_SCHEDULE_TIMES=03:45,09:45,12:45
+TELEGRAM_SCHEDULED_DIGEST_ENABLED=false
+```
+
+Changing these values on the Windows runtime requires a deliberate configuration update and service restart. The release itself does not enable the scheduler or send messages.
 
 Secrets must remain local:
 
@@ -588,6 +698,12 @@ The v1.15.0 release verification is:
 209 passed
 ```
 
+The v1.16.0 release verification is:
+
+```text
+217 passed
+```
+
 Coverage includes:
 
 - provider fixture and rich-detail sync
@@ -598,6 +714,8 @@ Coverage includes:
 - leaderboards and latest-result summaries
 - dashboard static assets and logic markers
 - visual Matchday cards, data-health presentation, comparative leader/group bars, coverage donut, and mobile navigation
+- fixed-time scheduler parsing, next-slot calculation, restart behavior, and serialized execution
+- scheduled Telegram digest opt-in, silent empty-completion runs, one-message aggregation, and dashboard-link delivery
 - AI summaries and deterministic fallbacks
 - Group Race, standings, group insights, player stats, notifications, metrics, and release workflow
 
@@ -613,6 +731,7 @@ Coverage includes:
 - Assist leaders are unavailable when the provider does not supply assist events.
 - Local Llama depends on Ollama availability on the Windows host.
 - The public dashboard is dependent on the Windows runtime and Cloudflare Tunnel remaining online.
-- Automatic sync and sync-generated Telegram alerts remain disabled unless explicitly configured.
+- Fixed-time provider scheduling and scheduled Telegram digest delivery remain disabled unless explicitly configured.
+- The default Singapore slots are configurable and should be reviewed for later tournament-stage timings.
 - Match Data Coverage measures local stored-data presence; it does not certify provider completeness or factual correctness.
 - Dashboard charts and bars are comparative stored-data visuals, not predictive analytics or qualification simulations.

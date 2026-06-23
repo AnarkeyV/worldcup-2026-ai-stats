@@ -37,6 +37,13 @@ def test_env_example_uses_current_llama_setting_names():
     assert "OLLAMA_MODEL=" not in env_text
 
 
+def test_env_example_documents_fixed_time_scheduled_sync_defaults():
+    assert read_env_example_value("PROVIDER_SYNC_SCHEDULER_ENABLED") == "false"
+    assert read_env_example_value("PROVIDER_SYNC_SCHEDULE_TIMEZONE") == "Asia/Singapore"
+    assert read_env_example_value("PROVIDER_SYNC_SCHEDULE_TIMES") == "03:45,09:45,12:45"
+    assert read_env_example_value("TELEGRAM_SCHEDULED_DIGEST_ENABLED") == "false"
+
+
 def test_root_docker_compose_file_exists():
     compose_file = PROJECT_ROOT / "docker-compose.yml"
 

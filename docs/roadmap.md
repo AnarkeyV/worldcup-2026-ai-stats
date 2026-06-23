@@ -7,9 +7,9 @@ World Cup 2026 AI Stats is developed through small, test-backed milestones. Each
 ## Current Status
 
 ```text
-Current release: v1.15.0 — Visual Matchday UX and Charts
-Release verification: 209 tests passed
-Previous v1.14.0 verification: 205 tests passed
+Current release: v1.16.0 — Fixed-Time Scheduled Sync and Telegram Digest
+Release verification: 217 tests passed
+Previous v1.15.0 verification: 209 tests passed
 Primary runtime: Windows laptop + Docker Compose
 Development machine: MacBook Pro + VS Code + Python venv
 Public dashboard: https://wc2026.khairulrizal.qzz.io/dashboard
@@ -27,9 +27,36 @@ Current live capabilities:
 - latest completed-match summary
 - top-two Group Race board across populated groups
 - persisted fixture sync audit history and safe freshness states
-- disabled-by-default provider-only scheduling and completed-match Telegram alert policy
+- disabled-by-default fixed-time provider scheduling and scheduled Telegram digest policy
 - Telegram status/testing and mobile dashboard links
 - Prometheus, Grafana, sync observability, and Cloudflare access
+
+---
+
+## v1.16.0 Release Notes
+
+### v1.16.0 — Fixed-Time Scheduled Sync and Telegram Digest
+
+**Goal:** Refresh the stored provider snapshot around the current Singapore match windows and send one useful Telegram roundup after newly completed matches, without enabling automation or delivery by default.
+
+Delivered scope:
+
+- fixed daily schedule configuration, defaulting to `03:45`, `09:45`, and `12:45` in `Asia/Singapore`
+- strict next-future-slot behavior after startup or restart, with no immediate catch-up sync
+- one provider fixture sync per scheduled slot
+- one Telegram digest for all newly completed fixtures from that run when the digest policy is enabled
+- no Telegram delivery when the completion set is empty
+- public dashboard link in the digest
+- read-only schedule metadata in sync status: mode, timezone, slots, and next run
+- explicit environment placeholders and release checks for the new settings
+- full regression-suite verification
+
+Current boundaries retained:
+
+- the scheduler and scheduled digest are disabled by default
+- no `.env` activation, Windows runtime change, provider sync, or Telegram message occurs during release preparation
+- no automatic rich-detail backfill, database migration, forecast, qualification probability, or factual match-report export
+- schedule times are configurable and should be revisited for later tournament-stage timing changes
 
 ---
 
@@ -147,6 +174,7 @@ Current boundaries retained:
 | v1.13.0 | Completed | Provider event integrity and stored detail coverage |
 | v1.14.0 | Completed | Read-only match data quality dashboard and missing-detail follow-up |
 | v1.15.0 | Completed | Visual Matchday home, descriptive charts, data-health badge, and mobile navigation |
+| v1.16.0 | Completed | Fixed-time scheduled provider sync, next-run visibility, and opt-in Telegram matchday digest |
 
 ---
 

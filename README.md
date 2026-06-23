@@ -1,6 +1,6 @@
 # World Cup 2026 AI Stats
 
-![Version](https://img.shields.io/badge/version-v1.15.0-purple)
+![Version](https://img.shields.io/badge/version-v1.16.0-purple)
 ![Backend](https://img.shields.io/badge/backend-FastAPI-009688)
 ![Database](https://img.shields.io/badge/database-PostgreSQL-336791)
 ![AI](https://img.shields.io/badge/AI-Ollama%20%2B%20Local%20Llama-green)
@@ -18,13 +18,13 @@ https://wc2026.khairulrizal.qzz.io/dashboard
 **Current release**
 
 ```text
-v1.15.0 — Visual Matchday UX and Charts
+v1.16.0 — Fixed-Time Scheduled Sync and Telegram Digest
 ```
 
 **Release verification**
 
 ```text
-209 automated tests passed
+217 automated tests passed
 ```
 
 ---
@@ -48,28 +48,29 @@ The project is intentionally self-hosted, provider-backed, explainable, and safe
 
 ---
 
-## Current Release: v1.15.0
+## Current Release: v1.16.0
 
-### Visual Matchday UX and Charts
+### Fixed-Time Scheduled Sync and Telegram Digest
 
-v1.15.0 turns the dashboard into a faster, more visual matchday companion while keeping its data boundaries unchanged.
+v1.16.0 makes the existing provider-refresh workflow usable as a controlled matchday routine without changing the local-first runtime model.
 
 It adds:
 
-- a **Matchday** home section with visual cards for live fixtures, the latest completed result, and the next scheduled match
-- a compact **Data health** badge that reflects the existing read-only stored-detail coverage response
-- CSS-based visual leader bars for scorers and discipline leaders, scaled against the leading value in each displayed list
-- Group Race points bars that compare each displayed team with its current group leader; they are not qualification probabilities or forecasts
-- a visual coverage donut in Match Data Coverage, based only on the existing local aggregate
-- a mobile-only bottom navigation for Matchday, Matches, Groups, Players, and Data
-- shorter dashboard copy and clearer visual hierarchy while preserving existing fixture browser, detail, AI, standings, and observability views
+- a configurable fixed-time daily provider scheduler, defaulting to `03:45`, `09:45`, and `12:45` in `Asia/Singapore`
+- strict next-slot scheduling: a backend start, restart, or late boot waits for the next future slot instead of running an immediate catch-up sync
+- safe schedule metadata in `GET /fixtures/sync/status`, including mode, timezone, configured slots, and next run time
+- a separate, disabled-by-default scheduled Telegram digest policy
+- one Telegram roundup for all fixtures that changed to completed during that specific scheduled sync
+- silent scheduled runs when no newly completed fixtures are detected
+- dashboard-link delivery in the scheduled digest
+- fixed-time schedule parsing, duplicate-slot normalization, startup behaviour, digest policy, and runtime-status coverage
 
-The release does not add a charting dependency, backend route, provider request, sync, backfill, scheduler, Telegram behaviour, database migration, Docker change, Cloudflare change, or Windows-runtime change. Every visual is derived from the same stored API data already used by the dashboard.
+The scheduler and scheduled Telegram digest remain disabled by default. The existing legacy interval setting is retained only for compatibility/status output; the configured runtime path uses fixed daily times. Manual sync alert policy remains separate.
 
 **Release verification**
 
 ```text
-209 automated tests passed
+217 automated tests passed
 ```
 
 ## Architecture at a Glance
@@ -88,7 +89,7 @@ Docker Desktop + Docker Compose
         |-- Prometheus
         |-- Grafana
         |-- Cloudflare Tunnel
-        |-- Telegram integration
+        |-- Telegram test and scheduled digest integration
         |-- Ollama on the Windows host
         |
         +--> Public mobile dashboard
@@ -99,7 +100,7 @@ External integrations:
 
 ```text
 Zafronix Provider API  --->  FastAPI backend  --->  PostgreSQL
-Telegram Bot API       <---  notification routes
+Telegram Bot API       <---  manual notifications and scheduled digests
 Cloudflare Tunnel      --->  public dashboard URL
 Ollama                <---  local AI health and summaries
 Prometheus            <---  backend metrics
@@ -203,6 +204,20 @@ Current Windows runtime model: llama3.2:1b
 
 When a live local summary is unavailable or contradicts known fixture state, the API falls back to deterministic, fact-preserving output.
 
+### Fixed-Time Provider Sync and Telegram Digest
+
+Scheduled matchday automation is intentionally explicit and opt-in.
+
+- `PROVIDER_SYNC_SCHEDULER_ENABLED` controls the fixed-time provider scheduler.
+- The default timezone and slots are `Asia/Singapore` with `03:45`, `09:45`, and `12:45`.
+- The scheduler waits for the next future configured slot after startup or restart; it does not run an automatic catch-up sync.
+- `GET /fixtures/sync/status` reports the fixed-time mode, configured timezone, slots, and calculated next run.
+- `TELEGRAM_SCHEDULED_DIGEST_ENABLED` separately controls scheduled notification delivery.
+- When enabled, one digest contains every fixture that became completed in that scheduled run. A run with no newly completed fixtures sends no Telegram message.
+- The existing manual-sync per-fixture alert policy remains separate and disabled by default.
+
+The default slots suit the current group-stage match windows and are configurable. Review them before later tournament stages if match timings change.
+
 ### Telegram and Mobile Access
 
 Telegram support is optional and uses local environment variables.
@@ -290,10 +305,11 @@ worldcup-2026-ai-stats/
 ### MacBook Development
 
 ```bash
-cd ~/documents/worldcup-2026-ai-stats
+cd ~/documents/worldcup-2026-ai-stats/backend
 source .venv/bin/activate
 
 python -m pytest -q
+cd ..
 git status --short
 git diff --check
 ```
@@ -355,7 +371,9 @@ Application version
 PostgreSQL connection
 Zafronix provider key
 Optional API-Football configuration
+Fixed provider-sync timezone and daily slots
 Telegram bot token and chat ID
+Scheduled Telegram digest policy
 Ollama base URL, model, and timeout
 Public dashboard URL
 ```
@@ -380,7 +398,7 @@ Never commit:
 5. Open **Players** and explain that leader bars use stored provider goal and card events.
 6. Open **Fixtures**, select a completed match, and show the score, timeline, comparison bars, and lineups when stored data is available.
 7. Open **Match Data Coverage** for the fuller local quality view.
-8. Open **Sync** for runtime observability.
+8. Open **Sync** for runtime observability, including the configured fixed-time schedule and next run when enabled.
 9. Show `/docs`, `/metrics`, Prometheus, or Grafana as needed.
 
 For a detailed walkthrough, read [docs/demo-walkthrough.md](docs/demo-walkthrough.md).
@@ -404,6 +422,8 @@ python -m pytest backend/tests/test_provider_event_integrity.py -q
 python -m pytest backend/tests/test_fixtures.py -q
 python -m pytest backend/tests/test_dashboard.py -q
 python -m pytest backend/tests/test_provider_player_leaders.py -q
+python -m pytest backend/tests/test_scheduled_sync_telegram_digest.py -q
+python -m pytest backend/tests/test_provider_sync_scheduler.py -q
 ```
 
 The v1.12.0 release verification baseline is:
@@ -430,6 +450,12 @@ The v1.15.0 release verification is:
 209 passed
 ```
 
+The v1.16.0 release verification is:
+
+```text
+217 passed
+```
+
 Python 3.14 may emit FastAPI/Starlette deprecation warnings related to `asyncio.iscoroutinefunction`. They are currently warnings, not failing tests.
 
 ---
@@ -441,8 +467,10 @@ git checkout main
 git pull --ff-only origin main
 
 git checkout -b feature/vX.Y.Z-description
+cd backend
 source .venv/bin/activate
 python -m pytest -q
+cd ..
 
 git add .
 git commit -m "Implement vX.Y.Z"
@@ -501,6 +529,7 @@ Use the tag and release title only after the version is intentionally prepared f
 | v1.13.0 | Provider event integrity and stored detail coverage | Completed |
 | v1.14.0 | Match data quality dashboard | Completed |
 | v1.15.0 | Visual Matchday UX and charts | Completed |
+| v1.16.0 | Fixed-time scheduled sync and Telegram digest | Completed |
 
 ---
 
@@ -516,6 +545,8 @@ Use the tag and release title only after the version is intentionally prepared f
 - Dashboard data is a stored provider snapshot and changes after future approved syncs.
 - Match Data Coverage reports local storage coverage; it does not validate or complete provider history.
 - Visual bars and coverage graphics are descriptive views of the current stored response; they do not predict outcomes or calculate qualification odds.
+- Fixed-time provider sync and scheduled Telegram digest delivery remain disabled until explicitly configured on the Windows runtime.
+- The default Singapore slots suit the current group-stage cadence and should be reviewed for later tournament stages.
 
 ---
 

@@ -6,6 +6,41 @@ The project follows semantic versioning and milestone-based releases.
 
 ---
 
+## [1.16.0] — Fixed-Time Scheduled Sync and Telegram Digest
+
+### Added
+
+- Fixed daily provider-sync schedule configuration with `Asia/Singapore` and `03:45,09:45,12:45` defaults.
+- Fixed-time schedule parsing that normalizes, sorts, and deduplicates configured slots.
+- Strict next-future-slot calculation so startup, restart, or a late boot does not cause an immediate catch-up provider sync.
+- Safe fixed-time scheduler metadata in `GET /fixtures/sync/status`, including mode, timezone, configured slots, and next run.
+- Optional scheduled Telegram digest policy, disabled by default.
+- One Telegram roundup for every fixture that transitions to completed during a single scheduled sync.
+- Silent scheduled outcomes when no newly completed fixtures exist.
+- Dashboard-link delivery in scheduled Telegram digests.
+- Focused coverage for schedule parsing, next-run calculation, disabled digest behavior, one-message aggregation, empty-result silence, scheduler serialization, persisted scheduled audit history, and release configuration.
+
+### Changed
+
+- The configured runtime startup path now uses fixed daily times rather than an interval cadence.
+- The legacy interval setting remains available for compatibility and status output, but does not drive the configured runtime scheduler.
+- Scheduled provider sync now records a notification outcome without enabling the separate manual-sync per-fixture alert policy.
+
+### Verified
+
+```text
+217 automated tests passed
+```
+
+### Boundaries
+
+- The scheduler and scheduled Telegram digest remain disabled by default.
+- No `.env` value, provider request, database write, Docker change, Cloudflare change, or Telegram message is activated by this release preparation alone.
+- No automatic rich-detail backfill, database migration, provider event-ID storage, historical correction store, assist inference, or result forecasting was added.
+- The default times are configurable and should be reviewed for later tournament stages.
+
+---
+
 ## [1.15.0] — Visual Matchday UX and Charts
 
 ### Added
