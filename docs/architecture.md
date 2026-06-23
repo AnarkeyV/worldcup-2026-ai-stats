@@ -4,7 +4,7 @@
 
 World Cup 2026 AI Stats is a self-hosted football analytics platform built around a FastAPI backend, PostgreSQL, provider-backed match detail, a static browser dashboard, local AI summaries, Telegram notifications, and Prometheus/Grafana observability.
 
-The current released baseline is **v1.12.0**. The active **v1.13.0 development milestone** adds canonical provider-event integrity and clear stored-detail coverage without changing release/version metadata yet.
+The current release is **v1.13.0**. It adds canonical provider-event integrity and clear stored-detail coverage while preserving the project's local-first and read-only match-detail boundaries.
 
 The canonical user interface is the FastAPI-served dashboard:
 
@@ -472,7 +472,7 @@ The v1.12.0 release verification baseline is:
 196 passed
 ```
 
-The current v1.13.0 development verification is:
+The v1.13.0 release verification is:
 
 ```text
 202 passed

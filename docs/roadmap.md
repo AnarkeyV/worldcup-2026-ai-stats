@@ -7,10 +7,9 @@ World Cup 2026 AI Stats is developed through small, test-backed milestones. Each
 ## Current Status
 
 ```text
-Current release: v1.12.0 — Safe Matchday Sync, Audit History, and Data Freshness
-Current development milestone: v1.13.0 — Provider Event Integrity and Stored Detail Coverage
-Current development verification: 202 tests passed
-Released v1.12.0 verification: 196 tests passed
+Current release: v1.13.0 — Provider Event Integrity and Stored Detail Coverage
+Release verification: 202 tests passed
+Previous v1.12.0 verification: 196 tests passed
 Primary runtime: Windows laptop + Docker Compose
 Development machine: MacBook Pro + VS Code + Python venv
 Public dashboard: https://wc2026.khairulrizal.qzz.io/dashboard
@@ -31,13 +30,13 @@ Current live capabilities:
 
 ---
 
-## Current Development Milestone
+## v1.13.0 Release Notes
 
 ### v1.13.0 — Provider Event Integrity and Stored Detail Coverage
 
 **Goal:** Make stored provider event data more trustworthy and make event-data coverage transparent in the match-detail dashboard, without triggering provider writes or inventing football facts.
 
-Delivered development scope:
+Delivered scope:
 
 - canonical goals, cards, and substitutions through a shared service
 - safe participant and side validation for supported event shapes
@@ -50,7 +49,7 @@ Delivered development scope:
   - no stored provider detail
   - stored event records
   - stored detail with no event records in the last payload
-- focused test coverage and full development-suite verification
+- focused test coverage and full release-suite verification
 
 Current boundaries retained:
 
@@ -62,8 +61,6 @@ Current boundaries retained:
 - no inferred assists or player data
 - no factual match-report export
 - no runtime, Docker, scheduler, Telegram, or Cloudflare changes
-
-Release preparation remains separate. The application version stays at v1.12.0 until that step.
 
 ---
 
@@ -94,7 +91,7 @@ Release preparation remains separate. The application version stays at v1.12.0 u
 | v1.10.0 | Completed | Match-detail dashboard and README polish |
 | v1.11.0 | Completed | Rich match details, provider leaders, latest result, sticky navigation, Group Race |
 | v1.12.0 | Completed | Safe matchday sync audit history, opt-in scheduler/alerts, and factual freshness indicators |
-| v1.13.0 | In development | Provider event integrity and stored detail coverage |
+| v1.13.0 | Completed | Provider event integrity and stored detail coverage |
 
 ---
 
