@@ -297,8 +297,8 @@ def test_dashboard_page_includes_fixture_group_tabs():
     assert 'id="fixture-group-tabs"' in response.text
     assert "Browse fixtures by group" in response.text
     assert "Provider-backed Rich Match Dashboard" in response.text
-    assert "dashboard.js?v=v1.13.0" in response.text
-    assert "dashboard.css?v=v1.13.0" in response.text
+    assert "dashboard.js?v=v1.12.0" in response.text
+    assert "dashboard.css?v=v1.12.0" in response.text
 
 def test_dashboard_page_includes_fixture_status_browser_controls():
     response = client.get("/dashboard")
@@ -461,22 +461,42 @@ def test_dashboard_js_includes_sync_freshness_and_stored_detail_refresh_logic():
     assert "Stored detail refresh" in response.text
     assert "Stored provider payload; not a live detail request." in response.text
 
-def test_dashboard_js_includes_stored_provider_detail_coverage_logic():
+def test_dashboard_page_includes_match_data_quality_panel():
+    response = client.get("/dashboard")
+
+    assert response.status_code == 200
+    assert 'id="match-data-quality"' in response.text
+    assert "Match Data Coverage" in response.text
+    assert "Read-only stored data" in response.text
+    assert 'id="match-data-quality-message"' in response.text
+    assert 'id="refresh-match-data-quality"' in response.text
+    assert 'id="match-data-quality-summary"' in response.text
+    assert 'id="match-data-quality-events"' in response.text
+    assert 'id="missing-detail-fixtures"' in response.text
+    assert 'href="#match-data-quality"' in response.text
+
+
+def test_dashboard_js_includes_match_data_quality_logic():
     response = client.get("/static/dashboard.js")
 
     assert response.status_code == 200
-    assert "stored_event_coverage" in response.text
-    assert "renderStoredProviderDetailCoverage" in response.text
-    assert "Stored provider detail" in response.text
-    assert "No live provider lookup was attempted." in response.text
-    assert "No stored events" in response.text
+    assert "fetchMatchDataQuality" in response.text
+    assert "refreshMatchDataQuality" in response.text
+    assert "renderMatchDataQuality" in response.text
+    assert "/fixtures/data-quality" in response.text
+    assert "missing_detail_fixtures" in response.text
+    assert "data-missing-detail-fixture-id" in response.text
+    assert "Stored match-detail coverage" in response.text
+    assert "No provider request was made by this panel." in response.text
 
 
-def test_static_dashboard_css_includes_stored_provider_detail_coverage_styles():
+def test_static_dashboard_css_includes_match_data_quality_styles():
     response = client.get("/static/dashboard.css")
 
     assert response.status_code == 200
-    assert "stored-detail-coverage" in response.text
-    assert "stored-detail-coverage-grid" in response.text
-    assert "stored-detail-event-coverage" in response.text
-    assert "stored-detail-coverage.unavailable" in response.text
+    assert "match-data-quality-panel" in response.text
+    assert "match-data-quality-grid" in response.text
+    assert "match-data-quality-card" in response.text
+    assert "match-data-quality-event-card" in response.text
+    assert "missing-detail-fixtures" in response.text
+    assert "missing-detail-fixture-button" in response.text
