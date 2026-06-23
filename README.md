@@ -1,13 +1,13 @@
 # World Cup 2026 AI Stats
 
-![Version](https://img.shields.io/badge/version-v1.13.0-purple)
+![Version](https://img.shields.io/badge/version-v1.14.0-purple)
 ![Backend](https://img.shields.io/badge/backend-FastAPI-009688)
 ![Database](https://img.shields.io/badge/database-PostgreSQL-336791)
 ![AI](https://img.shields.io/badge/AI-Ollama%20%2B%20Local%20Llama-green)
 ![Notifications](https://img.shields.io/badge/notifications-Telegram-lightblue)
 ![Monitoring](https://img.shields.io/badge/monitoring-Prometheus%20%2B%20Grafana-orange)
 
-A self-hosted World Cup 2026 intelligence dashboard for provider-backed fixtures, stored match detail, standings, player event leaders, local AI summaries, Telegram alerts, and runtime observability.
+A self-hosted World Cup 2026 intelligence dashboard for provider-backed fixtures, stored match detail, tournament-wide match data-quality coverage, standings, player event leaders, local AI summaries, Telegram alerts, and runtime observability.
 
 **Public dashboard**
 
@@ -18,13 +18,13 @@ https://wc2026.khairulrizal.qzz.io/dashboard
 **Current release**
 
 ```text
-v1.13.0 — Provider Event Integrity and Stored Detail Coverage
+v1.14.0 — Match Data Quality Dashboard
 ```
 
 **Release verification**
 
 ```text
-202 automated tests passed
+205 automated tests passed
 ```
 
 ---
@@ -48,32 +48,28 @@ The project is intentionally self-hosted, provider-backed, explainable, and safe
 
 ---
 
-## Current Release: v1.13.0
+## Current Release: v1.14.0
 
-### Provider Event Integrity and Stored Detail Coverage
+### Match Data Quality Dashboard
 
-v1.13.0 strengthens the trust boundary around rich provider events already stored in the application.
+v1.14.0 adds a tournament-wide, read-only view of what the application has already stored for completed fixtures.
 
 It adds:
 
-- canonical handling for goals, cards, and substitutions
-- safe string cleanup, supported `home`/`away` side validation, and required-participant checks
-- exact duplicate removal after normalization
-- stable chronological ordering, while retaining valid untimed events after timed events
-- canonical handling at provider ingestion, match-detail persistence, and leaderboard/latest-result reads
-- a read-only `stored_event_coverage` contract in `GET /fixtures/{fixture_id}/detail`
-- clear distinctions between:
-  - no stored provider detail
-  - stored event records
-  - stored detail with no event records in the last payload
-- a compact mobile-friendly **Stored provider detail** block in the existing match-detail Overview tab
+- `GET /fixtures/data-quality`, calculated only from local `Fixture` and `MatchDetail` records
+- coverage counts for completed fixtures with and without stored match detail
+- a coverage percentage and latest locally stored-detail refresh timestamp
+- goals, cards, and substitutions coverage that distinguishes recorded events, empty stored arrays, and missing stored detail
+- optional group and team scope filters, plus a bounded list of completed fixtures missing stored detail
+- a compact **Match Data Coverage** dashboard panel with refresh control and direct follow-up links to missing-detail fixtures
+- focused acceptance tests for unavailable, partial, and filtered stored-data states
 
-The milestone does not infer event facts, assists, team sides, or event minutes. It also does not add database migrations, historical event-correction storage, provider event IDs, automatic backfill, or a live provider lookup from the read endpoint.
+The endpoint does not contact a provider, trigger sync, backfill data, infer missing events, assess provider truth, or claim that a stored payload is complete. It adds no database migration, scheduler, Telegram, Docker, Cloudflare, or Windows runtime behaviour.
 
 **Release verification**
 
 ```text
-202 automated tests passed
+205 automated tests passed
 ```
 
 ## Architecture at a Glance
@@ -132,6 +128,7 @@ Core fixture routes:
 | Method | Route | Purpose |
 |---|---|---|
 | `GET` | `/fixtures` | List and filter fixtures |
+| `GET` | `/fixtures/data-quality` | Read aggregate stored match-detail coverage |
 | `GET` | `/fixtures/{fixture_id}` | Read one fixture |
 | `GET` | `/fixtures/{fixture_id}/detail` | Read fixture, stored rich detail, and stored event coverage |
 | `POST` | `/fixtures/sync/sample` | Seed deterministic sample fixtures |
@@ -140,6 +137,8 @@ Core fixture routes:
 | `GET` | `/fixtures/sync/history` | Read recent persisted sync-run history |
 
 `GET /fixtures/{fixture_id}/detail` is read-only. It returns only locally stored detail and explicitly indicates that no live provider lookup was attempted when no detail exists.
+
+`GET /fixtures/data-quality` is also read-only. It aggregates local stored-detail coverage for completed fixtures in the selected scope and returns a bounded missing-detail list for dashboard follow-up. It does not make a provider request or prove provider completeness.
 
 ### Provider Event Integrity
 
@@ -409,6 +408,12 @@ The v1.13.0 release verification is:
 202 passed
 ```
 
+The v1.14.0 release verification is:
+
+```text
+205 passed
+```
+
 Python 3.14 may emit FastAPI/Starlette deprecation warnings related to `asyncio.iscoroutinefunction`. They are currently warnings, not failing tests.
 
 ---
@@ -478,6 +483,7 @@ Use the tag and release title only after the version is intentionally prepared f
 | v1.11.0 | Mobile rich match dashboard, provider leaders, and Group Race | Completed |
 | v1.12.0 | Safe matchday sync, audit history, and data freshness | Completed |
 | v1.13.0 | Provider event integrity and stored detail coverage | Completed |
+| v1.14.0 | Match data quality dashboard | Completed |
 
 ---
 
@@ -491,6 +497,7 @@ Use the tag and release title only after the version is intentionally prepared f
 - Local Llama requires Ollama to be running on the Windows host.
 - The default local stack does not implement production authentication or hardened secret management.
 - Dashboard data is a stored provider snapshot and changes after future approved syncs.
+- Match Data Coverage reports local storage coverage; it does not validate or complete provider history.
 
 ---
 

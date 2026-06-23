@@ -7,9 +7,9 @@ World Cup 2026 AI Stats is developed through small, test-backed milestones. Each
 ## Current Status
 
 ```text
-Current release: v1.13.0 — Provider Event Integrity and Stored Detail Coverage
-Release verification: 202 tests passed
-Previous v1.12.0 verification: 196 tests passed
+Current release: v1.14.0 — Match Data Quality Dashboard
+Release verification: 205 tests passed
+Previous v1.13.0 verification: 202 tests passed
 Primary runtime: Windows laptop + Docker Compose
 Development machine: MacBook Pro + VS Code + Python venv
 Public dashboard: https://wc2026.khairulrizal.qzz.io/dashboard
@@ -18,6 +18,7 @@ Public dashboard: https://wc2026.khairulrizal.qzz.io/dashboard
 Current live capabilities:
 
 - provider-backed fixtures and stored rich match details
+- read-only Match Data Coverage for completed-fixture stored detail and missing-detail follow-up
 - status-first fixture browser and responsive match detail
 - local Ollama health and summary workflow with deterministic fallback
 - provider-backed goals and card leaderboards
@@ -27,6 +28,32 @@ Current live capabilities:
 - disabled-by-default provider-only scheduling and completed-match Telegram alert policy
 - Telegram status/testing and mobile dashboard links
 - Prometheus, Grafana, sync observability, and Cloudflare access
+
+---
+
+## v1.14.0 Release Notes
+
+### v1.14.0 — Match Data Quality Dashboard
+
+**Goal:** Make the completeness of locally stored completed-match detail visible across the tournament without performing a provider lookup, backfill, or other side effect.
+
+Delivered scope:
+
+- read-only `GET /fixtures/data-quality` over existing fixture and match-detail records
+- coverage state, counts, percentage, and latest locally stored-detail refresh
+- goals, cards, and substitutions counters for recorded event arrays, empty stored arrays, and missing stored detail
+- optional group/team filtering and a bounded missing-detail fixture list
+- a compact Match Data Coverage dashboard panel with a manual refresh and fixture follow-up links
+- focused acceptance coverage for unavailable, partial, and filtered scopes
+- full regression-suite verification
+
+Current boundaries retained:
+
+- no provider request, sync, or automatic rich-detail backfill
+- no scheduler, Telegram, Docker, Cloudflare, or Windows runtime changes
+- no database migration
+- no inferred events, assists, player data, or score reconciliation
+- no provider-completeness or factual-accuracy claim from local coverage counts
 
 ---
 
@@ -92,6 +119,7 @@ Current boundaries retained:
 | v1.11.0 | Completed | Rich match details, provider leaders, latest result, sticky navigation, Group Race |
 | v1.12.0 | Completed | Safe matchday sync audit history, opt-in scheduler/alerts, and factual freshness indicators |
 | v1.13.0 | Completed | Provider event integrity and stored detail coverage |
+| v1.14.0 | Completed | Read-only match data quality dashboard and missing-detail follow-up |
 
 ---
 
