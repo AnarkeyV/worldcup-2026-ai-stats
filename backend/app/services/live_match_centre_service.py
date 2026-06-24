@@ -7,6 +7,7 @@ as live by the Phase 1 contract.
 """
 
 from __future__ import annotations
+from datetime import datetime, timezone
 
 from typing import Any
 
@@ -22,7 +23,9 @@ from app.services.live_match_contracts import (
     MATCH_STATE_LIVE,
     MATCH_STATE_SCHEDULED,
     MATCH_STATE_UNAVAILABLE,
-    classify_stored_match_status,
+    DISPLAY_STATE_SOURCE_STORED_KICKOFF,
+    DISPLAY_STATE_SOURCE_STORED_STATUS,
+    derive_fixture_display_state,
 )
 from app.services.sync_observability_service import get_fixture_sync_status
 
@@ -35,6 +38,9 @@ DETAIL_NOT_AVAILABLE = "detail_not_available"
 REFRESH_RECORDED = "recorded"
 REFRESH_HISTORICAL_NOT_RECORDED = "not_recorded_before_v1_18"
 REFRESH_NOT_STARTED = "not_started"
+
+SCHEDULED_SOURCE_PROVIDER_STATUS = "provider_status"
+SCHEDULED_SOURCE_STORED_KICKOFF = "stored_kickoff"
 
 
 def build_live_match_centre(db: Session) -> dict[str, Any]:
@@ -52,10 +58,30 @@ def build_live_match_centre(db: Session) -> dict[str, Any]:
         MATCH_STATE_UNAVAILABLE: 0,
     }
     live_matches: list[dict[str, Any]] = []
+    scheduled_sources = {
+        SCHEDULED_SOURCE_PROVIDER_STATUS: 0,
+        SCHEDULED_SOURCE_STORED_KICKOFF: 0,
+    }
+    reference_time = _utc_now()
 
     for fixture in fixtures:
-        match_state = classify_stored_match_status(fixture.status)
+        display_state = derive_fixture_display_state(
+            fixture.status,
+            fixture.kickoff_time,
+            fixture.home_score,
+            fixture.away_score,
+            now=reference_time,
+        )
+        match_state = display_state["match_state"]
         counts[match_state] += 1
+
+        if match_state == MATCH_STATE_SCHEDULED:
+            state_source = display_state["state_source"]
+            if state_source == DISPLAY_STATE_SOURCE_STORED_STATUS:
+                scheduled_sources[SCHEDULED_SOURCE_PROVIDER_STATUS] += 1
+            elif state_source == DISPLAY_STATE_SOURCE_STORED_KICKOFF:
+                scheduled_sources[SCHEDULED_SOURCE_STORED_KICKOFF] += 1
+
         if match_state != MATCH_STATE_LIVE:
             continue
 
@@ -80,7 +106,13 @@ def build_live_match_centre(db: Session) -> dict[str, Any]:
         ),
         "matches": live_matches,
         "counts": counts,
+        "scheduled_sources": scheduled_sources,
     }
+
+
+def _utc_now() -> datetime:
+    """Return the single UTC reference time for one read-only response."""
+    return datetime.now(timezone.utc)
 
 
 def _details_by_fixture_id(
