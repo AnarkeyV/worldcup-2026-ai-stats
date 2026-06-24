@@ -1,190 +1,89 @@
 # Portfolio Release Summary
 
-## World Cup 2026 AI Stats — v1.11.0
+## World Cup 2026 AI Stats v1.18.0 — Live Match Centre & Data Freshness
 
-**Release name:** Mobile Rich Match Dashboard, Provider Leaders, and Group Race
-**Test status:** 184 passed
-**Runtime:** Self-hosted Windows laptop with Docker Compose
-**Development:** MacBook Pro, VS Code, Python venv, Git, and SSH control
-**Public demo:** `https://wc2026.khairulrizal.qzz.io/dashboard`
+World Cup 2026 AI Stats is a self-hosted, provider-backed football intelligence dashboard built as a practical DevOps, backend, automation, observability, and local-AI project.
 
----
+The v1.18.0 milestone focuses on a realistic matchday problem: making a dashboard more useful during tournament play without pretending stored provider data is a full real-time sports feed.
 
-## Executive Summary
+## What v1.18.0 delivers
 
-World Cup 2026 AI Stats is a portfolio-grade DevOps, backend, observability, and local-AI project built around a real football data use case.
+- A read-only Live Match Centre for fixtures explicitly stored as live.
+- Stored freshness states and local update timestamps.
+- Provider-backed change capture for scores, statuses, completion, goals, cards, substitutions, and provider-event revisions.
+- Explicit coverage states for stored match events.
+- A concise What changed? view tied to persisted successful sync data.
+- Better handling for unknown, postponed, cancelled, abandoned, and unsupported statuses.
+- Mobile-aware dashboard additions that preserve existing Match Story, Match Detail, navigation, and official-watch boundaries.
 
-It is not a static mockup. The project operates as a self-hosted system that combines:
+## Engineering decisions
 
-- FastAPI backend APIs
-- PostgreSQL persistence
-- provider-backed fixture and match-detail data
-- a responsive static dashboard
-- local Ollama/Llama summary support
-- deterministic fallback behavior
-- Telegram notification readiness
-- Cloudflare mobile access
-- Prometheus metrics and Grafana visualization
-- Docker Compose runtime orchestration
+### Truthful data presentation
 
-v1.11.0 turns the dashboard into a richer matchday experience with live provider-derived match details, player leaders, latest-result context, and a top-two Group Race board.
+The milestone intentionally does not create a fake live-score experience.
 
----
+A match is labelled live only when the stored provider status explicitly supports that claim. Freshness describes the age of the application’s latest successful stored snapshot, not a promise of real-time delivery.
 
-## What v1.11.0 Adds
+Missing data remains visible as unavailable, not provided, coverage unknown, or detail not available.
 
-### Rich Match Detail
+### Change evidence instead of UI guesses
 
-- fixture cards organised by completed, live, and upcoming status
-- group-level match browsing
-- match detail overview, event timeline, team statistics, and lineups
-- provider-backed goals, cards, substitutions, formations, referee, and weather context
-- responsive desktop/mobile layout
-- sticky navigation for quick dashboard access
+The project now stores additive v1.18+ successful-sync change sets. This lets the dashboard show factual deltas without reconstructing a timeline from overwritten records.
 
-### Provider-Derived Leaders
+Historical syncs from before this change are explicitly labelled as not recorded rather than shown as “no changes.”
 
-- top scorer leaderboard
-- yellow-card leaderboard
-- red-card leaderboard
-- team and group filtering
-- explicit data coverage statement
-- no generic sample player records presented as live data
-- explicit unavailable state for assists when provider event data does not include them
+### Safe database evolution
 
-### AI and Standings Context
+The release avoids altering existing deployed tables. It adds companion evidence tables that can be created through the project’s existing SQLAlchemy bootstrap on a later approved runtime deployment.
 
-- provider-backed latest completed-match card
-- local Ollama health visibility
-- deterministic fallback for unreliable/unavailable local summaries
-- Structured AI Insights
-- Group Race board showing the top two teams in every populated group
+### Read-only operations boundary
 
----
+The Live Match Centre endpoint and dashboard refresh use local stored data only. They do not call a provider, trigger sync, write to the database, send Telegram, or alter scheduler state.
 
-## Why This Is Relevant for DevOps / Cloud / Backend Roles
-
-### Backend Engineering
-
-- FastAPI route design and dependency injection
-- SQLAlchemy persistence patterns
-- separate fixture and rich-match-detail models
-- provider payload normalization
-- deterministic service-layer logic
-- structured API responses
-- test-driven change validation
-
-### DevOps and Runtime Operations
-
-- Docker Compose multi-service runtime
-- Windows Docker Desktop host operations
-- MacBook-to-Windows SSH control workflow
-- environment-driven configuration
-- health checks and runtime verification
-- safe local secret handling
-- release tagging and version consistency checks
-
-### Observability
-
-- Prometheus metrics endpoint
-- provider sync observability
-- Grafana dashboards
-- runtime-state visibility in the dashboard
-- application version metrics
-- health-oriented demo checks
-
-### AI Integration
-
-- local Ollama/Llama model integration
-- health checks before AI usage
-- deterministic fallback behavior
-- guardrails against contradictory summary output
-- use of structured factual data rather than fabricated player analytics
-
-### Product and Data Integrity
-
-- provider-backed rather than placeholder player leaders
-- honest unavailable state for unsupported assist data
-- current standings-derived Group Race
-- clear distinction between stored event data and generic sample records
-- responsive dashboard designed for actual personal mobile use
-
----
-
-## Strong Interview Talking Points
-
-### 1. It is a real operating system, not only an API
-
-The project combines backend APIs, database storage, dashboard UX, data providers, local AI, notifications, monitoring, and a public tunnel in one self-hosted runtime.
-
-### 2. Data quality was handled openly
-
-When provider data did not include assists, the dashboard did not invent them. It shows a transparent unavailable state instead.
-
-### 3. The AI layer is practical rather than decorative
-
-Local Llama improves the summary experience, but deterministic endpoints keep the dashboard reliable when the model is offline or returns inconsistent wording.
-
-### 4. The application is observable
-
-Prometheus and Grafana are available alongside the dashboard, and provider sync state is exposed through API, metrics, and UI.
-
-### 5. The workflow reflects real operational constraints
-
-The MacBook is kept as the development/control machine. The Windows laptop is the always-on Docker runtime and public dashboard host. Verification is performed through SSH and endpoint checks.
-
----
-
-## Recommended Demo Order
-
-1. Open the public dashboard.
-2. Use **AI Insights** to show Group Race.
-3. Use **Players** to show provider-derived goals and cards.
-4. Use **AI Summary** to show the latest completed match.
-5. Use **Fixtures** to show rich match detail.
-6. Use **Sync** to show runtime observability.
-7. Open `/docs`, `/metrics`, Prometheus, and Grafana.
-8. Explain local AI, Telegram, Cloudflare Tunnel, and safe fallback behavior.
-9. Show `pytest -q` with `184 passed`.
-
----
-
-## Release Checklist
-
-Before publishing v1.11.0:
-
-- [ ] `VERSION` is `1.11.0`
-- [ ] `.env.example` has `APP_VERSION=1.11.0`
-- [ ] `backend/app/config.py` defaults to `1.11.0`
-- [ ] README badge is `v1.11.0`
-- [ ] README current release is `v1.11.0`
-- [ ] changelog includes v1.11.0
-- [ ] roadmap marks v1.11.0 completed
-- [ ] architecture reflects rich match detail, leaders, and Group Race
-- [ ] demo walkthrough reflects the current dashboard flow
-- [ ] `pytest -q` reports `184 passed`
-- [ ] `git diff --check` is clean
-- [ ] feature branch is pushed
-- [ ] PR is reviewed and merged
-- [ ] `v1.11.0` tag is pushed
-- [ ] GitHub release is published
-- [ ] Windows runtime is refreshed from `main`
-- [ ] local and remote feature branches are removed
-
----
-
-## Suggested GitHub Release Note
+## Technical stack
 
 ```text
-v1.11.0 — Mobile Rich Match Dashboard, Provider Leaders, and Group Race
-
-Highlights:
-- Added provider-backed rich match detail with timeline, statistics, formations, lineups, referee, and weather context.
-- Added status-first fixture browsing and sticky dashboard navigation.
-- Added provider-derived scorer, yellow-card, and red-card leaderboards.
-- Added latest completed-match summary backed by stored provider events.
-- Added Group Race showing the current top two teams in every populated group.
-- Preserved local Ollama summaries with deterministic fallback protection.
-- Refreshed README and portfolio documentation.
-- Verified full suite: 184 passed.
+FastAPI
+SQLAlchemy
+PostgreSQL
+Static HTML/CSS/JavaScript dashboard
+Docker Compose
+Prometheus and Grafana
+Telegram Bot API
+Ollama with llama3.2:1b
+Cloudflare Tunnel
+GitHub Actions
+pytest
 ```
+
+## Development workflow
+
+- MacBook Pro: VS Code, Python virtual environment, tests, Git, code review.
+- Windows laptop: Docker runtime and public demo host.
+- Cloudflare Tunnel: public mobile access.
+- SSH: post-release runtime verification only.
+
+## Verification
+
+```text
+267 automated tests passed
+316 known FastAPI/Starlette Python 3.14 deprecation warnings
+```
+
+The warnings are Python 3.14 framework deprecation warnings, not test failures.
+
+## Portfolio talking points
+
+- Designed a bounded live-match experience around persisted facts rather than generic sports-app imitation.
+- Introduced explicit data-quality and freshness states to prevent misleading user-facing claims.
+- Added a read-only API composition layer that joins fixture, detail, coverage, sync-run, and change-set data without operational side effects.
+- Used additive persistence records to evolve a self-hosted database safely without rewriting existing schema in place.
+- Preserved runtime safety: no deployment, sync, Telegram, scheduler, Cloudflared, Ollama, or secret changes occurred during source development.
+
+## Current limits
+
+- The dashboard is a stored provider snapshot, not a certified real-time delivery system.
+- Provider payload quality determines available event coverage.
+- Historic sync changes before v1.18 are not reconstructed.
+- No scraping, arbitrary video sources, hard-coded events, invented player facts, or unsupported provider assumptions are used.
+- Runtime deployment requires a separate explicit approval after PR merge, tag, and release.
