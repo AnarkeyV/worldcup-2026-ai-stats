@@ -385,7 +385,7 @@ function getMatchdayHeroFixtures(fixtures = []) {
     return {
         live: sortedByNewest.find((fixture) => getFixtureStatusCategory(fixture) === "live") || null,
         latestCompleted: sortedByNewest.find((fixture) => getFixtureStatusCategory(fixture) === "completed") || null,
-        nextUpcoming: sortedBySoonest.find((fixture) => getFixtureStatusCategory(fixture) === "upcoming") || null,
+        nextUpcoming: sortedBySoonest.find((fixture) => getFixtureStatusCategory(fixture) === "scheduled") || null,
     };
 }
 
@@ -396,7 +396,7 @@ function renderMatchdayScoreCard(fixture, label, tone) {
 
     const matchLabel = `${fixture.home_team || "Home team"} vs ${fixture.away_team || "Away team"}`;
     const scoreLine = `${formatScore(fixture.home_score)} – ${formatScore(fixture.away_score)}`;
-    const timeLabel = getFixtureStatusCategory(fixture) === "upcoming"
+    const timeLabel = getFixtureStatusCategory(fixture) === "scheduled"
         ? formatDateTime(fixture.kickoff_time)
         : formatStatus(fixture.status);
 
@@ -1008,34 +1008,39 @@ const COMPLETED_FIXTURE_STATUSES = new Set([
 
 const LIVE_FIXTURE_STATUSES = new Set([
     "live",
-    "in_play",
-    "in play",
-    "halftime",
-    "half-time",
-    "ht",
-    "1h",
-    "2h",
+]);
+
+const SCHEDULED_FIXTURE_STATUSES = new Set([
+    "scheduled",
+    "not started",
+    "ns",
 ]);
 
 function normalizeFixtureStatus(fixture) {
     return String(fixture?.status || "")
         .trim()
         .toLowerCase()
-        .replaceAll("_", " ");
+        .replaceAll("_", " ")
+        .replaceAll("-", " ")
+        .replace(/\s+/g, " ");
 }
 
 function getFixtureStatusCategory(fixture) {
     const status = normalizeFixtureStatus(fixture);
 
+    if (LIVE_FIXTURE_STATUSES.has(status)) {
+        return "live";
+    }
+
     if (COMPLETED_FIXTURE_STATUSES.has(status)) {
         return "completed";
     }
 
-    if (LIVE_FIXTURE_STATUSES.has(status) || status.includes("live") || status.includes("in play")) {
-        return "live";
+    if (SCHEDULED_FIXTURE_STATUSES.has(status)) {
+        return "scheduled";
     }
 
-    return "upcoming";
+    return "unavailable";
 }
 
 function getFixtureStatusCounts(fixtures) {
@@ -1045,7 +1050,8 @@ function getFixtureStatusCounts(fixtures) {
     }, {
         completed: 0,
         live: 0,
-        upcoming: 0,
+        scheduled: 0,
+        unavailable: 0,
     });
 }
 
@@ -1096,7 +1102,7 @@ function getFixtureDisplayGroup(fixture) {
 function getAvailableFixtureStatusScopes(fixtures) {
     const counts = getFixtureStatusCounts(fixtures);
 
-    return ["completed", "live", "upcoming"].filter((scope) => counts[scope] > 0);
+    return ["completed", "live", "scheduled", "unavailable"].filter((scope) => counts[scope] > 0);
 }
 
 function ensureFixtureBrowserSelection(fixtures) {
@@ -1154,13 +1160,18 @@ function renderFixtureStatusTabs(fixtures) {
         {
             scope: "live",
             label: "Live",
-            description: "Matches in progress",
+            description: "Matches explicitly stored as live",
         },
         {
-            scope: "upcoming",
+            scope: "scheduled",
             label: "Upcoming",
             description: "Scheduled or not started",
         },
+        ...(counts.unavailable > 0 ? [{
+            scope: "unavailable",
+            label: "Data unavailable",
+            description: "Unknown or unsupported stored status",
+        }] : []),
     ];
 
     elements.fixtureStatusTabs.innerHTML = tabs.map((tab) => {
@@ -1245,7 +1256,7 @@ function updateFixtureBrowserMessage(fixtures) {
         return;
     }
 
-    const label = state.fixtureStatusScope === "upcoming"
+    const label = state.fixtureStatusScope === "scheduled"
         ? "upcoming"
         : state.fixtureStatusScope;
     const scopeLabel = state.fixtureScope === "all"
@@ -1301,7 +1312,7 @@ function updateSummary(allFixtures, visibleFixtures) {
 
     elements.totalFixtures.textContent = allFixtures.length;
     elements.completedFixtures.textContent = statusCounts.completed;
-    elements.scheduledFixtures.textContent = statusCounts.upcoming;
+    elements.scheduledFixtures.textContent = statusCounts.scheduled;
     elements.visibleFixtures.textContent = visibleFixtures.length;
 }
 
@@ -2069,7 +2080,7 @@ function renderFixtures(fixtures) {
         return;
     }
 
-    const activeLabel = state.fixtureStatusScope === "upcoming"
+    const activeLabel = state.fixtureStatusScope === "scheduled"
         ? "upcoming"
         : state.fixtureStatusScope;
     elements.dashboardMessage.textContent =
@@ -3150,7 +3161,7 @@ function getStatusClass(status) {
         return "status-complete";
     }
 
-    if (category === "upcoming") {
+    if (category === "scheduled") {
         return "status-scheduled";
     }
 
@@ -3548,5 +3559,15 @@ async function initializeDashboard() {
         setProviderLeadersError();
     }
 }
+
+window.addEventListener("live-match-centre:open-fixture", (event) => {
+    const fixtureId = event?.detail?.fixtureId;
+    if (fixtureId === null || fixtureId === undefined || fixtureId === "") {
+        return;
+    }
+
+    selectFixture(fixtureId, { scroll: true });
+});
+
 
 document.addEventListener("DOMContentLoaded", initializeDashboard);

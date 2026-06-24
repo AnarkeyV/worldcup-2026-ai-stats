@@ -1,0 +1,157 @@
+.live-match-centre-panel {
+    display: grid;
+    gap: 1rem;
+    padding: 1.35rem;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    border-radius: 1rem;
+    background: rgba(15, 23, 42, 0.55);
+    scroll-margin-top: 6.5rem;
+}
+
+.live-match-centre-heading,
+.live-match-card-heading,
+.live-match-card-actions {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    justify-content: space-between;
+}
+
+.live-match-centre-heading h2,
+.live-match-card h3,
+.live-match-centre-changes h3 {
+    margin: 0;
+}
+
+.live-match-centre-heading p,
+.live-match-card p,
+.live-match-centre-changes p {
+    margin: 0.35rem 0 0;
+}
+
+.live-match-centre-freshness {
+    max-width: 32rem;
+    padding: 0.65rem 0.8rem;
+    border-radius: 0.75rem;
+    font-size: 0.9rem;
+    line-height: 1.35;
+    border: 1px solid rgba(148, 163, 184, 0.4);
+}
+
+.live-match-centre-freshness.fresh {
+    border-color: rgba(74, 222, 128, 0.65);
+}
+
+.live-match-centre-freshness.aging,
+.live-match-centre-freshness.stale {
+    border-color: rgba(251, 191, 36, 0.7);
+}
+
+.live-match-centre-freshness.last_sync_failed,
+.live-match-centre-freshness.unavailable {
+    border-color: rgba(248, 113, 113, 0.72);
+}
+
+.live-match-centre-freshness.not_started,
+.live-match-centre-freshness.checking {
+    border-color: rgba(148, 163, 184, 0.55);
+}
+
+.live-match-centre-matches {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+    gap: 0.9rem;
+}
+
+.live-match-card,
+.live-match-centre-empty,
+.live-match-centre-changes {
+    padding: 1rem;
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    border-radius: 0.85rem;
+    background: rgba(15, 23, 42, 0.36);
+}
+
+.live-match-card h3 {
+    font-size: 1rem;
+}
+
+.live-match-card h3 span {
+    opacity: 0.7;
+    font-weight: 500;
+}
+
+.live-match-state {
+    display: inline-block;
+    margin-bottom: 0.35rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.live-match-score {
+    white-space: nowrap;
+    font-size: 1.45rem;
+    font-weight: 800;
+}
+
+.live-match-meta,
+.live-match-event-availability,
+.live-match-centre-empty,
+.live-match-centre-changes li,
+.live-match-centre-more {
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.live-match-event-availability {
+    margin-top: 0.8rem;
+    padding-top: 0.8rem;
+    border-top: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+.live-match-event-availability ul,
+.live-match-centre-changes ul {
+    margin: 0.65rem 0 0;
+    padding-left: 1.15rem;
+}
+
+.live-match-card-actions {
+    margin-top: 0.9rem;
+    justify-content: flex-end;
+}
+
+.live-match-centre-open-button {
+    width: auto;
+}
+
+.live-match-centre-changes {
+    margin-top: 1rem;
+}
+
+.live-match-centre-changes ul {
+    display: grid;
+    gap: 0.4rem;
+}
+
+@media (max-width: 700px) {
+    .live-match-centre-panel {
+        padding: 1rem;
+    }
+
+    .live-match-centre-heading,
+    .live-match-card-heading {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .live-match-centre-freshness {
+        max-width: none;
+    }
+
+    .live-match-card-actions,
+    .live-match-centre-open-button {
+        width: 100%;
+    }
+}
