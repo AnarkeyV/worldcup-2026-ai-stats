@@ -11,6 +11,7 @@ from app.routes.ai import router as ai_router
 from app.routes.dashboard import router as dashboard_router
 from app.routes.fixtures import router as fixtures_router
 from app.routes.insights import router as insights_router
+from app.routes.match_story import router as match_story_router
 from app.routes.metrics import router as metrics_router
 from app.routes.notifications import router as notifications_router
 from app.routes.players import router as players_router
@@ -92,6 +93,7 @@ def root():
         "fixtures": "/fixtures",
         "fixture_sync_status": "/fixtures/sync/status",
         "fixture_sync_history": "/fixtures/sync/history",
+        "match_story": "/fixtures/{fixture_id}/story",
         "standings": "/standings",
         "group_insights": "/insights/groups",
         "player_stats": "/players/stats",
@@ -114,6 +116,7 @@ def health_check():
 app.include_router(ai_router)
 app.include_router(provider_ai_router)
 app.include_router(dashboard_router)
+app.include_router(match_story_router)
 app.include_router(fixtures_router)
 app.include_router(insights_router)
 app.include_router(metrics_router)

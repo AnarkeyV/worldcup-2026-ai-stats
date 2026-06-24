@@ -4,7 +4,7 @@
 
 World Cup 2026 AI Stats is a self-hosted football analytics platform built around a FastAPI backend, PostgreSQL, provider-backed match detail, a static browser dashboard, local AI summaries, Telegram notifications, and Prometheus/Grafana observability.
 
-The current release is **v1.16.0**. It adds fixed-time provider sync scheduling and an opt-in Telegram digest for newly completed fixtures, while retaining the existing visual Matchday experience, local-first runtime, and explicit safety boundaries.
+The current release is **v1.17.0 — Provider-Backed Match Story and Official Watch**. It adds a read-only match-story contract, conservative score and statistic logic, and a manually verified outbound-link policy without changing the fixed-time scheduler, Telegram delivery policy, provider-sync cadence, or local-first runtime model.
 
 The canonical user interface is the FastAPI-served dashboard:
 
@@ -35,15 +35,15 @@ The architecture is local-first:
                          +-------------+--------------+
                                        |
                                        v
-+------------------+      +----------------------------+      +----------------------+
-| Zafronix Provider|----->| FastAPI Backend            |----->| PostgreSQL           |
-| fixture + detail |      | - routes                   |      | fixtures             |
-+------------------+      | - dashboard                |      | match_details        |
-                          | - services                 |      +----------------------+
-+------------------+      | - metrics                  |
-| Ollama on Windows|<---->| - local AI client          |      +----------------------+
-| llama3.2:1b      |      +-------------+--------------+----->| Prometheus           |
-+------------------+                    |                     +----------+-----------+
++------------------+      +----------------------------+      +------------------------+
+| Zafronix Provider|----->| FastAPI Backend            |----->| PostgreSQL             |
+| fixture + detail |      | - routes                   |      | fixtures               |
++------------------+      | - dashboard                |      | match_details          |
+                          | - story service            |      | official_match_videos  |
++------------------+      | - metrics                  |      +------------------------+
+| Ollama on Windows|<---->| - local AI client          |
+| llama3.2:1b      |      +-------------+--------------+----->| Prometheus             |
++------------------+                    |                     +----------+-------------+
                                         |                                |
 +------------------+                    v                                v
 | Telegram Bot API |<---------------- Notification routes          +-------------+
@@ -57,14 +57,14 @@ The architecture is local-first:
 
 | Component | Responsibility |
 |---|---|
-| FastAPI backend | API routes, dashboard assets, provider orchestration, summaries, standings, metrics |
-| PostgreSQL | Fixture, match-detail, and persisted sync-run state |
+| FastAPI backend | API routes, dashboard assets, provider orchestration, match-story construction, summaries, standings, metrics |
+| PostgreSQL | Fixture, match-detail, official-video registry, and persisted sync-run state |
 | Static dashboard | Responsive HTML, CSS, and JavaScript served by FastAPI |
 | Zafronix | Provider-backed fixture and match-detail source |
 | Ollama | Optional local LLM health and summary generation |
 | Telegram Bot API | Optional test notifications and one-message scheduled matchday digests |
 | Prometheus | Metrics collection |
-| Grafana | Metrics visualization |
+| Grafana | Metrics visualisation |
 | Cloudflare Tunnel | Optional public/mobile access |
 | Docker Compose | Windows runtime orchestration |
 
@@ -74,7 +74,7 @@ The architecture is local-first:
 
 ### Fixture
 
-The fixture record stores the stable match-level information needed for filtering, standings, and basic display:
+A `Fixture` stores stable match-level information used for filtering, standings, and baseline display:
 
 ```text
 external ID
@@ -93,9 +93,7 @@ timestamps
 
 ### MatchDetail
 
-A separate `match_details` record is associated one-to-one with a fixture when the provider supplies richer data.
-
-Stored detail includes:
+A `MatchDetail` is associated one-to-one with a fixture when the provider supplies richer data:
 
 ```text
 provider and provider match ID
@@ -110,13 +108,32 @@ weather
 timestamps
 ```
 
-Keeping rich detail separate lets the application preserve core fixture functionality even when a provider detail payload is missing or incomplete.
+Rich detail remains separate from the core fixture row so that fixture browsing, standings, and availability remain usable even when a provider detail payload is absent or incomplete.
 
-The v1.13.0 event-integrity work deliberately does not add a new database table or migration. It operates on the existing stored JSON-style event arrays.
+### OfficialMatchVideo
+
+`OfficialMatchVideo` is a small local registry of manually verified, outbound-only destinations:
+
+```text
+fixture ID
+source key
+content type
+title
+external URL
+territory
+match-specific flag
+published timestamp
+verification timestamp
+creation and update timestamps
+```
+
+There is no public write endpoint, crawler, import-on-read flow, or automatic discovery service. The record is deliberately designed for a future controlled curator workflow.
+
+The project continues to use SQLAlchemy metadata bootstrap. On a later approved runtime deployment, the existing bootstrap can create the empty `official_match_videos` table. This release does not backfill records, migrate historical data, or change active runtime data before deployment approval.
 
 ---
 
-## Canonical Provider Event Integrity
+## Provider Event Integrity
 
 The shared `provider_event_integrity` service is used at three boundaries:
 
@@ -124,7 +141,7 @@ The shared `provider_event_integrity` service is used at three boundaries:
 provider payload
         |
         v
-Zafronix detail normalization
+Zafronix detail normalisation
         |
         v
 match-detail persistence
@@ -133,420 +150,149 @@ match-detail persistence
 stored MatchDetail event arrays
         |
         +--> provider leaderboards
-        |
         +--> latest completed-result summary
-        |
-        +--> match-detail dashboard timeline
+        +--> match-detail timeline
+        +--> match-story contract
 ```
-
-### Canonical event rules
 
 For goals, cards, and substitutions, the service:
 
 - accepts only supported object shapes
 - trims safe string fields
-- accepts only supported sides: `home` or `away`
-- requires the meaningful participant fields for that event type
-- normalizes event minutes without inventing a value
-- removes exact duplicates after normalization
+- accepts only `home` or `away` sides
+- requires meaningful participant fields for that event type
+- normalises event minutes without inventing a value
+- removes exact duplicates after normalisation
 - orders timed events chronologically
 - retains valid untimed events after timed events
 
 The implementation does not infer assists, player identities, teams, event minutes, score reconciliation, or unprovided event facts.
 
-### Read-time protection
-
-Provider leaderboards and latest-result summaries canonicalize stored event arrays again when reading them. This makes those reader paths resilient to older or malformed persisted event arrays without mutating history as a side effect.
-
-Current-record correction behaviour remains simple:
-
-```text
-later approved provider refresh
-        |
-        v
-replace existing stored match-detail event arrays
-```
-
-Historical event-correction/version storage, provider event IDs, and event-level audit history are deferred to a future milestone.
-
 ---
 
-## Stored Detail Coverage Contract
+## Match Story Contract
 
-`GET /fixtures/{fixture_id}/detail` is read-only and returns:
+`GET /fixtures/{fixture_id}/story` is a read-only local composition route.
+
+```text
+fixture ID
+        |
+        +--> local Fixture row
+        +--> local MatchDetail row
+        +--> local OfficialMatchVideo rows
+        |
+        v
+match_story_service + official_match_video_service
+        |
+        v
+fixture + story response
+```
+
+The route does not call a provider, write to the database, trigger sync work, scrape sites, follow redirects, send a message, or alter scheduler state.
+
+### Contract sections
 
 ```text
 fixture
-detail_available
-detail
-stored_event_coverage
+story.state
+story.source
+story.score_progression
+story.timeline
+story.statistics
+story.official_watch
 ```
 
-`stored_event_coverage` is a factual description of the local record:
+`story.source` exposes the local data mode, stored-detail availability, provider identity, provider match ID, and stored-detail refresh timestamp.
 
-| State | Meaning |
-|---|---|
-| `unavailable` | No stored `MatchDetail` record exists. No live provider lookup was attempted. |
-| `recorded` | The last stored provider payload contains one or more events of that type. |
-| `no_stored_events` | A stored detail record exists, but the last payload contains zero events of that type. This does not prove none occurred in the match. |
+### Score progression
 
-The contract includes separate coverage for:
+A score progression is available only when all of these are true:
+
+1. Fixture home and away scores are stored non-negative integers.
+2. Every stored goal is a supported record with a valid team side and usable minute.
+3. Goal counts by side match the stored final score exactly.
+
+When any condition fails, the contract returns an unavailable state and a reason. It does not invent a goal time, infer an own goal, guess a penalty, or draw an incomplete score trace.
+
+### Timeline
+
+The timeline combines stored goals, cards, and substitutions. It preserves valid stoppage time such as `45+2` and `90+5`. Valid untimed events can appear after timed events but are never assigned an invented minute.
+
+### Statistics
+
+The statistic normaliser considers a defined practical set of metrics:
 
 ```text
-goals
-cards
-substitutions
+possessionPct
+shotsTotal
+shotsOnGoal
+expectedGoals
+passesAccurate
+corners
+fouls
 ```
 
-It also exposes the stored provider name and stored-detail refresh timestamp. The endpoint does not call an external provider on read.
+A metric is shown only when both home and away values are finite provider-supplied numbers. If a metric is present for only one side, it is reported as incomplete and omitted from the comparison view. Missing values are not converted to zero.
 
 ---
 
-## Match Data Quality Contract
+## Official Watch Policy
 
-`GET /fixtures/data-quality` provides a local aggregate for the selected fixture scope.
-
-Optional filters:
+The official-watch service builds trusted, outbound-only link cards from local records.
 
 ```text
-group_name
-team
-missing_detail_limit
+local OfficialMatchVideo record
+        |
+        v
+source key / URL / content type / territory / verification validation
+        |
+        +--> accepted: safe external card
+        |
+        +--> rejected: omitted from response
 ```
 
-The endpoint returns:
+### Initial allowed sources
+
+| Source key | Allowed hosts | Notes |
+|---|---|---|
+| `fifa_web` | `fifa.com`, `www.fifa.com`, `plus.fifa.com`, `vod.fifa.com` | HTTPS and non-root direct path required |
+| `fifa_youtube` | `youtube.com`, `www.youtube.com` | Exact supported video URL required; generic channel paths are rejected |
+| `mediacorp_mewatch` | `mewatch.sg`, `www.mewatch.sg` | Singapore availability may apply |
+
+A record must also:
+
+- have an allowed content type: `highlights`, `full_match`, `live`, or `recap`
+- be explicitly match-specific
+- have a title and verification timestamp
+- use HTTPS without credentials in the URL
+- pass the source-specific host and path checks
+
+Accepted links are returned with:
 
 ```text
-filters
-summary
-event_coverage
-missing_detail_fixture_count
-missing_detail_limit
-missing_detail_fixtures
-message
+target="_blank"
+rel="noopener noreferrer"
 ```
 
-`summary` distinguishes:
+The service exposes official FIFA and meWATCH coverage-hub fallbacks when no verified match-specific record exists. Fallbacks are labelled as coverage hubs and are never represented as match-specific videos.
 
-| State | Meaning |
-|---|---|
-| `unavailable` | The selected scope contains no completed fixtures, so stored-detail coverage cannot be calculated. |
-| `partial` | At least one completed fixture has stored detail and at least one does not. |
-| `complete` | Every completed fixture in scope has stored detail. |
+### Explicit exclusions
 
-The aggregate counts stored detail only for completed fixtures. It also reports goal, card, and substitution coverage as counts of fixtures with recorded events, fixtures with an empty stored event array, fixtures without stored detail, and total stored events.
-
-The missing-detail list is bounded for dashboard follow-up. This is a local-read quality signal: it does not trigger provider sync, backfill missing records, infer events, validate provider completeness, or mutate stored history.
+- no scraping or page parsing
+- no automatic search or platform discovery
+- no download, rehosting, or thumbnail proxying
+- no iframe embed
+- no fan upload, mirror, short-link, or arbitrary sports-news URL
+- no region bypass or rightsholder circumvention
+- no public API that inserts links into the registry
 
 ---
 
-## Visual Matchday UX Contract
+## Existing Stored-Data Contracts
 
-v1.15.0 adds presentation-only dashboard behavior over the existing API surface:
+`GET /fixtures/{fixture_id}/detail` remains the raw stored-detail route. `GET /fixtures/data-quality` remains a local aggregate of stored detail coverage for completed fixtures. Both perform local reads only and do not certify provider completeness or factual truth beyond the stored record.
 
-```text
-GET /fixtures
-        |
-        +--> visual Matchday cards
-        |
-        +--> existing fixture browser
-
-GET /fixtures/data-quality
-        |
-        +--> Data health badge
-        |
-        +--> Match Data Coverage donut
-
-GET /players/leaders
-        |
-        +--> comparative leader bars
-
-GET /ai/insights
-        |
-        +--> Group Race points bars
-```
-
-The browser selects live fixtures first when they exist, otherwise the latest completed and next scheduled fixture. Visual bars are scaled within their displayed list or group and are descriptive only. They do not create a forecast, probability, provider call, sync, backfill, or write operation.
-
-The mobile bottom navigation is an in-page link layer for existing Matchday, Matches, Groups, Players, and Data sections. It does not expose a separate API or authentication model.
-
-## Fixed-Time Scheduled Sync and Telegram Digest
-
-v1.16.0 replaces the configured runtime scheduler path with fixed daily local-time slots.
-
-Default configuration:
-
-```text
-timezone: Asia/Singapore
-slots:    03:45, 09:45, 12:45
-```
-
-The schedule is configurable through environment variables. The provider scheduler remains disabled by default.
-
-### Scheduler behaviour
-
-```text
-backend starts or restarts
-        |
-        v
-parse configured timezone and fixed daily slots
-        |
-        v
-calculate first slot strictly after the current local time
-        |
-        +--> wait for that next slot
-        |
-        +--> do not run an immediate catch-up sync
-        |
-        v
-one provider fixture sync
-```
-
-A run lock prevents overlapping scheduled executions. The older interval field remains in configuration/status output for compatibility, but it is not used by the configured application startup path.
-
-### Scheduled digest behaviour
-
-```text
-scheduled provider sync
-        |
-        v
-fixture sync result
-        |
-        +--> newly completed external IDs for this run
-        |
-        +--> no new completions -> no Telegram message
-        |
-        +--> new completions + digest enabled
-                 |
-                 v
-             one Telegram roundup with final scores
-             and the public dashboard link
-```
-
-The digest is controlled separately by `TELEGRAM_SCHEDULED_DIGEST_ENABLED` and remains disabled by default. It is independent of the existing manual-sync per-fixture alert policy.
-
-`GET /fixtures/sync/status` exposes safe scheduler metadata:
-
-```text
-enabled
-mode
-timezone
-scheduled_times
-next_run_at
-interval_minutes (legacy compatibility field)
-```
-
-Invalid schedule configuration is returned as bounded status metadata rather than causing the read-only status route to fail.
-
----
-
-## Main API Surface
-
-### Application and Observability
-
-| Method | Route | Purpose |
-|---|---|---|
-| `GET` | `/` | Project status and route links |
-| `GET` | `/health` | Backend health and application version |
-| `GET` | `/dashboard` | Static dashboard |
-| `GET` | `/docs` | FastAPI interactive docs |
-| `GET` | `/metrics` | Prometheus metrics |
-
-### Fixtures
-
-| Method | Route | Purpose |
-|---|---|---|
-| `GET` | `/fixtures` | List/filter fixtures |
-| `GET` | `/fixtures/data-quality` | Get aggregate local stored-detail coverage |
-| `GET` | `/fixtures/{fixture_id}` | Get a fixture |
-| `GET` | `/fixtures/{fixture_id}/detail` | Get fixture, stored detail, and stored event coverage |
-| `POST` | `/fixtures/sync/sample` | Sync sample fixtures |
-| `POST` | `/fixtures/sync/provider` | Sync configured provider |
-| `GET` | `/fixtures/sync/status` | Get latest persisted sync status |
-| `GET` | `/fixtures/sync/history` | Get recent persisted sync-run history |
-
-### Standings, Insights, and Players
-
-| Method | Route | Purpose |
-|---|---|---|
-| `GET` | `/standings` | Calculate group standings |
-| `GET` | `/insights/groups` | General group analytics |
-| `GET` | `/players/stats` | Existing sample-stat API |
-| `POST` | `/players/stats/sync/sample` | Seed sample player stats |
-| `GET` | `/players/leaders` | Provider-backed scorer and card leaders |
-| `GET` | `/ai/insights` | Structured insights plus Group Race |
-
-### AI
-
-| Method | Route | Purpose |
-|---|---|---|
-| `GET` | `/ai/health` | Local AI readiness |
-| `GET` | `/ai/fixtures/summary` | Tournament summary |
-| `GET` | `/ai/fixtures/{fixture_id}/summary` | Fixture summary |
-| `GET` | `/ai/latest-completed/summary` | Provider-backed latest result |
-| `GET` | `/ai/insights` | Deterministic structured insights |
-
-### Notifications
-
-| Method | Route | Purpose |
-|---|---|---|
-| `GET` | `/notifications/telegram/status` | Telegram readiness |
-| `POST` | `/notifications/telegram/test` | Telegram test message |
-
----
-
-## Main Data Flows
-
-### Provider Fixture and Detail Sync
-
-```text
-POST /fixtures/sync/provider
-        |
-        v
-configured provider adapter
-        |
-        v
-normalized fixture payload + canonical optional match_detail events
-        |
-        v
-fixture sync service
-        |
-        +--> upsert Fixture
-        |
-        +--> upsert MatchDetail with canonical event arrays
-        |
-        v
-PostgreSQL
-        |
-        v
-dashboard, standings, leaders, summaries, metrics
-```
-
-### Scheduled Provider Sync and Telegram Digest
-
-```text
-fixed local-time scheduler
-        |
-        v
-configured provider adapter
-        |
-        v
-fixture sync service
-        |
-        +--> upsert Fixture and optional MatchDetail
-        +--> identify only status transitions into completed
-        |
-        v
-persisted sync-run history + Prometheus metrics
-        |
-        +--> digest disabled -> record skipped outcome
-        |
-        +--> no newly completed fixtures -> record skipped outcome
-        |
-        +--> digest enabled + new completions
-                 |
-                 v
-             one Telegram roundup with dashboard link
-```
-
-No scheduled run is triggered on process startup. The first execution is always the next future configured slot.
-
-### Match Detail View
-
-```text
-Browser selects fixture
-        |
-        v
-GET /fixtures/{fixture_id}/detail
-        |
-        v
-Fixture + stored MatchDetail + stored_event_coverage
-        |
-        v
-Overview / Timeline / Stats / Lineups tabs
-```
-
-The Overview tab shows a compact stored-detail coverage block before the provider-backed facts. It is a transparent representation of local stored data, not a live match lookup.
-
-### Match Data Quality View
-
-```text
-Browser dashboard panel
-        |
-        v
-GET /fixtures/data-quality
-        |
-        v
-Filtered local Fixture rows + local MatchDetail rows
-        |
-        v
-Completed-fixture coverage, event coverage, bounded missing-detail list
-        |
-        v
-Match Data Coverage panel and fixture follow-up links
-```
-
-This flow remains read-only. It does not request provider data, trigger sync, or write to the database.
-
-### Provider Leaderboards
-
-```text
-Completed fixtures + stored MatchDetail events
-        |
-        v
-canonical provider event reader
-        |
-        v
-provider_leaderboard_service
-        |
-        +--> goals grouped by player
-        +--> yellow cards grouped by player
-        +--> red cards grouped by player
-        |
-        v
-GET /players/leaders
-        |
-        v
-Dashboard Player Leaders
-```
-
-Assist rankings are not inferred unless assist events exist in the stored provider payload.
-
-### Group Race
-
-```text
-Completed fixtures
-        |
-        v
-standings service
-        |
-        v
-ranked teams per group
-        |
-        v
-top two positions per group
-        |
-        v
-GET /ai/insights
-        |
-        v
-Structured AI Insights Group Race board
-```
-
-### Local AI and Deterministic Fallback
-
-```text
-fixture context
-        |
-        v
-Local Llama client -> Ollama
-        |
-        +--> valid summary -> return live output
-        |
-        +--> unavailable/contradictory output -> deterministic fallback
-```
-
-Structured AI Insights, Group Race, player leaders, latest-result data, and stored-event coverage do not require Ollama.
+The v1.17.0 story contract builds on these records without replacing them.
 
 ---
 
@@ -560,84 +306,62 @@ backend/app/static/dashboard.css
 backend/app/static/dashboard.js
 ```
 
-Major sections:
+The match-detail panel now has four tabs:
 
 ```text
-Matchday home
-Overview
-Provider Sync Runtime
-Match Data Coverage
-AI Fixture Summary
-Latest Completed Match
-Structured AI Insights
-Group Race
-Filters
-Group Insights
-Player Leaders
-Group Standings
-Status-first Fixture Browser
-Rich Match Detail
-Mobile bottom navigation
-```
-
-Match Detail has four tabs:
-
-```text
-Overview
+Story
 Timeline
 Stats
 Lineups
 ```
 
-The Overview tab includes a compact, mobile-friendly stored-detail coverage block that states whether the dashboard has stored detail, when that local payload was refreshed, and whether goals, cards, or substitutions were recorded in it.
+The Story tab prioritises a compact visual account of what happened:
 
-The Match Data Coverage panel aggregates that local stored state across completed fixtures. It displays scope-aware coverage, event-array counts, and a bounded set of completed fixtures without stored detail. Its refresh action makes a GET request only.
+```text
+stored score + reconciled goal events
+        |
+        v
+score progression
+        |
+        +--> key-event sequence
+        +--> paired stat comparisons
+        +--> official watch state/cards
+```
 
-The dashboard has sticky Quick Links navigation and responsive layouts for desktop and smaller screens. At small-screen widths it also shows a compact bottom navigation for Matchday, Matches, Groups, Players, and Data.
+Timeline, Stats, and Lineups remain available for deeper inspection. The existing dashboard is responsive; mobile layout uses stacked reading order and clear unavailable/partial states rather than forcing dense visualisations.
 
-The visual Matchday cards, leader bars, Group Race points bars, and Match Data Coverage donut use CSS and existing browser data only. No charting package, new endpoint, or additional provider request is required.
+Dashboard asset URLs use the v1.17.0 cache-bust suffix so returning browsers receive the Story and Official Watch JavaScript and CSS.
 
 ---
 
-## Observability
+## Fixed-Time Provider Sync and Telegram Digest
+
+v1.16.0 fixed-time scheduling remains unchanged.
+
+Default configuration:
 
 ```text
-FastAPI backend
-        |
-        v
-GET /metrics
-        |
-        v
-Prometheus
-        |
-        v
-Grafana
+timezone: Asia/Singapore
+slots:    03:45, 09:45, 12:45
 ```
 
-The system records:
+The scheduler is opt-in and waits for the next future configured slot after startup or restart. Scheduled Telegram digests remain separately controlled and disabled by default.
 
-- HTTP request metrics
-- application version metrics
-- fixture-sync status and duration
-- fetched, created, updated, and newly completed fixture counts
-- persisted sync-run status and history
-- dashboard-visible freshness state
-- fixed-time scheduler mode, configured timezone/slots, and next-run visibility
-- scheduled Telegram digest outcomes
+The match-story route and dashboard Story tab do not trigger sync, backfill match detail, alter the scheduler, send Telegram, or call the provider.
 
 ---
 
 ## Configuration and Secrets
 
-Configuration is environment-driven.
+Configuration remains environment-driven.
 
 Primary files:
 
 ```text
 .env.example
 .env
-backend/app/config.py
 VERSION
+backend/app/config.py
 ```
 
 Version consistency tests compare:
@@ -648,16 +372,7 @@ APP_VERSION in .env.example
 default app_version in backend/app/config.py
 ```
 
-Scheduled runtime settings are explicit:
-
-```text
-PROVIDER_SYNC_SCHEDULER_ENABLED=false
-PROVIDER_SYNC_SCHEDULE_TIMEZONE=Asia/Singapore
-PROVIDER_SYNC_SCHEDULE_TIMES=03:45,09:45,12:45
-TELEGRAM_SCHEDULED_DIGEST_ENABLED=false
-```
-
-Changing these values on the Windows runtime requires a deliberate configuration update and service restart. The release itself does not enable the scheduler or send messages.
+The v1.17.0 source package updates only the safe version declarations. It does not modify an active `.env` file.
 
 Secrets must remain local:
 
@@ -674,50 +389,26 @@ database credentials
 
 ## Testing and Release Verification
 
-The v1.12.0 release verification baseline is:
+v1.17.0 local regression verification:
 
 ```text
-196 passed
+234 passed, 296 warnings
 ```
 
-The v1.13.0 release verification is:
-
-```text
-202 passed
-```
-
-The v1.14.0 release verification is:
-
-```text
-205 passed
-```
-
-The v1.15.0 release verification is:
-
-```text
-209 passed
-```
-
-The v1.16.0 release verification is:
-
-```text
-218 passed
-```
+The warnings are existing FastAPI/Starlette Python 3.14 deprecations related to `asyncio.iscoroutinefunction`; they are not test failures.
 
 Coverage includes:
 
-- provider fixture and rich-detail sync
-- canonical goals, cards, and substitutions
-- duplicate handling and later-detail replacement behaviour
-- stored-detail coverage semantics
-- aggregate Match Data Coverage states, filters, event counters, and bounded missing-detail follow-up
-- leaderboards and latest-result summaries
-- dashboard static assets and logic markers
-- visual Matchday cards, data-health presentation, comparative leader/group bars, coverage donut, and mobile navigation
-- fixed-time scheduler parsing, next-slot calculation, restart behavior, and serialized execution
-- scheduled Telegram digest opt-in, silent empty-completion runs, one-message aggregation, and dashboard-link delivery
-- AI summaries and deterministic fallbacks
-- Group Race, standings, group insights, player stats, notifications, metrics, and release workflow
+- match-story score reconciliation and unavailable states
+- stoppage-time event ordering
+- timeline and partial-data handling
+- paired-stat normalisation that rejects missing or invalid values
+- official source, URL, content-type, territory, and verification validation
+- rejected generic YouTube, unsafe scheme, non-match-specific, and unverified records
+- official fallback-link states
+- dashboard Story and Official Watch rendering markers
+- release version consistency and cache-busted static assets
+- existing provider sync, scheduler, Telegram, AI, standings, player, metrics, and dashboard coverage
 
 ---
 
@@ -726,12 +417,11 @@ Coverage includes:
 - The system is self-hosted and does not implement production authentication.
 - Provider data quality determines available event detail.
 - A stored empty event array does not prove a match had no events.
-- Historical event correction/version storage is not implemented.
-- Provider event identifiers are not currently stored.
-- Assist leaders are unavailable when the provider does not supply assist events.
+- Score progression intentionally disappears when stored events cannot reconcile with the stored score.
+- Provider event identifiers and historical event-correction/version storage are not implemented.
+- No automated official-video discovery or curator import workflow is implemented yet.
+- Official match-video availability can be delayed or region-dependent.
 - Local Llama depends on Ollama availability on the Windows host.
-- The public dashboard is dependent on the Windows runtime and Cloudflare Tunnel remaining online.
-- Fixed-time provider scheduling and scheduled Telegram digest delivery remain disabled unless explicitly configured.
-- The default Singapore slots are configurable and should be reviewed for later tournament-stage timings.
-- Match Data Coverage measures local stored-data presence; it does not certify provider completeness or factual correctness.
-- Dashboard charts and bars are comparative stored-data visuals, not predictive analytics or qualification simulations.
+- The public dashboard depends on the Windows runtime and Cloudflare Tunnel remaining online.
+- Match Data Coverage measures stored-data presence; it does not certify provider completeness or factual correctness.
+- Dashboard visuals are descriptive stored-data views, not predictive analytics or qualification simulations.
