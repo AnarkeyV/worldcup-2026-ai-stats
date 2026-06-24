@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from app.services.live_match_contracts import (
     COMPARISON_AVAILABLE,
     COMPARISON_BASELINE_UNAVAILABLE,
@@ -13,6 +14,7 @@ from app.services.live_match_contracts import (
     MATCH_STATE_UNAVAILABLE,
     build_fixture_change_summary,
     classify_stored_match_status,
+    derive_fixture_display_state,
 )
 
 
@@ -279,3 +281,109 @@ def test_provider_not_provided_event_category_is_not_interpreted_as_no_events():
 
     assert summary["event_comparison"]["cards"] == EVENT_COMPARISON_NOT_PROVIDED
     assert summary["changes"] == []
+
+
+def test_derive_fixture_display_state_preserves_explicit_stored_statuses():
+    reference_time = datetime(2026, 6, 24, 12, tzinfo=timezone.utc)
+
+    assert derive_fixture_display_state(
+        "scheduled",
+        "2026-06-24T10:00:00Z",
+        None,
+        None,
+        now=reference_time,
+    ) == {
+        "match_state": MATCH_STATE_SCHEDULED,
+        "state_source": "stored_status",
+    }
+    assert derive_fixture_display_state(
+        "live",
+        "2026-06-25T10:00:00Z",
+        None,
+        None,
+        now=reference_time,
+    ) == {
+        "match_state": MATCH_STATE_LIVE,
+        "state_source": "stored_status",
+    }
+    assert derive_fixture_display_state(
+        "complete",
+        "2026-06-23T10:00:00Z",
+        2,
+        1,
+        now=reference_time,
+    ) == {
+        "match_state": MATCH_STATE_COMPLETED,
+        "state_source": "stored_status",
+    }
+
+
+def test_derive_fixture_display_state_schedules_unknown_future_fixture_from_stored_kickoff():
+    result = derive_fixture_display_state(
+        "unknown",
+        "2026-06-24T19:00:00.000Z",
+        None,
+        None,
+        now=datetime(2026, 6, 24, 12, tzinfo=timezone.utc),
+    )
+
+    assert result == {
+        "match_state": MATCH_STATE_SCHEDULED,
+        "state_source": "stored_kickoff",
+    }
+
+
+def test_derive_fixture_display_state_never_uses_time_to_infer_live_status():
+    result = derive_fixture_display_state(
+        "unknown",
+        "2026-06-24T12:00:00Z",
+        None,
+        None,
+        now=datetime(2026, 6, 24, 12, tzinfo=timezone.utc),
+    )
+
+    assert result == {
+        "match_state": MATCH_STATE_UNAVAILABLE,
+        "state_source": "unavailable",
+    }
+
+
+def test_derive_fixture_display_state_keeps_unknown_without_a_usable_future_kickoff_unavailable():
+    reference_time = datetime(2026, 6, 24, 12, tzinfo=timezone.utc)
+
+    for kickoff_time in (None, "", "not-a-date", "2026-06-24T19:00:00"):
+        assert derive_fixture_display_state(
+            "unknown",
+            kickoff_time,
+            None,
+            None,
+            now=reference_time,
+        ) == {
+            "match_state": MATCH_STATE_UNAVAILABLE,
+            "state_source": "unavailable",
+        }
+
+
+def test_derive_fixture_display_state_keeps_unknown_with_scores_or_non_unknown_status_unavailable():
+    reference_time = datetime(2026, 6, 24, 12, tzinfo=timezone.utc)
+
+    assert derive_fixture_display_state(
+        "unknown",
+        "2026-06-24T19:00:00Z",
+        0,
+        None,
+        now=reference_time,
+    ) == {
+        "match_state": MATCH_STATE_UNAVAILABLE,
+        "state_source": "unavailable",
+    }
+    assert derive_fixture_display_state(
+        "postponed",
+        "2026-06-24T19:00:00Z",
+        None,
+        None,
+        now=reference_time,
+    ) == {
+        "match_state": MATCH_STATE_UNAVAILABLE,
+        "state_source": "unavailable",
+    }
