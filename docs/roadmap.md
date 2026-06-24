@@ -1,29 +1,34 @@
 # Roadmap
 
-## Current release: v1.18.0 — Live Match Centre & Data Freshness
+## Current release: v1.18.1 — Scheduled from Stored Kickoff
 
-v1.18.0 is complete in source form.
+v1.18.1 is complete in source form.
 
-It adds a read-only Live Match Centre built from stored provider data, explicit local freshness states, persisted v1.18+ sync-change evidence, and dashboard visibility for those facts.
+It is a narrow data-quality and Matchday usability improvement: fixtures stored with `unknown` provider status can be shown as scheduled only when their existing stored kickoff data proves they are still future fixtures and their scores are absent.
 
-### Completed in v1.18.0
+### Completed in v1.18.1
+
+- [x] Pure kickoff-aware display-state contract for future `unknown` fixtures.
+- [x] UTC-aware future-kickoff validation with no inference from a naive or malformed timestamp.
+- [x] `scheduled_sources` in the local-only Live Match Centre response.
+- [x] Dashboard Scheduled tab, Matchday next-up context, counts, and fixture presentation use the same conservative display rule.
+- [x] Clear **Scheduled from stored kickoff** and **Provider match status unavailable** wording.
+- [x] No stored provider status rewrite, provider call, sync trigger, Telegram send, database write, browser polling, or runtime setting change.
+
+### Retained v1.18.0 capabilities
 
 - [x] Explicit stored match-state contract: `live`, `completed`, `scheduled`, `unavailable`.
 - [x] Local-only `GET /live-match-centre` API.
-- [x] Additive event-coverage evidence for goals, cards, and substitutions.
-- [x] Additive successful-sync change-set records.
-- [x] Factual changes for score, status, completion, goals, cards, substitutions, and provider-event revisions.
-- [x] Live Match Centre inside Matchday.
-- [x] What changed? inside Provider Sync Runtime.
-- [x] Explicit historical and missing-data states.
-- [x] Browser status handling that does not silently classify unknown statuses as upcoming.
-- [x] No provider call, sync trigger, Telegram send, dashboard polling, or runtime setting change in the read path.
+- [x] Additive event-coverage evidence and successful-sync change sets.
+- [x] Factual score, status, completion, goals, cards, substitutions, and provider-event-revision changes.
+- [x] Live Match Centre inside Matchday and What changed? inside Provider Sync Runtime.
 
 ## Deliberately deferred
 
-These are not hidden within v1.18.0:
+These remain deliberately outside v1.18.1:
 
 - Historical reconstruction of sync deltas before v1.18 change capture.
+- Treating a future stored kickoff as provider-confirmed scheduling or using time to infer a live match.
 - Full event-version history or provider event identifiers.
 - Automatic provider polling from the browser.
 - New provider assumptions, scraping, backfill work, or fabricated live timelines.
