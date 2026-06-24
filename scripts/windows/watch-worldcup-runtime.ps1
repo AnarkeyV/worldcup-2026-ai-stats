@@ -87,30 +87,42 @@ function Start-DockerDesktopIfNeeded {
     throw "Docker engine did not become available within $DockerWaitSeconds seconds."
 }
 
-function Ensure-CloudflaredService {
+function Report-CloudflaredService {
     $Service = Get-Service -Name cloudflared -ErrorAction SilentlyContinue
 
     if (-not $Service) {
-        Write-Log "cloudflared service was not found."
-        return
+        Write-Log "WARNING: cloudflared service was not found. Cloudflared automation is report-only; no service action was attempted."
+        return $false
     }
 
-    if ($Service.Status -eq "Running") {
-        Write-Log "cloudflared service is running."
-        return
+    Write-Log "cloudflared service status: $($Service.Status)"
+
+    if ($Service.Status -ne "Running") {
+        Write-Log "WARNING: cloudflared is not running. Cloudflared automation is report-only; no start/restart was attempted."
+        return $false
     }
 
-    Write-Log "cloudflared service is $($Service.Status). Attempting to start it."
+    return $true
+}
 
+function Report-AiHealth {
     try {
-        Start-Service cloudflared
-        Start-Sleep -Seconds 5
-        $Service.Refresh()
-        Write-Log "cloudflared service status: $($Service.Status)"
+        $AiHealth = Invoke-RestMethod -Uri $AiHealthUrl -TimeoutSec 10
     }
     catch {
-        Write-Log "WARNING: Failed to start cloudflared service. $($_.Exception.Message)"
+        Write-Log "WARNING: AI health endpoint did not respond. Ollama automation is report-only; no local AI process action was attempted."
+        return $false
     }
+
+    if ($AiHealth.available -eq $true) {
+        $Model = if ($AiHealth.configured_model) { $AiHealth.configured_model } else { "unknown model" }
+        Write-Log "AI health is available ($Model)."
+        return $true
+    }
+
+    $Detail = if ($AiHealth.error) { $AiHealth.error } else { "provider unavailable" }
+    Write-Log "WARNING: AI health is unavailable: $Detail. Ollama automation is report-only; no local AI process action was attempted."
+    return $false
 }
 
 function Invoke-Compose {
@@ -162,7 +174,7 @@ try {
         throw "Project directory does not exist: $ProjectDir"
     }
 
-    Ensure-CloudflaredService
+    Report-CloudflaredService | Out-Null
     Start-DockerDesktopIfNeeded
 
     Invoke-Compose -ComposeArgs @("up", "-d")
@@ -183,26 +195,15 @@ try {
         Start-Sleep -Seconds 10
     }
     else {
-        Write-Log "Dashboard health is OK."
+        Write-Log "Dashboard is healthy."
     }
 
-    if (-not (Test-Url -Url $AiHealthUrl -TimeoutSeconds 10)) {
-        Write-Log "WARNING: AI health endpoint did not respond. Backend may still be healthy."
-    }
-    else {
-        Write-Log "AI health endpoint responded."
-    }
+    Report-AiHealth | Out-Null
 
     if (-not (Test-Url -Url $PublicHealthUrl -TimeoutSeconds 20)) {
-        Write-Log "Public Cloudflare health failed. Restarting cloudflared service."
-
-        try {
-            Restart-Service cloudflared -ErrorAction Stop
-            Start-Sleep -Seconds 10
-        }
-        catch {
-            Write-Log "WARNING: Failed to restart cloudflared. $($_.Exception.Message)"
-        }
+        Write-Log "WARNING: Public Cloudflare health failed. Cloudflared automation is report-only; no service start/restart was attempted."
+        Report-CloudflaredService | Out-Null
+        Write-Log "WARNING: Public health remains unavailable. Local runtime may remain healthy."
     }
     else {
         Write-Log "Public Cloudflare health is OK."

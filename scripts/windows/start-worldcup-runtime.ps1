@@ -2,6 +2,7 @@
 param(
     [string]$ProjectDir = "C:\Users\Khairul Rizal\Documents\worldcup-2026-ai-stats",
     [string]$LocalHealthUrl = "http://localhost:8000/health",
+    [string]$AiHealthUrl = "http://localhost:8000/ai/health",
     [string]$DashboardHealthUrl = "http://localhost:18501/_stcore/health",
     [string]$PublicHealthUrl = "https://wc2026.khairulrizal.qzz.io/health",
     [int]$DockerWaitSeconds = 180,
@@ -111,30 +112,42 @@ function Start-DockerDesktopIfNeeded {
     throw "Docker engine did not become available within $DockerWaitSeconds seconds."
 }
 
-function Ensure-CloudflaredService {
+function Report-CloudflaredService {
     $Service = Get-Service -Name cloudflared -ErrorAction SilentlyContinue
 
     if (-not $Service) {
-        Write-Log "cloudflared service was not found. Skipping Cloudflare service check."
-        return
+        Write-Log "WARNING: cloudflared service was not found. Cloudflared automation is report-only; no service action was attempted."
+        return $false
     }
 
-    if ($Service.Status -eq "Running") {
-        Write-Log "cloudflared service is already running."
-        return
+    Write-Log "cloudflared service status: $($Service.Status)"
+
+    if ($Service.Status -ne "Running") {
+        Write-Log "WARNING: cloudflared is not running. Cloudflared automation is report-only; no start/restart was attempted."
+        return $false
     }
 
-    Write-Log "cloudflared service is $($Service.Status). Attempting to start it."
+    return $true
+}
 
+function Report-AiHealth {
     try {
-        Start-Service cloudflared
-        Start-Sleep -Seconds 5
-        $Service.Refresh()
-        Write-Log "cloudflared service status: $($Service.Status)"
+        $AiHealth = Invoke-RestMethod -Uri $AiHealthUrl -TimeoutSec 10
     }
     catch {
-        Write-Log "WARNING: Failed to start cloudflared service. $($_.Exception.Message)"
+        Write-Log "WARNING: AI health endpoint did not respond. Ollama automation is report-only; no local AI process action was attempted."
+        return $false
     }
+
+    if ($AiHealth.available -eq $true) {
+        $Model = if ($AiHealth.configured_model) { $AiHealth.configured_model } else { "unknown model" }
+        Write-Log "AI health is available ($Model)."
+        return $true
+    }
+
+    $Detail = if ($AiHealth.error) { $AiHealth.error } else { "provider unavailable" }
+    Write-Log "WARNING: AI health is unavailable: $Detail. Ollama automation is report-only; no local AI process action was attempted."
+    return $false
 }
 
 function Invoke-Compose {
@@ -162,7 +175,7 @@ try {
         throw "Project directory does not exist: $ProjectDir"
     }
 
-    Ensure-CloudflaredService
+    Report-CloudflaredService | Out-Null
     Start-DockerDesktopIfNeeded
 
     Invoke-Compose -ComposeArgs @("up", "-d")
@@ -189,16 +202,15 @@ try {
         Write-Log "Dashboard is healthy."
     }
 
-    if (-not (Test-Url -Url $PublicHealthUrl -TimeoutSeconds 20)) {
-        Write-Log "Public health check failed. Rechecking cloudflared service."
-        Ensure-CloudflaredService
+    Report-AiHealth | Out-Null
 
-        if (-not (Test-Url -Url $PublicHealthUrl -TimeoutSeconds 20)) {
-            Write-Log "WARNING: Public health check is still failing. Local runtime may still be healthy."
-        }
+    if (-not (Test-Url -Url $PublicHealthUrl -TimeoutSeconds 20)) {
+        Write-Log "WARNING: Public health check failed. Cloudflared automation is report-only; no service start/restart was attempted."
+        Report-CloudflaredService | Out-Null
+        Write-Log "WARNING: Public health is still unavailable. Local runtime may remain healthy."
     }
     else {
-        Write-Log "Public Cloudflare health check is healthy."
+        Write-Log "Public Cloudflare health is healthy."
     }
 
     Write-Log "World Cup runtime startup workflow completed."
