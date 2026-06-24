@@ -1,6 +1,6 @@
 # World Cup 2026 AI Stats
 
-![Version](https://img.shields.io/badge/version-v1.18.0-purple)
+![Version](https://img.shields.io/badge/version-v1.18.1-purple)
 ![Backend](https://img.shields.io/badge/backend-FastAPI-009688)
 ![Database](https://img.shields.io/badge/database-PostgreSQL-336791)
 ![AI](https://img.shields.io/badge/AI-Ollama%20%2B%20Local%20Llama-green)
@@ -18,14 +18,14 @@ https://wc2026.khairulrizal.qzz.io/dashboard
 **Current release**
 
 ```text
-v1.18.0 — Live Match Centre & Data Freshness
+v1.18.1 — Scheduled from Stored Kickoff
 ```
 
 **Release verification**
 
 ```text
-267 automated tests passed
-316 known FastAPI/Starlette Python 3.14 deprecation warnings
+274 automated tests passed
+318 known FastAPI/Starlette Python 3.14 deprecation warnings
 ```
 
 ## Why this project exists
@@ -33,6 +33,25 @@ v1.18.0 — Live Match Centre & Data Freshness
 World Cup 2026 AI Stats is a local-first football analytics project built as a practical DevOps, backend, automation, observability, and AI portfolio system.
 
 It aims to be useful on matchday without pretending the available provider data is richer or fresher than it is. The dashboard distinguishes stored facts from unavailable or delayed data instead of filling gaps with guessed events, invented player details, fake timelines, or unverified live claims.
+
+## v1.18.1: Scheduled from Stored Kickoff
+
+v1.18.1 is a small factual display-state improvement for fixtures whose provider status is stored as `unknown` but whose stored kickoff still gives reliable future-fixture context.
+
+### Added
+
+- Kickoff-aware display derivation for fixtures stored with `unknown` status.
+- `scheduled_sources` in `GET /live-match-centre`, separating explicit provider-scheduled fixtures from fixtures scheduled from stored kickoff data.
+- Dashboard labels for **Scheduled from stored kickoff** with the supporting note **Provider match status unavailable**.
+
+### Truthfulness rules
+
+- Stored provider status remains unchanged. A derived scheduled display state never rewrites `unknown` in the database.
+- A fixture is derived as scheduled only when its stored status is `unknown`, its UTC kickoff is valid and in the future, and both stored scores are absent.
+- Explicit provider states remain authoritative.
+- Time is never used to infer a live match.
+- An unknown fixture at or after kickoff, with a missing or malformed kickoff, with stored scores, or with a postponed/cancelled/abandoned status remains unavailable.
+- Reading the dashboard and Live Match Centre remains local-data-only: no provider call, sync, database write, Telegram send, or scheduler change occurs.
 
 ## v1.18.0: Live Match Centre & Data Freshness
 
@@ -52,7 +71,7 @@ v1.18.0 adds a focused Live Match Centre that makes existing stored provider dat
 ### Truthfulness rules
 
 - A fixture is shown as live only when the stored provider status maps explicitly to `live`.
-- Unknown, postponed, cancelled, abandoned, or unsupported statuses are shown as `unavailable`; they are not silently presented as upcoming.
+- Unknown, postponed, cancelled, abandoned, or unsupported statuses remain `unavailable` unless an `unknown` fixture has a future valid stored UTC kickoff and no stored scores; that narrow case is labelled as scheduled from stored kickoff, not provider-confirmed scheduling.
 - Freshness describes the age of the latest successful **stored snapshot**. It is not a guarantee of real-time provider delivery.
 - Event changes are shown only when the provider-backed event category was stored and covered by the persisted record.
 - A missing detail category means `not_provided`, `coverage_unknown`, or `detail_not_available`; it is never converted into “no event happened.”
@@ -214,7 +233,7 @@ Run the full suite from `backend`:
 python -m pytest -q
 ```
 
-v1.18.0 source verification:
+v1.18.1 source verification:
 
 ```text
 267 passed, 316 warnings
@@ -282,6 +301,7 @@ Then:
 | v1.16.0 | Fixed-time scheduled sync and Telegram digest | Completed |
 | v1.17.0 | Provider-backed Match Story and Official Watch | Completed |
 | v1.17.1 | Runtime reliability safeguards and read-only Windows status checker | Completed |
+| v1.18.1 | Scheduled-from-stored-kickoff display derivation | Completed |
 | v1.18.0 | Live Match Centre and factual sync-change visibility | Completed |
 
 ## Current limitations
@@ -292,6 +312,7 @@ Then:
 - Historical event correction/version storage is not implemented beyond v1.18+ sync change capture.
 - Historical sync runs before v1.18 do not have a reconstructed change log.
 - The Live Match Centre does not poll providers or certify real-time delivery.
+- Scheduled-from-stored-kickoff is a display derivation for a future fixture with missing provider status; it never certifies provider scheduling or infers a live match.
 - Incomplete statistics are hidden instead of normalised into misleading zero values.
 - The official-video registry is empty until a controlled curator workflow adds individually verified match-specific links.
 - Official video availability can be delayed, require sign-in or subscription, or vary by territory.

@@ -45,14 +45,17 @@ def test_live_match_centre_static_styles_load():
     assert "live-match-centre-freshness" in response.text
 
 
-def test_dashboard_browser_status_classifier_keeps_unknown_statuses_unavailable():
+def test_dashboard_browser_status_classifier_derives_future_unknown_statuses_from_stored_kickoff():
     response = client.get("/static/dashboard.js")
 
     assert response.status_code == 200
-    assert "SCHEDULED_FIXTURE_STATUSES" in response.text
-    assert 'return "scheduled";' in response.text
-    assert 'return "unavailable";' in response.text
-    assert "Data unavailable" in response.text
+    assert "deriveFixtureDisplayState" in response.text
+    assert "parseStoredUtcKickoff" in response.text
+    assert 'stateSource: DISPLAY_STATE_SOURCE_STORED_KICKOFF' in response.text
+    assert "Scheduled from stored kickoff" in response.text
+    assert "Provider match status unavailable" in response.text
+    assert 'matchState: "scheduled",' in response.text
+    assert 'matchState: "unavailable",' in response.text
     assert 'status.includes("live")' not in response.text
     assert 'status.includes("in play")' not in response.text
     assert "live-match-centre:open-fixture" in response.text

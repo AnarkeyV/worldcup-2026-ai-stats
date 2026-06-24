@@ -6,6 +6,37 @@ The project follows semantic versioning and milestone-based releases.
 
 ---
 
+## [1.18.1] — Scheduled from Stored Kickoff
+
+### Added
+
+- A conservative kickoff-aware display-state contract for fixtures whose stored provider status is `unknown`.
+- `scheduled_sources` in `GET /live-match-centre`, separating `provider_status` from `stored_kickoff` scheduled counts.
+- Dashboard context that labels derived fixtures as **Scheduled from stored kickoff** and states that provider match status is unavailable.
+
+### Changed
+
+- A stored `unknown` fixture is displayed as scheduled only when it has a valid future UTC kickoff and both stored scores are absent.
+- The existing Matchday next-up selection, scheduled fixture tab, and dashboard counts now use the same conservative stored-kickoff rule.
+- Safe version declarations and core dashboard asset cache-bust values align to `1.18.1` / `v1.18.1`.
+
+### Verified
+
+```text
+274 automated tests passed
+318 known FastAPI/Starlette Python 3.14 deprecation warnings
+```
+
+### Boundaries
+
+- The stored provider status is not changed or rewritten by the display derivation.
+- Explicit provider states remain authoritative.
+- Time is never used to infer a live match.
+- An unknown fixture at or after kickoff, without a valid timezone-aware kickoff, with stored scores, or with an explicit postponed/cancelled/abandoned status remains unavailable.
+- No provider request, sync, database write, Telegram send, scheduler update, Docker change, or active runtime `.env` change is introduced by this release.
+
+---
+
 ## [1.18.0] — Live Match Centre & Data Freshness
 
 ### Added

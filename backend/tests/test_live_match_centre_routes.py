@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from app.models.fixture import Fixture
 from app.models.fixture_sync_change_set import FixtureSyncChangeSet
 from app.models.fixture_sync_run import FixtureSyncRun
@@ -11,6 +13,7 @@ def _fixture(
     status: str = "live",
     home_score: int | None = 0,
     away_score: int | None = 0,
+    kickoff_time: str = "2026-06-11T19:00:00+00:00",
     updated_at: str = "2026-06-24T10:00:00+00:00",
 ) -> Fixture:
     return Fixture(
@@ -22,7 +25,7 @@ def _fixture(
         away_team="South Africa",
         home_team_code="MEX",
         away_team_code="RSA",
-        kickoff_time="2026-06-11T19:00:00+00:00",
+        kickoff_time=kickoff_time,
         venue="Mexico City Stadium",
         status=status,
         home_score=home_score,
@@ -177,6 +180,10 @@ def test_live_match_centre_returns_only_explicitly_live_stored_fixtures(
         "completed": 1,
         "scheduled": 1,
         "unavailable": 1,
+    }
+    assert data["scheduled_sources"] == {
+        "provider_status": 1,
+        "stored_kickoff": 0,
     }
     assert len(data["matches"]) == 1
     match = data["matches"][0]
@@ -387,3 +394,86 @@ def test_live_match_centre_is_read_only(client, db_session, monkeypatch):
     assert response.status_code == 200
     assert provider_call["count"] == 0
     assert after_counts == before_counts
+
+
+def test_live_match_centre_counts_unknown_future_kickoff_as_scheduled(
+    client,
+    db_session,
+    monkeypatch,
+):
+    reference_time = datetime(2026, 6, 24, 12, tzinfo=timezone.utc)
+    monkeypatch.setattr(
+        "app.services.live_match_centre_service._utc_now",
+        lambda: reference_time,
+    )
+
+    explicit_live = _fixture(
+        external_id="explicit-live-001",
+        status="live",
+        home_score=1,
+        away_score=0,
+    )
+    explicit_scheduled = _fixture(
+        external_id="provider-scheduled-001",
+        status="scheduled",
+        kickoff_time="2026-06-24T10:00:00Z",
+        home_score=None,
+        away_score=None,
+    )
+    unknown_future = _fixture(
+        external_id="unknown-future-001",
+        status="unknown",
+        kickoff_time="2026-06-24T19:00:00.000Z",
+        home_score=None,
+        away_score=None,
+    )
+    unknown_at_kickoff = _fixture(
+        external_id="unknown-at-kickoff-001",
+        status="unknown",
+        kickoff_time="2026-06-24T12:00:00Z",
+        home_score=None,
+        away_score=None,
+    )
+    unknown_with_score = _fixture(
+        external_id="unknown-score-001",
+        status="unknown",
+        kickoff_time="2026-06-24T19:00:00Z",
+        home_score=0,
+        away_score=None,
+    )
+    postponed = _fixture(
+        external_id="postponed-001",
+        status="postponed",
+        kickoff_time="2026-06-24T19:00:00Z",
+        home_score=None,
+        away_score=None,
+    )
+    db_session.add_all(
+        [
+            explicit_live,
+            explicit_scheduled,
+            unknown_future,
+            unknown_at_kickoff,
+            unknown_with_score,
+            postponed,
+        ]
+    )
+    db_session.commit()
+
+    response = client.get("/live-match-centre")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["counts"] == {
+        "live": 1,
+        "completed": 0,
+        "scheduled": 2,
+        "unavailable": 3,
+    }
+    assert data["scheduled_sources"] == {
+        "provider_status": 1,
+        "stored_kickoff": 1,
+    }
+    assert [match["external_id"] for match in data["matches"]] == [
+        "explicit-live-001"
+    ]

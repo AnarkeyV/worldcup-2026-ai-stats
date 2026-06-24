@@ -12,6 +12,7 @@ interpreted as an empty provider event feed.
 """
 
 from __future__ import annotations
+from datetime import datetime, timezone
 
 from collections.abc import Callable, Mapping
 from typing import Any
@@ -92,6 +93,95 @@ def classify_stored_match_status(status: Any) -> str:
     if normalized in _SCHEDULED_STATUSES:
         return MATCH_STATE_SCHEDULED
     return MATCH_STATE_UNAVAILABLE
+
+
+
+
+DISPLAY_STATE_SOURCE_STORED_STATUS = "stored_status"
+DISPLAY_STATE_SOURCE_STORED_KICKOFF = "stored_kickoff"
+DISPLAY_STATE_SOURCE_UNAVAILABLE = "unavailable"
+
+
+def derive_fixture_display_state(
+    status: Any,
+    kickoff_time: Any,
+    home_score: Any,
+    away_score: Any,
+    *,
+    now: datetime | None = None,
+) -> dict[str, str]:
+    """Derive a conservative display state from an already-stored fixture.
+
+    Explicitly recognized stored statuses remain authoritative. A stored
+    ``unknown`` status is promoted only to scheduled when the fixture has a
+    timezone-aware future kickoff and both stored scores are absent. Time is
+    never used to infer a live state.
+    """
+    stored_state = classify_stored_match_status(status)
+
+    if stored_state != MATCH_STATE_UNAVAILABLE:
+        return {
+            "match_state": stored_state,
+            "state_source": DISPLAY_STATE_SOURCE_STORED_STATUS,
+        }
+
+    if normalize_stored_status(status) != "unknown":
+        return {
+            "match_state": MATCH_STATE_UNAVAILABLE,
+            "state_source": DISPLAY_STATE_SOURCE_UNAVAILABLE,
+        }
+
+    kickoff = _parse_utc_kickoff(kickoff_time)
+    reference_time = _normalize_reference_time(now)
+
+    if (
+        kickoff is None
+        or reference_time is None
+        or kickoff <= reference_time
+        or home_score is not None
+        or away_score is not None
+    ):
+        return {
+            "match_state": MATCH_STATE_UNAVAILABLE,
+            "state_source": DISPLAY_STATE_SOURCE_UNAVAILABLE,
+        }
+
+    return {
+        "match_state": MATCH_STATE_SCHEDULED,
+        "state_source": DISPLAY_STATE_SOURCE_STORED_KICKOFF,
+    }
+
+
+def _parse_utc_kickoff(value: Any) -> datetime | None:
+    if not isinstance(value, str):
+        return None
+
+    candidate = value.strip()
+    if not candidate:
+        return None
+
+    if candidate.endswith("Z"):
+        candidate = f"{candidate[:-1]}+00:00"
+
+    try:
+        kickoff = datetime.fromisoformat(candidate)
+    except ValueError:
+        return None
+
+    if kickoff.tzinfo is None:
+        return None
+
+    return kickoff.astimezone(timezone.utc)
+
+
+def _normalize_reference_time(value: datetime | None) -> datetime | None:
+    if value is None:
+        return datetime.now(timezone.utc)
+
+    if not isinstance(value, datetime) or value.tzinfo is None:
+        return None
+
+    return value.astimezone(timezone.utc)
 
 
 def build_fixture_change_summary(
