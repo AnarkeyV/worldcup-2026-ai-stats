@@ -6,6 +6,39 @@ The project follows semantic versioning and milestone-based releases.
 
 ---
 
+## [1.17.1] — Runtime Reliability Safeguards
+
+### Added
+
+- Read-only `scripts/windows/get-worldcup-runtime-status.ps1` for Windows operator checks.
+- One status view for Docker engine and Compose state, backend and dashboard health, Cloudflared service state, public health, host Ollama API, application AI health, and the user-level Ollama launcher task.
+- Explicit local/public backend version-consistency reporting.
+- `docs/windows-runtime-recovery.md`, with secret-safe diagnostic and recovery boundaries.
+- Focused safeguards that prevent the status script from rebuilding/restarting Docker, syncing providers, sending Telegram, changing Cloudflared, changing Ollama, changing tasks, or printing active configuration.
+
+### Changed
+
+- Existing Windows startup and watchdog scripts retain Docker startup and unhealthy-container recovery.
+- Cloudflared is now report-only in those scripts; no project script starts or restarts the service.
+- Ollama is now report-only in those scripts; no project script launches, kills, reconfigures, or downloads a model.
+- Task descriptions now state the automatic Docker recovery and report-only Cloudflared/Ollama boundary.
+- Safe version declarations in `VERSION`, `.env.example`, and `backend/app/config.py` align to `1.17.1`.
+
+### Verified
+
+```text
+241 automated tests passed
+296 known FastAPI/Starlette Python 3.14 deprecation warnings
+```
+
+### Boundaries
+
+- Source preparation does not modify an active `.env`, Docker volumes, runtime logs, Cloudflare credentials/configuration, Scheduled Task XML, model files, provider data, provider schedule, or Telegram state.
+- The status checker is intentionally a diagnostic tool, not a self-healing controller.
+- An active runtime version update remains an explicit, approved candidate-and-backup deployment step.
+
+---
+
 ## [1.17.0] — Provider-Backed Match Story and Official Watch
 
 ### Added

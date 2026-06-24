@@ -4,7 +4,7 @@
 
 World Cup 2026 AI Stats is a self-hosted football analytics platform built around a FastAPI backend, PostgreSQL, provider-backed match detail, a static browser dashboard, local AI summaries, Telegram notifications, and Prometheus/Grafana observability.
 
-The current release is **v1.17.0 — Provider-Backed Match Story and Official Watch**. It adds a read-only match-story contract, conservative score and statistic logic, and a manually verified outbound-link policy without changing the fixed-time scheduler, Telegram delivery policy, provider-sync cadence, or local-first runtime model.
+The current release is **v1.17.1 — Runtime Reliability Safeguards**. It retains the v1.17.0 read-only match-story and Official Watch design while adding a safe Windows operator status checker, local/public version-consistency reporting, and explicit report-only boundaries for Cloudflared and Ollama. Docker/container recovery remains bounded to the existing Windows runtime scripts.
 
 The canonical user interface is the FastAPI-served dashboard:
 
@@ -66,7 +66,8 @@ The architecture is local-first:
 | Prometheus | Metrics collection |
 | Grafana | Metrics visualisation |
 | Cloudflare Tunnel | Optional public/mobile access |
-| Docker Compose | Windows runtime orchestration |
+| Docker Compose | Windows runtime orchestration and bounded container recovery |
+| Windows runtime status checker | Read-only operator view; reports Docker, endpoints, Cloudflared, public reachability, Ollama, AI, task state, and version consistency |
 
 ---
 
@@ -351,6 +352,32 @@ The match-story route and dashboard Story tab do not trigger sync, backfill matc
 
 ---
 
+## Windows Runtime Reliability Boundary
+
+The Windows runtime separates bounded Docker recovery from sensitive host-service operations:
+
+```text
+startup/watchdog scripts
+        |
+        +--> may start Docker Desktop and recover unhealthy Docker containers
+        |
+        +--> report-only: Cloudflared service state and public health
+        |
+        +--> report-only: host Ollama API, application AI health, and Ollama task state
+```
+
+`get-worldcup-runtime-status.ps1` is a local diagnostic script. It reports:
+
+- Docker engine and Compose service state
+- local backend and dashboard health
+- Cloudflared service state and public health
+- local and public application versions, including a mismatch warning
+- host Ollama model availability, application AI health, and the user-level Ollama launcher task
+
+It does not start, stop, restart, rebuild, sync, send, reconfigure, create, delete, or display active secrets. `docs/windows-runtime-recovery.md` records the human-approved recovery sequence for tunnel, Ollama, and Docker incidents.
+
+---
+
 ## Configuration and Secrets
 
 Configuration remains environment-driven.
@@ -372,7 +399,7 @@ APP_VERSION in .env.example
 default app_version in backend/app/config.py
 ```
 
-The v1.17.0 source package updates only the safe version declarations. It does not modify an active `.env` file.
+The v1.17.1 source package updates only the safe version declarations. It does not modify an active `.env` file. Any active runtime `APP_VERSION` update is handled only through an approved candidate-and-backup deployment workflow.
 
 Secrets must remain local:
 
@@ -389,10 +416,10 @@ database credentials
 
 ## Testing and Release Verification
 
-v1.17.0 local regression verification:
+v1.17.1 local regression verification:
 
 ```text
-234 passed, 296 warnings
+241 passed, 296 warnings
 ```
 
 The warnings are existing FastAPI/Starlette Python 3.14 deprecations related to `asyncio.iscoroutinefunction`; they are not test failures.
@@ -408,6 +435,7 @@ Coverage includes:
 - official fallback-link states
 - dashboard Story and Official Watch rendering markers
 - release version consistency and cache-busted static assets
+- Windows runtime report-only safeguards and version-consistency status reporting
 - existing provider sync, scheduler, Telegram, AI, standings, player, metrics, and dashboard coverage
 
 ---
@@ -423,5 +451,6 @@ Coverage includes:
 - Official match-video availability can be delayed or region-dependent.
 - Local Llama depends on Ollama availability on the Windows host.
 - The public dashboard depends on the Windows runtime and Cloudflare Tunnel remaining online.
+- Project scripts report Cloudflared and Ollama failure rather than attempting sensitive automatic repair; a human-approved recovery action is required.
 - Match Data Coverage measures stored-data presence; it does not certify provider completeness or factual correctness.
 - Dashboard visuals are descriptive stored-data views, not predictive analytics or qualification simulations.

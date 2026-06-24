@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This walkthrough demonstrates **World Cup 2026 AI Stats v1.17.0** during a portfolio review, technical interview, or self-hosted runtime demo.
+This walkthrough demonstrates **World Cup 2026 AI Stats v1.17.1** during a portfolio review, technical interview, or self-hosted runtime demo.
 
 The main story is simple:
 
@@ -19,7 +19,7 @@ The important qualifier is equally simple:
 Before the demo:
 
 1. Use the already approved Windows Docker runtime; do not build, restart, sync, or alter it only to prepare this walkthrough.
-2. Confirm the backend is healthy through a read-only check.
+2. Run the read-only runtime status checker and confirm no critical issue is reported.
 3. Confirm the public Cloudflare dashboard opens.
 4. Do not run provider sync, data backfill, or Telegram test messages during the demo unless that is explicitly the demo scenario.
 5. Keep secrets out of screenshots, shell history, and screen sharing.
@@ -29,10 +29,8 @@ Windows PowerShell read-only checks:
 ```powershell
 cd "C:\Users\Khairul Rizal\Documents\worldcup-2026-ai-stats"
 
-docker compose ps
-curl.exe http://localhost:8000/health
+.\scripts\windows\get-worldcup-runtime-status.ps1
 curl.exe http://localhost:8000/fixtures/sync/status
-curl.exe http://localhost:8000/ai/health
 curl.exe http://localhost:8000/players/leaders
 curl.exe http://localhost:8000/ai/insights?limit=5
 ```
@@ -40,7 +38,7 @@ curl.exe http://localhost:8000/ai/insights?limit=5
 Expected source-release verification baseline:
 
 ```text
-234 automated tests passed
+241 automated tests passed
 ```
 
 ---
@@ -61,7 +59,7 @@ Explain:
 - Development happens on a MacBook; the Windows laptop hosts the Docker runtime.
 - Cloudflare Tunnel makes the dashboard usable from a phone.
 - The system combines provider data, PostgreSQL, local AI, Telegram, Prometheus, and Grafana.
-- v1.17.0 focuses on explaining a match truthfully from stored data rather than creating cosmetic charts.
+- v1.17.1 keeps the factual match-story design and makes the Windows operating boundary more explicit: Docker recovery is bounded, while Cloudflared and Ollama are inspected rather than automatically changed.
 
 ### 2. Show Runtime Health and API Documentation
 
@@ -72,7 +70,7 @@ http://localhost:8000/health
 http://localhost:8000/docs
 ```
 
-Explain that FastAPI exposes interactive documentation and a health endpoint, while the dashboard remains a separate user-facing view.
+Explain that FastAPI exposes interactive documentation and a health endpoint, while the dashboard remains a separate user-facing view. For an operator-focused audience, show the read-only runtime status script result instead of restarting or reconfiguring anything during the demo.
 
 ### 3. Start at Matchday
 
@@ -166,8 +164,9 @@ Use **AI Summary**.
 
 Explain:
 
-- Ollama runs locally on the Windows host.
+- Ollama runs locally on the Windows host through a user-level background launcher.
 - The configured model is `llama3.2:1b`.
+- The Windows runtime status checker verifies both host Ollama and the backend AI view without starting or stopping the model.
 - If local AI is unavailable or returns contradictory output, the system returns deterministic factual fallback text.
 - Structured AI Insights, Group Race, player leaders, and match story do not require Ollama.
 
@@ -245,4 +244,5 @@ docker compose ps
 - Prometheus targets
 - Grafana dashboard
 - Docker Compose services healthy
-- test-suite result showing `234 passed`
+- test-suite result showing `241 passed`
+- read-only Windows runtime status summary showing matching local/public version

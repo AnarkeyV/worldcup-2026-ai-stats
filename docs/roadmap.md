@@ -7,10 +7,10 @@ World Cup 2026 AI Stats is developed through small, test-backed milestones. Each
 ## Current Status
 
 ```text
-Current release: v1.17.0 — Provider-Backed Match Story and Official Watch
-Release verification: 234 tests passed
+Current release: v1.17.1 — Runtime Reliability Safeguards
+Release verification: 241 tests passed
 Known warnings: 296 FastAPI/Starlette Python 3.14 deprecation warnings
-Previous v1.16.0 verification: 218 tests passed
+Previous v1.17.0 verification: 234 tests passed
 Primary runtime: Windows laptop + Docker Compose
 Development machine: MacBook Pro + VS Code + Python venv
 Public dashboard: https://wc2026.khairulrizal.qzz.io/dashboard
@@ -32,6 +32,31 @@ Current live capabilities:
 - persisted fixture sync audit history and safe freshness states
 - fixed-time provider scheduling and scheduled Telegram digest policy configured separately
 - Prometheus, Grafana, Cloudflare access, and Windows Docker runtime support
+- read-only Windows runtime status checker with local/public version-consistency reporting
+- bounded Docker/container recovery and report-only Cloudflared/Ollama safeguards
+
+---
+
+## v1.17.1 Release Notes
+
+### Runtime Reliability Safeguards
+
+**Goal:** Make the personally hosted Windows runtime easier to inspect and safer to recover without turning sensitive host services into blind auto-repair targets.
+
+Delivered scope:
+
+- read-only Windows runtime status checker for Docker, backend, dashboard, Cloudflared, public health, host Ollama, application AI health, task state, and local/public version consistency
+- `-FailOnCritical` support for local operator checks without adding a mutating automation path
+- Cloudflared and Ollama changed to report-only in the existing startup and watchdog scripts
+- Docker Desktop startup and unhealthy-container recovery retained as the existing bounded recovery scope
+- private-safe recovery guide with no tunnel token, credential file, active `.env`, model-file, or task-XML exposure
+- focused tests and candidate-runtime execution against the real v1.17.0 Windows host
+
+Current boundaries retained:
+
+- no provider request, sync, backfill, scheduler change, Telegram delivery, active `.env` change, Docker rebuild, Cloudflared action, Ollama action, or Scheduled Task action during status checks
+- no automatic tunnel recreation, config copying, model replacement, model download, or local AI exposure beyond the Windows host
+- active runtime promotion remains explicit and candidate/back-up controlled
 
 ---
 
@@ -65,20 +90,19 @@ Current boundaries retained:
 
 ## Recommended Next Small Milestone
 
-### Controlled official-link curation workflow
+### Live Match Centre and Data Freshness
 
-The v1.17.0 policy and storage model are intentionally ready before links are populated. The next small step should be a **controlled local curator workflow**, not automatic discovery.
+The next feature milestone should deepen matchday usefulness without weakening the data-honesty rules established so far.
 
 Possible scope:
 
-- a local-only, operator-run import command or checked-in review file with explicit verification fields
-- dry-run validation against the existing source policy before data is written
-- an auditable, bounded manifest with fixture ID, source key, direct URL, content type, territory, published time, and verification time
-- idempotent upsert behaviour and a clear rejection report
-- no public write endpoint, browser form, scraping, or provider dependency
-- focused tests for bad source, bad URL, duplicate, missing verification, and dry-run safety
+- clearer live/in-progress fixture state and stored provider refresh timestamp
+- compact “What changed?” summary after a stored refresh, only when a provider-backed score, goal, card, substitution, or status change is genuinely present
+- focused, explicitly approved refresh behaviour for fixtures that are already in progress, without broad polling of all records
+- improved delayed-detail and provider-gap states in Match Story
+- tests for no-change, incomplete, delayed, and corrected-provider states
 
-This would allow a human to add individually researched match links while preserving the current no-trust-by-default boundary.
+This should remain local-data-first, avoid invented live commentary, and keep provider work separate from ordinary dashboard reads.
 
 ---
 
@@ -143,6 +167,7 @@ This would allow a human to add individually researched match links while preser
 | v1.14.0 | Completed | Read-only match data quality dashboard and missing-detail follow-up |
 | v1.15.0 | Completed | Visual Matchday home, descriptive charts, data-health badge, and mobile navigation |
 | v1.16.0 | Completed | Fixed-time scheduled provider sync, next-run visibility, and opt-in Telegram matchday digest |
+| v1.17.1 | Completed | Runtime reliability safeguards, read-only status checker, and report-only Cloudflared/Ollama boundary |
 | v1.17.0 | Completed | Provider-backed match story and official watch policy/UI |
 
 ---

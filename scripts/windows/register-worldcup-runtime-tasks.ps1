@@ -55,7 +55,7 @@ Register-ScheduledTask `
     -Trigger $StartupTrigger `
     -Principal $Principal `
     -Settings $Settings `
-    -Description "Starts the World Cup 2026 AI Stats Docker runtime and verifies public dashboard health at Windows logon." `
+    -Description "Starts the World Cup 2026 AI Stats Docker runtime and verifies local/public health at Windows logon. Cloudflared and Ollama checks are report-only." `
     -Force | Out-Null
 
 $WatchdogAction = New-ScheduledTaskAction `
@@ -77,7 +77,7 @@ Register-ScheduledTask `
     -Trigger $WatchdogTrigger `
     -Principal $Principal `
     -Settings $Settings `
-    -Description "Checks the World Cup 2026 AI Stats runtime every 15 minutes and attempts safe self-healing." `
+    -Description "Checks the World Cup 2026 AI Stats runtime every 15 minutes, repairs unhealthy Docker containers, and reports Cloudflared/Ollama state without starting or restarting them." `
     -Force | Out-Null
 
 Write-Host ""
@@ -88,4 +88,4 @@ Get-ScheduledTask | Where-Object {
 } | Select-Object TaskName, State, TaskPath
 
 Write-Host ""
-Write-Host "Done. The startup task runs at Windows logon. The watchdog task runs every 15 minutes without opening a visible PowerShell window."
+Write-Host "Done. The startup task runs at Windows logon. The watchdog runs every 15 minutes without opening a visible PowerShell window. Docker recovery remains automatic; Cloudflared and Ollama are report-only."
