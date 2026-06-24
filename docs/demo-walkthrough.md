@@ -2,11 +2,15 @@
 
 ## Purpose
 
-This walkthrough demonstrates **World Cup 2026 AI Stats v1.11.0** during a portfolio review, technical interview, or self-hosted runtime demo.
+This walkthrough demonstrates **World Cup 2026 AI Stats v1.17.0** during a portfolio review, technical interview, or self-hosted runtime demo.
 
 The main story is simple:
 
-> Provider data is synced into a self-hosted FastAPI/PostgreSQL system, transformed into match detail and standings, surfaced through a mobile-friendly dashboard, enriched by local AI and deterministic fallbacks, and observed with Prometheus and Grafana.
+> Provider data is stored in a self-hosted FastAPI/PostgreSQL system, transformed conservatively into a match story, surfaced through a mobile-friendly dashboard, enriched by local AI and deterministic fallbacks, and observed with Prometheus and Grafana.
+
+The important qualifier is equally simple:
+
+> The dashboard shows only stored provider facts that pass its local contracts. It does not turn missing data into a chart, fabricate an event, or scrape video sites.
 
 ---
 
@@ -14,30 +18,29 @@ The main story is simple:
 
 Before the demo:
 
-1. Start the Windows Docker runtime.
-2. Confirm the backend is healthy.
+1. Use the already approved Windows Docker runtime; do not build, restart, sync, or alter it only to prepare this walkthrough.
+2. Confirm the backend is healthy through a read-only check.
 3. Confirm the public Cloudflare dashboard opens.
-4. Do not run provider sync or rich-detail backfill during the demo unless it is explicitly part of the scenario.
+4. Do not run provider sync, data backfill, or Telegram test messages during the demo unless that is explicitly the demo scenario.
 5. Keep secrets out of screenshots, shell history, and screen sharing.
 
-Windows PowerShell:
+Windows PowerShell read-only checks:
 
 ```powershell
 cd "C:\Users\Khairul Rizal\Documents\worldcup-2026-ai-stats"
 
-docker compose up -d --build
 docker compose ps
-
 curl.exe http://localhost:8000/health
+curl.exe http://localhost:8000/fixtures/sync/status
 curl.exe http://localhost:8000/ai/health
 curl.exe http://localhost:8000/players/leaders
 curl.exe http://localhost:8000/ai/insights?limit=5
 ```
 
-Expected release verification baseline:
+Expected source-release verification baseline:
 
 ```text
-184 automated tests passed
+234 automated tests passed
 ```
 
 ---
@@ -46,20 +49,19 @@ Expected release verification baseline:
 
 ### 1. Start with the Project Story
 
-Open the README or public dashboard.
-
-Explain:
-
-- The project is a self-hosted football intelligence dashboard for World Cup 2026.
-- Development runs on a MacBook; the Windows laptop hosts the Docker runtime.
-- Cloudflare Tunnel makes the dashboard available on mobile.
-- The system combines provider data, PostgreSQL, local AI, Telegram, Prometheus, and Grafana.
-
-Open:
+Open the README or public dashboard:
 
 ```text
 https://wc2026.khairulrizal.qzz.io/dashboard
 ```
+
+Explain:
+
+- The project is a self-hosted World Cup 2026 intelligence dashboard.
+- Development happens on a MacBook; the Windows laptop hosts the Docker runtime.
+- Cloudflare Tunnel makes the dashboard usable from a phone.
+- The system combines provider data, PostgreSQL, local AI, Telegram, Prometheus, and Grafana.
+- v1.17.0 focuses on explaining a match truthfully from stored data rather than creating cosmetic charts.
 
 ### 2. Show Runtime Health and API Documentation
 
@@ -70,88 +72,75 @@ http://localhost:8000/health
 http://localhost:8000/docs
 ```
 
-Explain that FastAPI exposes both interactive documentation and a health endpoint.
+Explain that FastAPI exposes interactive documentation and a health endpoint, while the dashboard remains a separate user-facing view.
 
-### 3. Show Structured AI Insights and Group Race
+### 3. Start at Matchday
 
-Use **AI Insights** in Quick Links.
-
-Highlight:
-
-- deterministic, fallback-safe insights
-- Group Race board
-- current top two teams in every populated group
-- the ranking uses completed-fixture standings, not a generated prediction
-
-Optional API check:
-
-```powershell
-$aiInsights = Invoke-RestMethod -Uri "http://localhost:8000/ai/insights?limit=5"
-
-$aiInsights.group_race.teams_per_group
-$aiInsights.metadata.group_race_group_count
-```
-
-Explain that the Group Race is designed as a qualification-picture view, rather than a generic top-scoring list.
-
-### 4. Show Provider-Backed Player Leaders
-
-Use **Players** in Quick Links.
+Use **Matchday** in Quick Links.
 
 Highlight:
 
-- top scorers
-- yellow-card leaders
-- red-card leaders
-- provider coverage statement
-- no generic sample data presented as live data
-- assist leaders are clearly unavailable if the provider does not supply assist events
+- latest live/completed/upcoming context is derived from stored fixture records
+- the Data health badge is a local-read coverage signal
+- the visual cards and bars do not create a prediction or trigger a provider call
 
-Optional API check:
-
-```powershell
-curl.exe http://localhost:8000/players/leaders
-```
-
-### 5. Show Latest Completed Match
-
-Use **AI Summary** in Quick Links.
-
-Highlight:
-
-- local AI health badge
-- tournament summary button
-- provider-backed latest completed result
-- stored scorer data
-- major incident priority when red cards are present
-
-Optional API check:
-
-```powershell
-curl.exe http://localhost:8000/ai/latest-completed/summary
-```
-
-### 6. Show Rich Match Detail
+### 4. Show a Completed Match Story
 
 Use **Fixtures** in Quick Links.
 
 1. Select **Completed**.
 2. Choose a group.
 3. Open a completed fixture.
-4. Show the match detail panel.
+4. Start with the **Story** tab.
 
 Walk through:
 
-- Overview
-- Timeline
-- Stats
-- Lineups
-- referee and weather context
-- fixture-level summary button
+- final score and fixture context
+- score progression when the stored goal list matches the final stored score
+- key-event sequence for goals, cards, substitutions, and stoppage time
+- provider name and stored-detail refresh timestamp
+- partial or unavailable states as proof that the system does not invent data
 
-Explain that detail data is stored independently from the core fixture row, so the dashboard can remain usable even when a fixture has no rich detail yet.
+Explain that a score progression is deliberately withheld when the stored goals cannot safely reconcile with the final score.
 
-### 7. Show Sync and Observability
+### 5. Show Stats and Lineups Carefully
+
+Open **Stats** and **Lineups**.
+
+Highlight:
+
+- the statistics view uses only values supplied for both teams
+- absent values are not displayed as fake zeroes
+- no possession trend, shot map, xG timeline, or momentum chart is claimed unless a provider genuinely supplies the needed event-level data
+- the lineup view remains useful even if some event or stat fields are missing
+
+### 6. Show Official Highlights / Watch Safely
+
+Return to **Story**.
+
+Explain:
+
+- Official Watch uses a locally validated outbound-link policy.
+- A direct match card appears only after an operator has manually verified a match-specific official link.
+- Links open in a new tab; no video is embedded in the dashboard.
+- The initial trusted sources are FIFA web, exact FIFA YouTube video URLs, and meWATCH.
+- When no verified match-specific link is available, the dashboard says so and can offer clearly labelled FIFA/meWATCH coverage-hub fallbacks.
+- Availability may be delayed or territory-dependent, particularly for Singapore-specific meWATCH access.
+
+Do not describe the fallback hub as a match-specific highlight unless it actually is one.
+
+### 7. Show Provider-Backed Player Leaders and Group Race
+
+Use **Players** and **Insights** in Quick Links.
+
+Highlight:
+
+- top scorers, yellow-card leaders, and red-card leaders are derived from stored provider events
+- assist leaders remain unavailable if no assist events are supplied
+- Group Race shows the current top two teams in each populated group from completed-fixture standings
+- these views are deterministic summaries, not generated predictions
+
+### 8. Show Sync and Observability
 
 Use **Sync** in Quick Links.
 
@@ -160,9 +149,10 @@ Highlight:
 - source and provider
 - last run and last successful sync
 - fetched, created, updated, and newly completed counts
-- error field
+- fixed-time schedule and next run when the scheduler is enabled
+- no action is taken just by viewing the page
 
-Then show:
+Then show, if relevant:
 
 ```text
 http://localhost:8000/metrics
@@ -170,9 +160,7 @@ http://localhost:9090
 http://localhost:3000
 ```
 
-Explain that the project includes runtime-level visibility, not just a user interface.
-
-### 8. Explain Local AI and Fallback Safety
+### 9. Explain Local AI and Fallback Safety
 
 Use **AI Summary**.
 
@@ -180,27 +168,29 @@ Explain:
 
 - Ollama runs locally on the Windows host.
 - The configured model is `llama3.2:1b`.
-- If local AI is unavailable or returns a contradictory result, the system returns deterministic factual fallback text.
-- Structured AI Insights and Group Race do not require Ollama.
+- If local AI is unavailable or returns contradictory output, the system returns deterministic factual fallback text.
+- Structured AI Insights, Group Race, player leaders, and match story do not require Ollama.
 
-### 9. Explain Telegram and Mobile Access
+### 10. Explain Mobile Access and Telegram Boundaries
 
 Mention:
 
-- Telegram status and test endpoints exist.
-- Messages can contain the dashboard URL.
-- Cloudflare Tunnel makes that link usable from a phone.
+- Cloudflare Tunnel makes the dashboard link usable from a phone.
+- Telegram status and test endpoints exist, but messages are not sent just by loading the dashboard.
+- Scheduled provider syncs and scheduled digests remain separately configured.
 - Tokens and chat IDs are environment-driven and never committed.
 
 ---
 
 ## Optional Technical Deep Dive
 
-For a backend-focused audience, show these routes:
+For a backend-focused audience, show these read-only routes:
 
 ```text
 GET /fixtures
 GET /fixtures/{fixture_id}/detail
+GET /fixtures/{fixture_id}/story
+GET /fixtures/data-quality
 GET /standings
 GET /insights/groups
 GET /players/leaders
@@ -214,10 +204,12 @@ GET /metrics
 For a test-focused audience:
 
 ```bash
+cd backend
+source .venv/bin/activate
 pytest -q
 ```
 
-For a deployment-focused audience:
+For a deployment-focused audience, show only the current state unless deployment work is explicitly approved:
 
 ```powershell
 docker compose ps
@@ -229,9 +221,12 @@ docker compose ps
 
 - Do not display `.env`.
 - Do not paste provider keys, Telegram tokens, or Cloudflare credentials.
-- Avoid provider sync in a stable runtime demo unless you intend to change the data.
-- A Windows terminal can render accented names incorrectly; use the browser output as the visual source of truth.
+- Avoid provider sync in a stable runtime demo unless you intend to change data.
+- Do not claim a stored empty event array proves no event occurred.
+- Do not claim a score progression is live or complete when the system marked it unavailable.
+- Do not call a fallback coverage hub a match-specific highlight.
 - Do not claim assist data exists when the provider response does not supply it.
+- A Windows terminal can render accented names incorrectly; use browser output as the visual source of truth.
 
 ---
 
@@ -239,14 +234,15 @@ docker compose ps
 
 - public dashboard on desktop
 - public dashboard on mobile
+- Story tab with score progression, key events, and provider provenance
+- Story unavailable or partial state to demonstrate data honesty
+- Official Watch delayed or region-dependent state
+- provider-backed player leaders with data-coverage note
 - Group Race board
-- player leaders with data coverage note
-- latest completed-match card
-- rich match timeline with cards and goals
-- AI Online health badge
-- provider sync runtime panel
+- local AI health badge and deterministic fallback explanation
+- provider sync runtime panel and fixed-time schedule status
 - `/docs`
 - Prometheus targets
 - Grafana dashboard
 - Docker Compose services healthy
-- test-suite result showing `184 passed`
+- test-suite result showing `234 passed`

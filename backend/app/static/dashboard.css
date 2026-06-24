@@ -2930,3 +2930,349 @@ select:focus {
         outline: none;
     }
 }
+
+/* v1.17.0: provider-backed match story and verified official-watch cards */
+.match-story-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.match-story-section,
+.official-watch,
+.story-provenance {
+    border: 1px solid #e2e8f0;
+    border-radius: 1rem;
+    background: #ffffff;
+    padding: 1rem;
+}
+
+.match-story-section-unavailable,
+.official-watch-unavailable {
+    background: #f8fafc;
+}
+
+.match-story-section-heading,
+.official-watch-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.85rem;
+}
+
+.match-story-section-heading h4,
+.official-watch-heading h4 {
+    margin: 0.2rem 0 0;
+    color: #111827;
+    font-size: 1rem;
+}
+
+.match-story-eyebrow,
+.official-watch-source {
+    display: block;
+    color: #64748b;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.match-story-state,
+.official-watch-status {
+    flex: 0 0 auto;
+    border-radius: 999px;
+    padding: 0.3rem 0.55rem;
+    font-size: 0.72rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.match-story-state.available,
+.official-watch-status.available {
+    background: rgba(34, 197, 94, 0.12);
+    color: #166534;
+}
+
+.match-story-state.partial,
+.official-watch-status.region_dependent {
+    background: rgba(245, 158, 11, 0.14);
+    color: #92400e;
+}
+
+.match-story-state.unavailable,
+.official-watch-status.not_available_yet,
+.official-watch-status {
+    background: #e2e8f0;
+    color: #475569;
+}
+
+.score-progression {
+    display: grid;
+    gap: 0.6rem;
+}
+
+.score-progression-start,
+.score-progression-step {
+    display: grid;
+    grid-template-columns: 3.4rem minmax(0, 1fr);
+    gap: 0.75rem;
+    align-items: start;
+}
+
+.score-progression-start {
+    align-items: center;
+    color: #64748b;
+}
+
+.score-progression-start strong {
+    color: #111827;
+    font-size: 1rem;
+}
+
+.score-progression-start span {
+    grid-column: 2;
+    font-size: 0.82rem;
+}
+
+.score-progression-step {
+    position: relative;
+    padding-top: 0.1rem;
+}
+
+.score-progression-step::before {
+    content: "";
+    position: absolute;
+    left: 1.55rem;
+    top: -0.42rem;
+    bottom: -0.72rem;
+    width: 2px;
+    background: #e2e8f0;
+}
+
+.score-progression-step:last-child::before {
+    bottom: 0.6rem;
+}
+
+.score-progression-minute {
+    position: relative;
+    z-index: 1;
+    width: 3.1rem;
+    border-radius: 999px;
+    background: #eff6ff;
+    color: #1d4ed8;
+    font-size: 0.78rem;
+    font-weight: 800;
+    padding: 0.25rem 0.45rem;
+    text-align: center;
+}
+
+.score-progression-step.away .score-progression-minute {
+    background: #f3e8ff;
+    color: #7e22ce;
+}
+
+.score-progression-step strong {
+    color: #111827;
+    font-size: 1rem;
+}
+
+.score-progression-step p,
+.story-event p,
+.official-watch p,
+.match-story-section > p {
+    margin: 0.18rem 0 0;
+    color: #64748b;
+    font-size: 0.84rem;
+    line-height: 1.45;
+}
+
+.story-event-list {
+    display: grid;
+    gap: 0.65rem;
+}
+
+.story-event {
+    display: grid;
+    grid-template-columns: 3.4rem minmax(0, 1fr);
+    gap: 0.75rem;
+    align-items: start;
+    border-left: 3px solid #cbd5e1;
+    padding: 0.15rem 0 0.15rem 0.75rem;
+}
+
+.story-event.goal {
+    border-left-color: #2563eb;
+}
+
+.story-event.red-card {
+    border-left-color: #dc2626;
+}
+
+.story-event.yellow-card {
+    border-left-color: #d97706;
+}
+
+.story-event.substitution {
+    border-left-color: #64748b;
+}
+
+.story-event-minute {
+    color: #475569;
+    font-size: 0.8rem;
+    font-weight: 800;
+}
+
+.story-event strong {
+    color: #111827;
+    font-size: 0.9rem;
+}
+
+.match-story-more-note,
+.story-stat-zero-note,
+.official-watch-disclosure {
+    display: block;
+    margin: 0.75rem 0 0;
+    color: #64748b;
+    font-size: 0.78rem;
+    line-height: 1.45;
+}
+
+.story-statistics-section,
+.official-watch,
+.story-provenance {
+    margin-top: 1rem;
+}
+
+.story-match-stats-heading {
+    margin-bottom: 0.75rem;
+}
+
+.story-stat-comparison-row {
+    padding: 0.8rem 0;
+}
+
+.story-stat-zero-note {
+    border-top: 1px solid #e2e8f0;
+    padding-top: 0.55rem;
+}
+
+.story-provenance {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem 1rem;
+    align-items: baseline;
+    background: #f8fafc;
+    color: #475569;
+    font-size: 0.78rem;
+}
+
+.story-provenance strong {
+    color: #334155;
+}
+
+.story-provenance small {
+    flex-basis: 100%;
+    color: #64748b;
+}
+
+.official-watch-heading {
+    margin-bottom: 0.55rem;
+}
+
+.official-watch-links {
+    display: grid;
+    gap: 0.75rem;
+    margin-top: 0.85rem;
+}
+
+.official-watch-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.85rem;
+    align-items: center;
+    border: 1px solid #dbeafe;
+    border-radius: 0.8rem;
+    background: #f8fbff;
+    padding: 0.85rem;
+}
+
+.official-watch-card.is-fallback {
+    border-color: #e2e8f0;
+    background: #ffffff;
+}
+
+.official-watch-card h5 {
+    margin: 0.15rem 0;
+    color: #111827;
+    font-size: 0.92rem;
+}
+
+.official-watch-card small {
+    color: #64748b;
+    font-size: 0.76rem;
+}
+
+.official-watch-link {
+    border-radius: 0.65rem;
+    background: #1d4ed8;
+    color: #ffffff;
+    font-size: 0.78rem;
+    font-weight: 800;
+    padding: 0.55rem 0.7rem;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.official-watch-link:hover,
+.official-watch-link:focus-visible {
+    background: #1e40af;
+    color: #ffffff;
+}
+
+.official-watch-hubs {
+    margin-top: 0.9rem;
+}
+
+.official-watch-hubs > span {
+    color: #475569;
+    font-size: 0.8rem;
+    font-weight: 800;
+}
+
+@media (max-width: 760px) {
+    .match-story-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .match-story-section,
+    .official-watch,
+    .story-provenance {
+        padding: 0.9rem;
+    }
+
+    .official-watch-card {
+        grid-template-columns: 1fr;
+    }
+
+    .official-watch-link {
+        width: fit-content;
+    }
+
+    .match-story-section-heading,
+    .official-watch-heading {
+        gap: 0.5rem;
+    }
+
+    .score-progression-start,
+    .score-progression-step,
+    .story-event {
+        grid-template-columns: 3rem minmax(0, 1fr);
+        gap: 0.6rem;
+    }
+
+    .score-progression-step::before {
+        left: 1.45rem;
+    }
+}

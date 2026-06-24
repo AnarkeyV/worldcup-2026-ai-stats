@@ -16,8 +16,11 @@ const state = {
     fixtureBrowserFixtures: [],
     selectedFixture: null,
     selectedFixtureDetail: null,
+    selectedFixtureStory: null,
+    selectedFixtureDetailError: false,
+    selectedFixtureStoryError: false,
     selectedFixtureId: null,
-    activeMatchDetailTab: "overview",
+    activeMatchDetailTab: "story",
     filters: {
         team: "",
         group: "",
@@ -2142,6 +2145,29 @@ async function fetchFixtureDetail(fixtureId) {
     throw new Error("Unable to load provider-backed fixture detail.");
 }
 
+async function fetchFixtureStory(fixtureId) {
+    const possibleEndpoints = [
+        `/api/fixtures/${fixtureId}/story`,
+        `/fixtures/${fixtureId}/story`,
+    ];
+
+    for (const endpoint of possibleEndpoints) {
+        try {
+            const response = await fetch(endpoint);
+
+            if (!response.ok) {
+                continue;
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.warn(`Unable to fetch stored match story from ${endpoint}`, error);
+        }
+    }
+
+    throw new Error("Unable to load stored match story.");
+}
+
 function formatMatchScoreline(fixture) {
     const homeScore = formatScore(fixture.home_score);
     const awayScore = formatScore(fixture.away_score);
@@ -2165,7 +2191,7 @@ function formatDetailMinute(value) {
 
 function getMatchDetailTabs() {
     return [
-        { id: "overview", label: "Overview" },
+        { id: "story", label: "Story" },
         { id: "timeline", label: "Timeline" },
         { id: "stats", label: "Stats" },
         { id: "lineups", label: "Lineups" },
@@ -2257,34 +2283,6 @@ function parseMatchMinute(value) {
     return Number(match[1]) + (Number(match[2] || 0) / 100);
 }
 
-function renderKeyMatchEvents(fixture, detail) {
-    const events = buildTimelineEvents(fixture, detail)
-        .filter((event) => event.kind === "goal" || event.kind === "red-card")
-        .slice(0, 6);
-
-    if (events.length === 0) {
-        return `
-            <div class="match-detail-empty">
-                No goals or red-card incidents have been supplied for this match.
-            </div>
-        `;
-    }
-
-    return `
-        <div class="match-key-events">
-            ${events.map((event) => `
-                <div class="match-key-event ${event.kind}">
-                    <span>${escapeHtml(formatDetailMinute(event.minute))}</span>
-                    <div>
-                        <strong>${escapeHtml(event.description)} · ${escapeHtml(event.actor)}</strong>
-                        <small>${escapeHtml(event.team)}</small>
-                    </div>
-                </div>
-            `).join("")}
-        </div>
-    `;
-}
-
 function formatWeather(weather) {
     if (!weather || Object.keys(weather).length === 0) {
         return "Weather data unavailable";
@@ -2307,72 +2305,442 @@ function formatWeather(weather) {
     return parts.length ? parts.join(" · ") : "Weather data unavailable";
 }
 
-function renderMatchDetailOverview(fixture, detail, options = {}) {
+function formatStoryStatistic(metric, value) {
+    if (metric?.unit === "percent") {
+        return `${value}%`;
+    }
+
+    if (metric?.unit === "decimal") {
+        const numericValue = Number(value);
+        return Number.isFinite(numericValue) ? numericValue.toFixed(2) : String(value);
+    }
+
+    return String(value);
+}
+
+function getStoryStatisticShare(homeValue, awayValue) {
+    const total = Number(homeValue) + Number(awayValue);
+
+    if (!Number.isFinite(total) || total <= 0) {
+        return null;
+    }
+
+    return Math.max(0, Math.min(100, (Number(homeValue) / total) * 100));
+}
+
+function renderStoryStatisticComparison(metric) {
+    const homeValue = metric?.home;
+    const awayValue = metric?.away;
+    const homeShare = getStoryStatisticShare(homeValue, awayValue);
+
+    return `
+        <article class="stat-comparison-row story-stat-comparison-row">
+            <div class="stat-comparison-values">
+                <strong>${escapeHtml(formatStoryStatistic(metric, homeValue))}</strong>
+                <span>${escapeHtml(metric?.label || "Statistic")}</span>
+                <strong>${escapeHtml(formatStoryStatistic(metric, awayValue))}</strong>
+            </div>
+            ${homeShare === null ? `
+                <p class="story-stat-zero-note">Both teams recorded 0 for this provider metric.</p>
+            ` : `
+                <div class="stat-comparison-track" aria-label="${escapeHtml(metric?.label || "Statistic")} comparison">
+                    <span class="stat-comparison-home" style="width: ${homeShare.toFixed(2)}%"></span>
+                    <span class="stat-comparison-away" style="width: ${(100 - homeShare).toFixed(2)}%"></span>
+                </div>
+            `}
+        </article>
+    `;
+}
+
+function getStoryMetrics(story, limit = null) {
+    const metrics = Array.isArray(story?.statistics?.metrics)
+        ? story.statistics.metrics.filter((metric) => (
+            metric
+            && typeof metric.key === "string"
+            && metric.home !== null
+            && metric.home !== undefined
+            && metric.away !== null
+            && metric.away !== undefined
+        ))
+        : [];
+
+    const priority = [
+        "possessionPct",
+        "shotsTotal",
+        "shotsOnGoal",
+        "expectedGoals",
+        "corners",
+        "passesAccurate",
+        "fouls",
+    ];
+
+    const sortedMetrics = [...metrics].sort((left, right) => {
+        const leftIndex = priority.indexOf(left.key);
+        const rightIndex = priority.indexOf(right.key);
+        const leftRank = leftIndex === -1 ? priority.length : leftIndex;
+        const rightRank = rightIndex === -1 ? priority.length : rightIndex;
+
+        return leftRank - rightRank;
+    });
+
+    return Number.isInteger(limit) ? sortedMetrics.slice(0, limit) : sortedMetrics;
+}
+
+function renderStoryUnavailable(title, reason) {
+    return `
+        <section class="match-story-section match-story-section-unavailable">
+            <div class="match-story-section-heading">
+                <h4>${escapeHtml(title)}</h4>
+                <span class="match-story-state unavailable">Unavailable</span>
+            </div>
+            <p>${escapeHtml(reason || "Provider-backed data is not available for this part of the match story.")}</p>
+        </section>
+    `;
+}
+
+function renderScoreProgression(fixture, scoreProgression) {
+    if (scoreProgression?.state !== "available") {
+        return renderStoryUnavailable("Score progression", scoreProgression?.reason);
+    }
+
+    const events = Array.isArray(scoreProgression.events)
+        ? scoreProgression.events
+        : [];
+
+    if (events.length === 0) {
+        return renderStoryUnavailable(
+            "Score progression",
+            "No reconciled stored goal events are available for this fixture."
+        );
+    }
+
+    return `
+        <section class="match-story-section score-progression-section">
+            <div class="match-story-section-heading">
+                <div>
+                    <span class="match-story-eyebrow">Provider-backed</span>
+                    <h4>Score progression</h4>
+                </div>
+                <span class="match-story-state available">Reconciled</span>
+            </div>
+            <div class="score-progression" aria-label="Score progression">
+                <div class="score-progression-start">
+                    <strong>0–0</strong>
+                    <span>Kick-off</span>
+                </div>
+                ${events.map((event) => {
+                    const team = getTeamNameFromSide(event.team, fixture);
+                    const scoreline = `${event.home_score}–${event.away_score}`;
+
+                    return `
+                        <article class="score-progression-step ${escapeHtml(event.team || "unknown")}">
+                            <span class="score-progression-minute">${escapeHtml(formatDetailMinute(event.minute))}</span>
+                            <div>
+                                <strong>${escapeHtml(scoreline)}</strong>
+                                <p>${escapeHtml(team)} · ${escapeHtml(event.scorer || "Scorer not supplied")}</p>
+                            </div>
+                        </article>
+                    `;
+                }).join("")}
+            </div>
+        </section>
+    `;
+}
+
+function getStoryTimelineEventPresentation(event, fixture) {
+    const team = getTeamNameFromSide(event?.team, fixture);
+
+    if (event?.kind === "goal") {
+        return {
+            className: "goal",
+            title: "Goal",
+            actor: event.scorer || "Scorer not supplied",
+            team,
+        };
+    }
+
+    if (event?.kind === "card") {
+        const redCard = String(event.color || "").includes("red")
+            || String(event.color || "").includes("second");
+
+        return {
+            className: redCard ? "red-card" : "yellow-card",
+            title: redCard ? "Red card" : "Yellow card",
+            actor: event.player || "Player not supplied",
+            team,
+        };
+    }
+
+    return {
+        className: "substitution",
+        title: "Substitution",
+        actor: `${event?.player_on || "Player on not supplied"} for ${event?.player_off || "player off not supplied"}`,
+        team,
+    };
+}
+
+function renderStoryEventTimeline(fixture, timeline) {
+    if (timeline?.state !== "available") {
+        return renderStoryUnavailable("Key events", timeline?.reason);
+    }
+
+    const events = Array.isArray(timeline.events) ? timeline.events : [];
+
+    if (events.length === 0) {
+        return renderStoryUnavailable(
+            "Key events",
+            "No stored provider event timeline is available for this fixture."
+        );
+    }
+
+    const keyEvents = events.slice(0, 8);
+    const omittedCount = Math.max(0, events.length - keyEvents.length);
+
+    return `
+        <section class="match-story-section story-key-events-section">
+            <div class="match-story-section-heading">
+                <div>
+                    <span class="match-story-eyebrow">Goals, cards and substitutions</span>
+                    <h4>Key events</h4>
+                </div>
+                <span class="match-story-state available">${escapeHtml(String(events.length))} stored</span>
+            </div>
+            <div class="story-event-list" aria-label="Key match events">
+                ${keyEvents.map((event) => {
+                    const presentation = getStoryTimelineEventPresentation(event, fixture);
+
+                    return `
+                        <article class="story-event ${presentation.className}">
+                            <span class="story-event-minute">${escapeHtml(formatDetailMinute(event.minute))}</span>
+                            <div>
+                                <strong>${escapeHtml(presentation.title)} · ${escapeHtml(presentation.actor)}</strong>
+                                <p>${escapeHtml(presentation.team)}</p>
+                            </div>
+                        </article>
+                    `;
+                }).join("")}
+            </div>
+            ${omittedCount > 0 ? `
+                <p class="match-story-more-note">${escapeHtml(String(omittedCount))} more stored event${omittedCount === 1 ? "" : "s"} in the Timeline tab.</p>
+            ` : ""}
+        </section>
+    `;
+}
+
+function renderStoryStatistics(fixture, story, options = {}) {
+    const statistics = story?.statistics || {};
+
+    if (statistics.state === "unavailable") {
+        return renderStoryUnavailable("Match edge", statistics.reason);
+    }
+
+    const metrics = getStoryMetrics(story, options.limit ?? null);
+
+    if (metrics.length === 0) {
+        return renderStoryUnavailable(
+            "Match edge",
+            "No comparable provider statistics are available for both teams."
+        );
+    }
+
+    return `
+        <section class="match-story-section story-statistics-section">
+            <div class="match-story-section-heading">
+                <div>
+                    <span class="match-story-eyebrow">Comparable provider values only</span>
+                    <h4>Match edge</h4>
+                </div>
+                <span class="match-story-state ${statistics.state === "partial" ? "partial" : "available"}">
+                    ${statistics.state === "partial" ? "Partial" : "Available"}
+                </span>
+            </div>
+            <div class="match-stats-heading story-match-stats-heading">
+                <span>${escapeHtml(fixture.home_team || "Home")}</span>
+                <strong>Match statistics</strong>
+                <span>${escapeHtml(fixture.away_team || "Away")}</span>
+            </div>
+            <div class="match-stats-comparison">
+                ${metrics.map(renderStoryStatisticComparison).join("")}
+            </div>
+            <p class="match-stats-note">
+                ${escapeHtml(statistics.reason || "Only values supplied for both teams are visualised.")}
+            </p>
+        </section>
+    `;
+}
+
+function formatOfficialWatchState(value) {
+    const labels = {
+        available: "Available",
+        region_dependent: "Region dependent",
+        not_available_yet: "Not available yet",
+    };
+
+    return labels[value] || "Not available yet";
+}
+
+function isSafeOfficialOutboundUrl(value) {
+    try {
+        const url = new URL(String(value || ""));
+        return url.protocol === "https:";
+    } catch (error) {
+        return false;
+    }
+}
+
+function renderOfficialWatchLink(link, fallback = false) {
+    if (!isSafeOfficialOutboundUrl(link?.url)) {
+        return "";
+    }
+
+    const contentLabel = fallback
+        ? "Official coverage hub"
+        : String(link.content_type || "official video").replaceAll("_", " ");
+
+    return `
+        <article class="official-watch-card ${fallback ? "is-fallback" : ""}">
+            <div>
+                <span class="official-watch-source">${escapeHtml(link.source_name || "Official source")}</span>
+                <h5>${escapeHtml(link.title || "Official match video")}</h5>
+                <p>${escapeHtml(contentLabel)} · ${escapeHtml(link.territory || "Availability may vary")}</p>
+                ${link.territory_note ? `<small>${escapeHtml(link.territory_note)}</small>` : ""}
+            </div>
+            <a
+                class="official-watch-link"
+                href="${escapeHtml(link.url)}"
+                target="_blank"
+                rel="noopener noreferrer"
+            >
+                Open official source <span aria-hidden="true">↗</span>
+            </a>
+        </article>
+    `;
+}
+
+function renderOfficialWatch(story, options = {}) {
+    if (options.isLoading) {
+        return `
+            <section class="official-watch official-watch-loading">
+                <div class="official-watch-heading">
+                    <div>
+                        <span class="match-story-eyebrow">Trusted outbound links only</span>
+                        <h4>Official Highlights / Watch</h4>
+                    </div>
+                    <span class="official-watch-status">Checking</span>
+                </div>
+                <p>Loading the local official-watch record. No video-site search is performed.</p>
+            </section>
+        `;
+    }
+
+    const watch = story?.official_watch;
+
+    if (!watch || options.error) {
+        return `
+            <section class="official-watch official-watch-unavailable">
+                <div class="official-watch-heading">
+                    <div>
+                        <span class="match-story-eyebrow">Trusted outbound links only</span>
+                        <h4>Official Highlights / Watch</h4>
+                    </div>
+                    <span class="official-watch-status">Unavailable</span>
+                </div>
+                <p>The local official-watch record could not be loaded. No third-party search, scrape, or embed is used.</p>
+            </section>
+        `;
+    }
+
+    const links = Array.isArray(watch.links) ? watch.links : [];
+    const fallbackLinks = Array.isArray(watch.fallback_links) ? watch.fallback_links : [];
+    const renderedLinks = links.map((link) => renderOfficialWatchLink(link)).filter(Boolean).join("");
+    const renderedFallbackLinks = fallbackLinks
+        .map((link) => renderOfficialWatchLink(link, true))
+        .filter(Boolean)
+        .join("");
+
+    return `
+        <section class="official-watch ${watch.state === "available" ? "is-available" : ""}">
+            <div class="official-watch-heading">
+                <div>
+                    <span class="match-story-eyebrow">Trusted outbound links only</span>
+                    <h4>Official Highlights / Watch</h4>
+                </div>
+                <span class="official-watch-status ${escapeHtml(watch.state || "not_available_yet")}">
+                    ${escapeHtml(formatOfficialWatchState(watch.state))}
+                </span>
+            </div>
+            <p>${escapeHtml(watch.message || watch.reason || "Official video availability may be delayed or region-dependent.")}</p>
+            ${renderedLinks ? `
+                <div class="official-watch-links">
+                    ${renderedLinks}
+                </div>
+            ` : ""}
+            ${!renderedLinks && renderedFallbackLinks ? `
+                <div class="official-watch-hubs">
+                    <span>Official coverage hubs</span>
+                    <div class="official-watch-links">
+                        ${renderedFallbackLinks}
+                    </div>
+                </div>
+            ` : ""}
+            <small class="official-watch-disclosure">
+                Links open in a new tab. Availability may vary by territory. No video is embedded, downloaded, or rehosted here.
+            </small>
+        </section>
+    `;
+}
+
+function renderStoryProvenance(story) {
+    const source = story?.source || {};
+    const provider = source.provider || "Provider not supplied";
+    const refresh = formatStoredDetailRefresh(source.stored_detail_updated_at);
+
+    return `
+        <div class="story-provenance">
+            <span><strong>Provider:</strong> ${escapeHtml(provider)}</span>
+            <span><strong>Stored detail refresh:</strong> ${escapeHtml(refresh)}</span>
+            <small>Stored provider payload; not a live detail request.</small>
+        </div>
+    `;
+}
+
+function renderMatchStoryTab(fixture, story, options = {}) {
     const savedSummary = state.fixtureSummaries[fixture.id];
-    const formations = detail?.formations || {};
-    const referee = detail?.referee || {};
-    const weather = detail?.weather || {};
 
     if (options.isLoading) {
         return `
             <div class="match-detail-loading">
-                Loading provider-backed timeline, statistics, and lineup data...
+                Loading the locally stored match story, provider event timeline, and official-watch record...
             </div>
         `;
     }
 
-    if (!detail) {
-        const reason = options.error
-            ? "Provider match detail could not be loaded right now."
-            : "Provider match detail has not been stored for this fixture yet.";
-
+    if (!story) {
         return `
             <div class="match-detail-note ${options.error ? "error" : ""}">
-                <strong>Provider detail status:</strong> ${escapeHtml(reason)}
+                <strong>Match story status:</strong>
+                ${escapeHtml(options.error
+                    ? "The stored match story could not be loaded right now."
+                    : "No stored match story is available for this fixture yet.")}
             </div>
-            <div class="match-detail-context">
-                <h4>AI match summary</h4>
-                <p>${escapeHtml(savedSummary || "No match summary generated yet. Use the Generate Match Summary button on the fixture card.")}</p>
-            </div>
+            ${renderOfficialWatch(null, { error: options.error })}
         `;
     }
 
     return `
-        <div class="match-detail-overview-grid">
-            <article class="match-detail-fact">
-                <span>Formation</span>
-                <strong>${escapeHtml(formations.home || "–")} <small>vs</small> ${escapeHtml(formations.away || "–")}</strong>
-            </article>
-            <article class="match-detail-fact">
-                <span>Referee</span>
-                <strong>${escapeHtml(referee.name || "Not supplied")}</strong>
-                <small>${escapeHtml(referee.country || "")}</small>
-            </article>
-            <article class="match-detail-fact">
-                <span>Conditions</span>
-                <strong>${escapeHtml(formatWeather(weather))}</strong>
-            </article>
-            <article class="match-detail-fact">
-                <span>Provider</span>
-                <strong>${escapeHtml(detail.provider || "Unknown provider")}</strong>
-                <small>Match ID ${escapeHtml(detail.provider_match_id || "–")}</small>
-            </article>
-            <article class="match-detail-fact">
-                <span>Stored detail refresh</span>
-                <strong>${escapeHtml(formatStoredDetailRefresh(detail.updated_at))}</strong>
-                <small>Stored provider payload; not a live detail request.</small>
-            </article>
+        <div class="match-story-grid">
+            ${renderScoreProgression(fixture, story.score_progression)}
+            ${renderStoryEventTimeline(fixture, story.timeline)}
         </div>
-
-        <div class="match-detail-context">
-            <h4>Key incidents</h4>
-            ${renderKeyMatchEvents(fixture, detail)}
-        </div>
-
-        <div class="match-detail-context">
-            <h4>AI match summary</h4>
-            <p>${escapeHtml(savedSummary || "No match summary generated yet. Use the Generate Match Summary button on the fixture card.")}</p>
-        </div>
+        ${renderStoryStatistics(fixture, story, { limit: 4 })}
+        ${renderOfficialWatch(story)}
+        ${renderStoryProvenance(story)}
+        ${savedSummary ? `
+            <div class="match-detail-context match-story-ai-summary">
+                <h4>AI match summary</h4>
+                <p>${escapeHtml(savedSummary)}</p>
+            </div>
+        ` : ""}
     `;
 }
 
@@ -2411,92 +2779,16 @@ function renderMatchTimelineTab(fixture, detail) {
     `;
 }
 
-function getStatisticNumber(statistics, key) {
-    const value = Number(statistics?.[key]);
-
-    return Number.isFinite(value) ? value : 0;
-}
-
-function formatMatchStatistic(key, value) {
-    if (key === "possessionPct") {
-        return `${value}%`;
-    }
-
-    if (key === "expectedGoals") {
-        return value.toFixed(2);
-    }
-
-    return String(value);
-}
-
-function getStatisticShare(homeValue, awayValue) {
-    const total = homeValue + awayValue;
-
-    if (total <= 0) {
-        return 50;
-    }
-
-    return Math.max(0, Math.min(100, (homeValue / total) * 100));
-}
-
-function renderStatisticComparison(label, key, homeStats, awayStats) {
-    const homeValue = getStatisticNumber(homeStats, key);
-    const awayValue = getStatisticNumber(awayStats, key);
-    const homeShare = getStatisticShare(homeValue, awayValue);
-
-    return `
-        <article class="stat-comparison-row">
-            <div class="stat-comparison-values">
-                <strong>${escapeHtml(formatMatchStatistic(key, homeValue))}</strong>
-                <span>${escapeHtml(label)}</span>
-                <strong>${escapeHtml(formatMatchStatistic(key, awayValue))}</strong>
-            </div>
-            <div class="stat-comparison-track" aria-label="${escapeHtml(label)} comparison">
-                <span class="stat-comparison-home" style="width: ${homeShare.toFixed(2)}%"></span>
-                <span class="stat-comparison-away" style="width: ${(100 - homeShare).toFixed(2)}%"></span>
-            </div>
-        </article>
-    `;
-}
-
-function renderMatchStatsTab(fixture, detail) {
-    const statistics = detail?.statistics || {};
-    const homeStats = statistics.home || {};
-    const awayStats = statistics.away || {};
-
-    if (Object.keys(homeStats).length === 0 && Object.keys(awayStats).length === 0) {
+function renderMatchStatsTab(fixture, story) {
+    if (!story) {
         return `
             <div class="match-detail-empty">
-                Team statistics are not available for this fixture yet.
+                Comparable provider statistics could not be loaded for this fixture.
             </div>
         `;
     }
 
-    const metrics = [
-        ["Possession", "possessionPct"],
-        ["Shots", "shotsTotal"],
-        ["Shots on target", "shotsOnGoal"],
-        ["Expected goals", "expectedGoals"],
-        ["Accurate passes", "passesAccurate"],
-        ["Corners", "corners"],
-        ["Fouls", "fouls"],
-    ];
-
-    return `
-        <div class="match-stats-heading">
-            <span>${escapeHtml(fixture.home_team || "Home")}</span>
-            <strong>Match statistics</strong>
-            <span>${escapeHtml(fixture.away_team || "Away")}</span>
-        </div>
-        <div class="match-stats-comparison">
-            ${metrics.map(([label, key]) =>
-                renderStatisticComparison(label, key, homeStats, awayStats)
-            ).join("")}
-        </div>
-        <p class="match-stats-note">
-            Comparison bars use provider-supplied values for this completed match.
-        </p>
-    `;
+    return renderStoryStatistics(fixture, story);
 }
 
 function getLineupGroups(players) {
@@ -2575,23 +2867,23 @@ function renderMatchLineupsTab(fixture, detail) {
     `;
 }
 
-function renderMatchDetailContent(fixture, detail, options = {}) {
+function renderMatchDetailContent(fixture, detail, story, options = {}) {
     if (state.activeMatchDetailTab === "timeline") {
         return renderMatchTimelineTab(fixture, detail);
     }
 
     if (state.activeMatchDetailTab === "stats") {
-        return renderMatchStatsTab(fixture, detail);
+        return renderMatchStatsTab(fixture, story);
     }
 
     if (state.activeMatchDetailTab === "lineups") {
         return renderMatchLineupsTab(fixture, detail);
     }
 
-    return renderMatchDetailOverview(fixture, detail, options);
+    return renderMatchStoryTab(fixture, story, options);
 }
 
-function renderFixtureDetail(fixture, detail = null, options = {}) {
+function renderFixtureDetail(fixture, detail = null, story = null, options = {}) {
     const matchDetail = getMatchDetailElements();
 
     if (!matchDetail.panel || !matchDetail.title || !matchDetail.status || !matchDetail.detail) {
@@ -2644,7 +2936,7 @@ function renderFixtureDetail(fixture, detail = null, options = {}) {
         ${renderMatchDetailTabs()}
 
         <div class="match-detail-tab-panel" role="tabpanel">
-            ${renderMatchDetailContent(fixture, detail, options)}
+            ${renderMatchDetailContent(fixture, detail, story, options)}
         </div>
     `;
 }
@@ -2660,30 +2952,50 @@ async function selectFixture(fixtureId, options = {}) {
     state.selectedFixture = fixtureFromState;
     state.selectedFixtureId = String(fixtureId);
     state.selectedFixtureDetail = null;
-    state.activeMatchDetailTab = "overview";
+    state.selectedFixtureStory = null;
+    state.selectedFixtureDetailError = false;
+    state.selectedFixtureStoryError = false;
+    state.activeMatchDetailTab = "story";
     syncSelectedFixtureCard();
 
-    renderFixtureDetail(fixtureFromState, null, {
+    renderFixtureDetail(fixtureFromState, null, null, {
         isLoading: true,
         scroll: options.scroll === true,
     });
 
-    try {
-        const payload = await fetchFixtureDetail(fixtureId);
-        const fixture = payload.fixture || fixtureFromState;
-        const detail = payload.detail_available ? payload.detail : null;
+    const [detailResult, storyResult] = await Promise.allSettled([
+        fetchFixtureDetail(fixtureId),
+        fetchFixtureStory(fixtureId),
+    ]);
 
-        state.selectedFixture = fixture;
-        state.selectedFixtureDetail = detail;
-
-        renderFixtureDetail(fixture, detail);
-    } catch (error) {
-        console.error(error);
-
-        renderFixtureDetail(fixtureFromState, null, {
-            error: true,
-        });
+    if (String(state.selectedFixtureId) !== String(fixtureId)) {
+        return;
     }
+
+    const detailPayload = detailResult.status === "fulfilled" ? detailResult.value : null;
+    const storyPayload = storyResult.status === "fulfilled" ? storyResult.value : null;
+    const fixture = detailPayload?.fixture || storyPayload?.fixture || fixtureFromState;
+    const detail = detailPayload?.detail_available ? detailPayload.detail : null;
+    const story = storyPayload?.story || null;
+
+    if (detailResult.status === "rejected") {
+        console.error(detailResult.reason);
+    }
+
+    if (storyResult.status === "rejected") {
+        console.error(storyResult.reason);
+    }
+
+    state.selectedFixture = fixture;
+    state.selectedFixtureDetail = detail;
+    state.selectedFixtureStory = story;
+    state.selectedFixtureDetailError = detailResult.status === "rejected";
+    state.selectedFixtureStoryError = storyResult.status === "rejected";
+
+    renderFixtureDetail(fixture, detail, story, {
+        detailError: state.selectedFixtureDetailError,
+        error: state.selectedFixtureStoryError,
+    });
 }
 
 async function generateAiSummary() {
@@ -2761,7 +3073,8 @@ async function generateSingleFixtureSummary(fixtureId, button) {
             renderFixtureDetail(
                 state.selectedFixture,
                 state.selectedFixtureDetail,
-                { scroll: false },
+                state.selectedFixtureStory,
+                { error: state.selectedFixtureStoryError, scroll: false },
             );
         }
 
@@ -3171,7 +3484,8 @@ function bindEvents() {
             renderFixtureDetail(
                 state.selectedFixture,
                 state.selectedFixtureDetail,
-                { scroll: false },
+                state.selectedFixtureStory,
+                { error: state.selectedFixtureStoryError, scroll: false },
             );
         });
     }

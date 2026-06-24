@@ -37,9 +37,10 @@ def create_db_and_tables() -> None:
     from app.models.fixture import Fixture
     from app.models.fixture_sync_run import FixtureSyncRun
     from app.models.match_detail import MatchDetail
+    from app.models.official_match_video import OfficialMatchVideo
     from app.models.player_stat import PlayerStat
 
-    _ = Fixture, FixtureSyncRun, MatchDetail, PlayerStat
+    _ = Fixture, FixtureSyncRun, MatchDetail, OfficialMatchVideo, PlayerStat
 
     Base.metadata.create_all(bind=engine)
 
