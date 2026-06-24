@@ -396,9 +396,13 @@ function renderMatchdayScoreCard(fixture, label, tone) {
 
     const matchLabel = `${fixture.home_team || "Home team"} vs ${fixture.away_team || "Away team"}`;
     const scoreLine = `${formatScore(fixture.home_score)} – ${formatScore(fixture.away_score)}`;
-    const timeLabel = getFixtureStatusCategory(fixture) === "scheduled"
+    const statusPresentation = getFixtureStatusPresentation(fixture);
+    const timeLabel = statusPresentation.matchState === "scheduled"
         ? formatDateTime(fixture.kickoff_time)
         : formatStatus(fixture.status);
+    const statusDetail = statusPresentation.detail
+        ? ` · ${statusPresentation.detail}`
+        : "";
 
     return `
         <button
@@ -414,7 +418,7 @@ function renderMatchdayScoreCard(fixture, label, tone) {
                 <strong>${escapeHtml(fixture.away_team || "Away team")}</strong>
             </span>
             <strong class="matchday-card-score">${escapeHtml(scoreLine)}</strong>
-            <span class="matchday-card-meta">${escapeHtml(timeLabel)}</span>
+            <span class="matchday-card-meta">${escapeHtml(`${timeLabel}${statusDetail}`)}</span>
             <span class="matchday-card-action">Open match</span>
         </button>
     `;
@@ -1025,22 +1029,103 @@ function normalizeFixtureStatus(fixture) {
         .replace(/\s+/g, " ");
 }
 
-function getFixtureStatusCategory(fixture) {
+const DISPLAY_STATE_SOURCE_STORED_STATUS = "stored_status";
+const DISPLAY_STATE_SOURCE_STORED_KICKOFF = "stored_kickoff";
+const DISPLAY_STATE_SOURCE_UNAVAILABLE = "unavailable";
+
+function deriveFixtureDisplayState(fixture, now = new Date()) {
     const status = normalizeFixtureStatus(fixture);
 
     if (LIVE_FIXTURE_STATUSES.has(status)) {
-        return "live";
+        return {
+            matchState: "live",
+            stateSource: DISPLAY_STATE_SOURCE_STORED_STATUS,
+        };
     }
 
     if (COMPLETED_FIXTURE_STATUSES.has(status)) {
-        return "completed";
+        return {
+            matchState: "completed",
+            stateSource: DISPLAY_STATE_SOURCE_STORED_STATUS,
+        };
     }
 
     if (SCHEDULED_FIXTURE_STATUSES.has(status)) {
-        return "scheduled";
+        return {
+            matchState: "scheduled",
+            stateSource: DISPLAY_STATE_SOURCE_STORED_STATUS,
+        };
     }
 
-    return "unavailable";
+    if (status !== "unknown") {
+        return {
+            matchState: "unavailable",
+            stateSource: DISPLAY_STATE_SOURCE_UNAVAILABLE,
+        };
+    }
+
+    const kickoff = parseStoredUtcKickoff(fixture?.kickoff_time);
+    const referenceTime = normalizeReferenceTime(now);
+    const hasStoredScore = fixture?.home_score !== null
+        && fixture?.home_score !== undefined
+        || fixture?.away_score !== null
+        && fixture?.away_score !== undefined;
+
+    if (!kickoff || !referenceTime || kickoff <= referenceTime || hasStoredScore) {
+        return {
+            matchState: "unavailable",
+            stateSource: DISPLAY_STATE_SOURCE_UNAVAILABLE,
+        };
+    }
+
+    return {
+        matchState: "scheduled",
+        stateSource: DISPLAY_STATE_SOURCE_STORED_KICKOFF,
+    };
+}
+
+function parseStoredUtcKickoff(value) {
+    if (typeof value !== "string") {
+        return null;
+    }
+
+    const candidate = value.trim();
+    if (!candidate || !/(?:Z|[+-]\d{2}:\d{2})$/i.test(candidate)) {
+        return null;
+    }
+
+    const parsed = new Date(candidate);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function normalizeReferenceTime(value) {
+    const parsed = value instanceof Date
+        ? new Date(value.getTime())
+        : new Date(value);
+
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function getFixtureStatusCategory(fixture) {
+    return deriveFixtureDisplayState(fixture).matchState;
+}
+
+function getFixtureStatusPresentation(fixture) {
+    const displayState = deriveFixtureDisplayState(fixture);
+
+    if (displayState.stateSource === DISPLAY_STATE_SOURCE_STORED_KICKOFF) {
+        return {
+            ...displayState,
+            label: "Scheduled from stored kickoff",
+            detail: "Provider match status unavailable",
+        };
+    }
+
+    return {
+        ...displayState,
+        label: formatStatus(fixture?.status),
+        detail: "",
+    };
 }
 
 function getFixtureStatusCounts(fixtures) {
@@ -1165,7 +1250,7 @@ function renderFixtureStatusTabs(fixtures) {
         {
             scope: "scheduled",
             label: "Upcoming",
-            description: "Scheduled or not started",
+            description: "Provider status or future stored kickoff",
         },
         ...(counts.unavailable > 0 ? [{
             scope: "unavailable",
@@ -1990,6 +2075,7 @@ function buildFixtureCardMarkup(fixture) {
     const savedSummary = state.fixtureSummaries[fixtureId];
     const matchLabel = `${fixture.home_team || "Home team"} vs ${fixture.away_team || "Away team"}`;
     const selected = String(state.selectedFixtureId) === String(fixtureId);
+    const statusPresentation = getFixtureStatusPresentation(fixture);
 
     return `
         <article
@@ -2025,8 +2111,12 @@ function buildFixtureCardMarkup(fixture) {
 
             <div class="fixture-footer">
                 <span>${formatDateTime(fixture.kickoff_time)}</span>
-                <span class="status-pill ${getStatusClass(fixture.status)}">
-                    ${formatStatus(fixture.status)}
+                <span
+                    class="status-pill ${getStatusClass(fixture)}"
+                    title="${escapeHtml(statusPresentation.detail || statusPresentation.label)}"
+                    aria-label="${escapeHtml([statusPresentation.label, statusPresentation.detail].filter(Boolean).join(". "))}"
+                >
+                    ${escapeHtml(statusPresentation.label)}
                 </span>
             </div>
 
@@ -2903,10 +2993,20 @@ function renderFixtureDetail(fixture, detail = null, story = null, options = {})
 
     const homeTeam = fixture.home_team || "Home team";
     const awayTeam = fixture.away_team || "Away team";
+    const statusPresentation = getFixtureStatusPresentation(fixture);
 
     matchDetail.title.textContent = `${homeTeam} vs ${awayTeam}`;
-    matchDetail.status.className = `status-pill ${getStatusClass(fixture.status)}`;
-    matchDetail.status.textContent = formatStatus(fixture.status);
+    matchDetail.status.className = `status-pill ${getStatusClass(fixture)}`;
+    matchDetail.status.textContent = statusPresentation.label;
+    matchDetail.status.setAttribute(
+        "aria-label",
+        [statusPresentation.label, statusPresentation.detail].filter(Boolean).join(". ")
+    );
+    if (statusPresentation.detail) {
+        matchDetail.status.setAttribute("title", statusPresentation.detail);
+    } else {
+        matchDetail.status.removeAttribute("title");
+    }
 
     if (options.scroll) {
         matchDetail.panel.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -2942,6 +3042,12 @@ function renderFixtureDetail(fixture, detail = null, story = null, options = {})
                 <span>Stage / Group</span>
                 <strong>${escapeHtml(fixture.group_name || fixture.stage || "Not available yet")}</strong>
             </div>
+            ${statusPresentation.detail ? `
+                <div>
+                    <span>Status source</span>
+                    <strong>${escapeHtml(statusPresentation.detail)}</strong>
+                </div>
+            ` : ""}
         </div>
 
         ${renderMatchDetailTabs()}
@@ -3154,8 +3260,8 @@ function formatSyncStatus(status) {
         .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-function getStatusClass(status) {
-    const category = getFixtureStatusCategory({ status });
+function getStatusClass(fixture) {
+    const category = getFixtureStatusCategory(fixture);
 
     if (category === "completed") {
         return "status-complete";
