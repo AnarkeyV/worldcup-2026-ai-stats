@@ -25,7 +25,6 @@ def build_engine():
 
 
 engine = build_engine()
-
 SessionLocal = sessionmaker(
     autocommit=False,
     autoflush=False,
@@ -35,19 +34,27 @@ SessionLocal = sessionmaker(
 
 def create_db_and_tables() -> None:
     from app.models.fixture import Fixture
+    from app.models.fixture_sync_change_set import FixtureSyncChangeSet
     from app.models.fixture_sync_run import FixtureSyncRun
     from app.models.match_detail import MatchDetail
+    from app.models.match_detail_event_coverage import MatchDetailEventCoverage
     from app.models.official_match_video import OfficialMatchVideo
     from app.models.player_stat import PlayerStat
 
-    _ = Fixture, FixtureSyncRun, MatchDetail, OfficialMatchVideo, PlayerStat
-
+    _ = (
+        Fixture,
+        FixtureSyncChangeSet,
+        FixtureSyncRun,
+        MatchDetail,
+        MatchDetailEventCoverage,
+        OfficialMatchVideo,
+        PlayerStat,
+    )
     Base.metadata.create_all(bind=engine)
 
 
 def get_db() -> Generator[Session, None, None]:
     db = SessionLocal()
-
     try:
         yield db
     finally:

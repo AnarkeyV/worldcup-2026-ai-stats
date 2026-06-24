@@ -6,6 +6,46 @@ The project follows semantic versioning and milestone-based releases.
 
 ---
 
+## [1.18.0] — Live Match Centre & Data Freshness
+
+### Added
+
+- Read-only `GET /live-match-centre` endpoint built only from locally stored fixtures, match detail, event-coverage records, persisted sync runs, and v1.18+ change sets.
+- Shared stored-status classification with four explicit application states: `live`, `completed`, `scheduled`, and `unavailable`.
+- Additive `match_detail_event_coverage` companion table for provider-backed evidence about goals, cards, and substitutions.
+- Additive `fixture_sync_change_sets` companion table for factual deltas from successful v1.18+ sync runs.
+- Change detection for stored score changes, status changes, completion transitions, newly stored goals, cards, substitutions, and provider-event record revisions.
+- Matchday Live Match Centre dashboard panel and a local-API-only refresh action.
+- Provider Sync Runtime **What changed?** view using persisted change-set facts.
+- Conditional dashboard handling for unavailable match statuses rather than silently classifying them as upcoming.
+
+### Changed
+
+- The dashboard now distinguishes explicit stored live status from scheduled, completed, and unavailable states.
+- Sync freshness remains a local stored-snapshot age; it is presented as data freshness rather than a real-time delivery guarantee.
+- Event availability is explicit when detail is absent, an event category was not supplied, or historical coverage is unknown.
+- Dashboard static asset cache-bust values align to `v1.18.0`.
+- Safe version declarations in `VERSION`, `.env.example`, and `backend/app/config.py` align to `1.18.0`.
+
+### Verified
+
+```text
+267 automated tests passed
+316 known FastAPI/Starlette Python 3.14 deprecation warnings
+```
+
+### Boundaries
+
+- The Live Match Centre route reads local records only. It does not call a provider, trigger sync, backfill data, write to PostgreSQL, send Telegram, or alter scheduler state.
+- The dashboard refresh action re-reads the local API only; it does not poll automatically or initiate provider work.
+- A fixture is shown as live only when the stored status explicitly maps to `live`.
+- Unknown, postponed, cancelled, abandoned, and unsupported statuses remain `unavailable`.
+- No event, timeline, player detail, or match statistic is fabricated.
+- Historical sync runs without a v1.18 change set are labelled `not_recorded_before_v1_18`; they are not presented as an empty change list.
+- The additive ORM tables are created only during a later approved runtime deployment. No release-preparation step modifies active runtime data, `.env`, scheduler configuration, Telegram state, Cloudflared, Ollama, Docker volumes, or tunnel credentials.
+
+---
+
 ## [1.17.1] — Runtime Reliability Safeguards
 
 ### Added
@@ -19,10 +59,9 @@ The project follows semantic versioning and milestone-based releases.
 ### Changed
 
 - Existing Windows startup and watchdog scripts retain Docker startup and unhealthy-container recovery.
-- Cloudflared is now report-only in those scripts; no project script starts or restarts the service.
-- Ollama is now report-only in those scripts; no project script launches, kills, reconfigures, or downloads a model.
-- Task descriptions now state the automatic Docker recovery and report-only Cloudflared/Ollama boundary.
-- Safe version declarations in `VERSION`, `.env.example`, and `backend/app/config.py` align to `1.17.1`.
+- Cloudflared is report-only in those scripts; no project script starts or restarts the service.
+- Ollama is report-only in those scripts; no project script launches, kills, reconfigures, or downloads a model.
+- Safe version declarations align to `1.17.1`.
 
 ### Verified
 
@@ -31,50 +70,23 @@ The project follows semantic versioning and milestone-based releases.
 296 known FastAPI/Starlette Python 3.14 deprecation warnings
 ```
 
-### Boundaries
-
-- Source preparation does not modify an active `.env`, Docker volumes, runtime logs, Cloudflare credentials/configuration, Scheduled Task XML, model files, provider data, provider schedule, or Telegram state.
-- The status checker is intentionally a diagnostic tool, not a self-healing controller.
-- An active runtime version update remains an explicit, approved candidate-and-backup deployment step.
-
 ---
 
 ## [1.17.0] — Provider-Backed Match Story and Official Watch
 
 ### Added
 
-- Read-only `GET /fixtures/{fixture_id}/story` route derived only from local `Fixture`, `MatchDetail`, and manually verified `OfficialMatchVideo` records.
+- Read-only `GET /fixtures/{fixture_id}/story` derived only from local `Fixture`, `MatchDetail`, and manually verified `OfficialMatchVideo` records.
 - Conservative score-progression contract that requires stored goal events to reconcile exactly with the stored fixture score.
 - Stored match-event sequence for goals, cards, substitutions, and valid stoppage-time values.
 - Provider provenance in the story response: provider name, provider match ID, and stored-detail refresh timestamp.
 - Paired statistic normalisation for possession, shots, shots on target, expected goals, accurate passes, corners, and fouls.
-- `OfficialMatchVideo` local registry model for future manually verified, match-specific outbound links.
-- Strict initial official-watch policy for FIFA web, exact FIFA YouTube video URLs, and meWATCH destinations.
-- Official FIFA and meWATCH coverage-hub fallbacks when no verified match-specific link is stored.
-- Match-detail Story tab and mobile-first unavailable, partial, delayed-video, and region-dependent states.
-- Focused coverage for story construction, route behaviour, official-link policy, and dashboard rendering.
-
-### Changed
-
-- The match-detail panel now leads with **Story** while retaining Timeline, Stats, and Lineups.
-- Statistics no longer convert missing or invalid provider values to zero for visual comparisons.
-- Dashboard static asset cache-busters now use `v1.17.0`.
-- Version declarations in `VERSION`, `.env.example`, and `backend/app/config.py` are aligned to `1.17.0`.
-
-### Verified
-
-```text
-234 automated tests passed
-296 known FastAPI/Starlette Python 3.14 deprecation warnings
-```
+- Official Watch policy for manually verified, outbound-only FIFA and meWATCH destinations.
 
 ### Boundaries
 
 - The story route reads local database records only. It does not call a provider, write data, sync, backfill, send Telegram, or alter scheduler state.
-- No scraping, search harvesting, download, rehosting, thumbnail proxying, arbitrary channel linking, fan-upload linking, or region-restriction bypass was added.
-- No third-party video embed is used; verified links open externally.
-- No verified match-specific videos are hard-coded into the release. Until a later controlled curator workflow adds validated records, the dashboard shows a clear not-available-yet state with official coverage-hub fallbacks.
-- The existing ORM bootstrap can create the empty `official_match_videos` table on an approved later runtime deployment; no backfill or active runtime change happens during source preparation.
+- No scraping, automatic discovery, download, rehosting, third-party embed, fan-upload linking, or region-restriction bypass is used.
 
 ---
 
@@ -82,30 +94,16 @@ The project follows semantic versioning and milestone-based releases.
 
 ### Added
 
-- Fixed daily provider-sync schedule configuration with `Asia/Singapore` and `03:45,09:45,12:45` defaults.
-- Fixed-time schedule parsing that normalises, sorts, and deduplicates configured slots.
-- Strict next-future-slot calculation so startup, restart, or a late boot does not cause an immediate catch-up provider sync.
-- Safe fixed-time scheduler metadata in `GET /fixtures/sync/status`, including mode, timezone, configured slots, and next run.
+- Fixed daily provider-sync schedule configuration with `Asia/Singapore` and `03:45`, `09:45`, `12:45` defaults.
+- Strict next-future-slot calculation so startup, restart, or a late boot does not cause an immediate catch-up sync.
 - Optional scheduled Telegram digest policy, disabled by default.
-- One Telegram roundup for every fixture that transitions to completed during a single scheduled sync.
-- Silent scheduled outcomes when no newly completed fixtures exist.
+- One Telegram roundup for fixtures that transition to completed during a single scheduled sync.
 - Dashboard-link delivery in scheduled Telegram digests.
-
-### Changed
-
-- The configured runtime startup path uses fixed daily times rather than an interval cadence.
-- The legacy interval setting remains available for compatibility and status output but does not drive the configured runtime scheduler.
-
-### Verified
-
-```text
-218 automated tests passed
-```
 
 ### Boundaries
 
-- The scheduler and scheduled Telegram digest remain disabled by default.
-- No `.env` value, provider request, database write, Docker change, Cloudflare change, or Telegram message is activated by release preparation alone.
+- Scheduler and scheduled Telegram digest remain disabled by default.
+- Release preparation does not activate provider requests, database writes, Docker changes, Cloudflare changes, or Telegram messages.
 
 ---
 
@@ -113,22 +111,10 @@ The project follows semantic versioning and milestone-based releases.
 
 ### Added
 
-- Visual **Matchday** home area with stored-fixture cards for live, latest completed, and next scheduled context.
-- Compact **Data health** badge using the existing read-only `GET /fixtures/data-quality` response.
+- Visual Matchday home area with stored-fixture cards for live, latest completed, and next scheduled context.
+- Compact Data health badge using the existing read-only stored-data result.
 - CSS-based comparative bars for leaderboards and Group Race.
-- Visual coverage-progress treatment in Match Data Coverage.
 - Mobile-only bottom navigation for Matchday, Matches, Groups, Players, and Data.
-
-### Verified
-
-```text
-209 automated tests passed
-```
-
-### Boundaries
-
-- Frontend-focused release using existing stored API data.
-- No charting dependency, provider request, sync, backfill, scheduler, Telegram behaviour, database migration, Docker, Cloudflare, or Windows-runtime change.
 
 ---
 
@@ -140,12 +126,6 @@ The project follows semantic versioning and milestone-based releases.
 - Scope-aware completed-fixture coverage, event counters, filters, and bounded missing-detail follow-up.
 - Dashboard Match Data Coverage panel with manual refresh and fixture links.
 
-### Verified
-
-```text
-205 automated tests passed
-```
-
 ---
 
 ## [1.13.0] — Provider Event Integrity and Stored Detail Coverage
@@ -155,12 +135,6 @@ The project follows semantic versioning and milestone-based releases.
 - Shared canonical handling for goals, cards, and substitutions.
 - Read-only stored-event coverage in fixture detail.
 - Dashboard states for unavailable detail, recorded events, and empty stored event arrays.
-
-### Verified
-
-```text
-202 automated tests passed
-```
 
 ---
 
@@ -173,15 +147,9 @@ The project follows semantic versioning and milestone-based releases.
 - Disabled-by-default completed-match Telegram alert policy.
 - Dashboard freshness states and stored-detail refresh indicators.
 
-### Verified
-
-```text
-196 automated tests passed
-```
-
 ---
 
-## Earlier Milestones
+## Earlier milestones
 
 | Version | Summary |
 |---|---|

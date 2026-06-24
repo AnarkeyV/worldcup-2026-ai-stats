@@ -11,6 +11,7 @@ from app.routes.ai import router as ai_router
 from app.routes.dashboard import router as dashboard_router
 from app.routes.fixtures import router as fixtures_router
 from app.routes.insights import router as insights_router
+from app.routes.live_match_centre import router as live_match_centre_router
 from app.routes.match_story import router as match_story_router
 from app.routes.metrics import router as metrics_router
 from app.routes.notifications import router as notifications_router
@@ -24,7 +25,6 @@ from app.services.provider_sync_scheduler import (
     run_scheduled_provider_sync,
 )
 
-
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
 
@@ -32,20 +32,18 @@ STATIC_DIR = BASE_DIR / "static"
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     scheduler = None
-
     if settings.app_env != "test":
         create_db_and_tables()
 
-        if settings.provider_sync_scheduler_enabled:
-            scheduler = ProviderSyncScheduler(
-                run_sync=run_scheduled_provider_sync,
-                schedule_times=settings.provider_sync_schedule_times,
-                timezone_name=settings.provider_sync_schedule_timezone,
-            )
-            scheduler.start()
+    if settings.provider_sync_scheduler_enabled:
+        scheduler = ProviderSyncScheduler(
+            run_sync=run_scheduled_provider_sync,
+            schedule_times=settings.provider_sync_schedule_times,
+            timezone_name=settings.provider_sync_schedule_timezone,
+        )
+        scheduler.start()
 
     app.state.provider_sync_scheduler = scheduler
-
     try:
         yield
     finally:
@@ -64,15 +62,12 @@ app = FastAPI(
 async def collect_request_metrics(request: Request, call_next):
     start_time = time.perf_counter()
     response = None
-
     try:
         response = await call_next(request)
         return response
-
     finally:
         duration_seconds = time.perf_counter() - start_time
         status_code = response.status_code if response is not None else 500
-
         record_http_request_metrics(
             request=request,
             status_code=status_code,
@@ -93,6 +88,7 @@ def root():
         "fixtures": "/fixtures",
         "fixture_sync_status": "/fixtures/sync/status",
         "fixture_sync_history": "/fixtures/sync/history",
+        "live_match_centre": "/live-match-centre",
         "match_story": "/fixtures/{fixture_id}/story",
         "standings": "/standings",
         "group_insights": "/insights/groups",
@@ -119,6 +115,7 @@ app.include_router(dashboard_router)
 app.include_router(match_story_router)
 app.include_router(fixtures_router)
 app.include_router(insights_router)
+app.include_router(live_match_centre_router)
 app.include_router(metrics_router)
 app.include_router(notifications_router)
 app.include_router(players_router)

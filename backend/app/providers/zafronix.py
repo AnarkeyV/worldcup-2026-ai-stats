@@ -13,17 +13,14 @@ from app.services.provider_event_integrity import (
 
 
 class ZafronixProviderError(RuntimeError):
-    """
-    Raised when Zafronix cannot return usable World Cup fixture data.
-    """
+    """Raised when Zafronix cannot return usable World Cup fixture data."""
 
 
 class ZafronixProvider(FootballProvider):
-    """
-    Zafronix World Cup provider implementation.
+    """Zafronix World Cup provider implementation.
 
-    This provider fetches FIFA World Cup 2026 matches from Zafronix and
-    converts the raw provider response into the app's normalized fixture format.
+    This provider fetches FIFA World Cup 2026 matches from Zafronix and converts
+    the raw provider response into the app's normalized fixture format.
     """
 
     STATUS_MAP = {
@@ -124,28 +121,22 @@ class ZafronixProvider(FootballProvider):
             )
             response.raise_for_status()
             payload = response.json()
-
         except httpx.HTTPStatusError as error:
             status_code = getattr(error.response, "status_code", "unknown")
             raise ZafronixProviderError(
                 f"Zafronix request failed with status {status_code}."
             ) from error
-
         except httpx.RequestError as error:
             raise ZafronixProviderError(
                 f"Zafronix request failed: {error}"
             ) from error
-
         except ValueError as error:
             raise ZafronixProviderError("Zafronix returned invalid JSON.") from error
 
         fixtures = self._extract_fixture_items(payload)
-
         normalized_fixtures = []
-
         for item in fixtures:
             normalized_fixture = self._normalize_fixture(item)
-
             if normalized_fixture is not None:
                 normalized_fixtures.append(normalized_fixture)
 
@@ -160,7 +151,6 @@ class ZafronixProvider(FootballProvider):
 
         if isinstance(payload.get("data"), list):
             return payload["data"]
-
         if isinstance(payload.get("matches"), list):
             return payload["matches"]
 
@@ -174,7 +164,6 @@ class ZafronixProvider(FootballProvider):
         kickoff_time = self._clean_text(item.get("kickoffUtc"))
         home_team_name = self._clean_text(item.get("homeTeam"))
         away_team_name = self._clean_text(item.get("awayTeam"))
-
         if not fixture_id or not kickoff_time or not home_team_name or not away_team_name:
             return None
 
@@ -183,7 +172,6 @@ class ZafronixProvider(FootballProvider):
         )
         stage = self._normalize_stage(stage_raw)
         group_name = self._normalize_group_name(stage_raw)
-
         venue = self._build_venue(item)
 
         return {
@@ -207,18 +195,29 @@ class ZafronixProvider(FootballProvider):
         raw_lineups = item.get("lineups")
         raw_formations = item.get("formations")
         raw_statistics = item.get("statistics")
-
         return {
             "provider": "zafronix",
             "provider_match_id": self._clean_text(item.get("id")),
             "goals": self._normalize_goals(item.get("goals")),
             "cards": self._normalize_cards(item.get("cards")),
             "substitutions": self._normalize_substitutions(item.get("substitutions")),
+            "event_coverage": self._normalize_event_coverage(item),
             "formations": self._normalize_formations(raw_formations),
             "lineups": self._normalize_lineups(raw_lineups),
             "statistics": self._normalize_statistics(raw_statistics),
             "referee": self._normalize_scalar_object(item.get("referee")),
             "weather": self._normalize_scalar_object(item.get("weather")),
+        }
+
+    def _normalize_event_coverage(self, item: dict) -> dict[str, str]:
+        """Represent only whether Zafronix supplied a list for each event type."""
+        return {
+            event_type: (
+                "available"
+                if isinstance(item.get(event_type), list)
+                else "not_provided"
+            )
+            for event_type in ("goals", "cards", "substitutions")
         }
 
     def _normalize_goals(self, raw_goals: Any) -> list[dict]:
@@ -259,13 +258,11 @@ class ZafronixProvider(FootballProvider):
             return []
 
         lineup = []
-
         for player in raw_lineup:
             if not isinstance(player, dict):
                 continue
 
             shirt_number = player.get("number")
-
             try:
                 shirt_number = int(shirt_number) if shirt_number is not None else None
             except (TypeError, ValueError):
@@ -316,12 +313,10 @@ class ZafronixProvider(FootballProvider):
 
     def _normalize_status(self, status: Any) -> str:
         cleaned_status = self._clean_text(status)
-
         if not cleaned_status:
             return "unknown"
 
         normalized_status = cleaned_status.strip().lower()
-
         return self.STATUS_MAP.get(normalized_status, normalized_status)
 
     def _normalize_stage(self, stage: str | None) -> str:
@@ -329,7 +324,6 @@ class ZafronixProvider(FootballProvider):
             return "Unknown Stage"
 
         normalized_stage = stage.strip().lower().replace("-", "_").replace(" ", "_")
-
         if re.fullmatch(r"group_[a-l]", normalized_stage):
             return "Group Stage"
 
@@ -343,7 +337,6 @@ class ZafronixProvider(FootballProvider):
             "third_place": "Third-place Playoff",
             "final": "Final",
         }
-
         if normalized_stage in stage_name_map:
             return stage_name_map[normalized_stage]
 
@@ -354,9 +347,7 @@ class ZafronixProvider(FootballProvider):
             return None
 
         normalized_stage = stage.strip().lower().replace("-", "_").replace(" ", "_")
-
         match = re.fullmatch(r"group_([a-l])", normalized_stage)
-
         if match:
             return f"Group {match.group(1).upper()}"
 
@@ -368,9 +359,7 @@ class ZafronixProvider(FootballProvider):
             self._clean_text(item.get("city")),
             self._clean_text(item.get("country")),
         ]
-
         venue_parts = [part for part in venue_parts if part]
-
         if not venue_parts:
             return None
 
@@ -378,20 +367,16 @@ class ZafronixProvider(FootballProvider):
 
     def _normalize_team_code(self, team_name: str) -> str:
         override_code = self.TEAM_CODE_OVERRIDES.get(team_name)
-
         if override_code:
             return override_code
 
         words = re.findall(r"[A-Za-z0-9]+", team_name)
-
         if not words:
             return "UNK"
-
         if len(words) == 1:
             return words[0].upper()[:3]
 
         initials = "".join(word[0] for word in words).upper()
-
         if len(initials) >= 2:
             return initials[:3]
 
@@ -402,7 +387,6 @@ class ZafronixProvider(FootballProvider):
             return None
 
         cleaned_value = str(value).strip()
-
         if not cleaned_value:
             return None
 

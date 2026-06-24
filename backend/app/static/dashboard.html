@@ -5,7 +5,8 @@
     <title>World Cup 2026 AI Stats Dashboard</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <link rel="stylesheet" href="/static/dashboard.css?v=v1.17.0">
+    <link rel="stylesheet" href="/static/dashboard.css?v=v1.18.0">
+  <link rel="stylesheet" href="/static/live_match_centre.css?v=v1.18.0-phase4">
 </head>
 <body id="dashboard-top">
     <header class="app-header">
@@ -71,7 +72,45 @@
             </div>
         </section>
 
-        <section id="dashboard-overview" class="summary-grid" data-dashboard-section aria-label="Dashboard overview">
+        <section
+    id="live-match-centre"
+    class="live-match-centre-panel"
+    data-dashboard-section
+    aria-label="Live Match Centre"
+  >
+    <div class="live-match-centre-heading">
+      <div>
+        <p class="eyebrow">Stored provider snapshot</p>
+        <h2>Live Match Centre</h2>
+        <p id="live-match-centre-message">
+          Reading the latest stored live-match snapshot…
+        </p>
+      </div>
+      <div
+        id="live-match-centre-freshness"
+        class="live-match-centre-freshness checking"
+        aria-live="polite"
+      >
+        Checking stored freshness
+      </div>
+      <button id="refresh-live-match-centre" type="button">
+        Refresh stored live state
+      </button>
+    </div>
+    <p class="live-match-centre-note">
+      This panel reads stored application data only. No provider request is made by this panel.
+    </p>
+    <div
+      id="live-match-centre-matches"
+      class="live-match-centre-matches"
+      aria-live="polite"
+    >
+      <div class="live-match-centre-empty">
+        Reading stored live-match data. No provider request is made by this panel.
+      </div>
+    </div>
+  </section>
+  <section id="dashboard-overview" class="summary-grid" data-dashboard-section aria-label="Dashboard overview">
             <article class="summary-card">
                 <span class="summary-label">Total Fixtures</span>
                 <strong id="total-fixtures">-</strong>
@@ -451,6 +490,7 @@
         </p>
     </footer>
 
-    <script src="/static/dashboard.js?v=v1.17.0"></script>
+    <script src="/static/dashboard.js?v=v1.18.0"></script>
+  <script src="/static/live_match_centre.js?v=v1.18.0-phase4"></script>
 </body>
 </html>

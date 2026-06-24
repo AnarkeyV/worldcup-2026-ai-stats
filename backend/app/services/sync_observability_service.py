@@ -1,9 +1,11 @@
+from copy import deepcopy
 from datetime import datetime, timezone
 from typing import Any
 
 from sqlalchemy.orm import Session
 
 from app.config import settings
+from app.models.fixture_sync_change_set import FixtureSyncChangeSet
 from app.models.fixture_sync_run import FixtureSyncRun
 from app.services.scheduled_sync_schedule import (
     get_scheduled_sync_runtime_status,
@@ -18,9 +20,7 @@ def _to_int(value: Any, default: int = 0) -> int:
     try:
         if value is None:
             return default
-
         return int(value)
-
     except (TypeError, ValueError):
         return default
 
@@ -29,9 +29,7 @@ def _to_float(value: Any) -> float | None:
     try:
         if value is None:
             return None
-
         return float(value)
-
     except (TypeError, ValueError):
         return None
 
@@ -43,10 +41,8 @@ def _clean_text(value: Any, fallback: str) -> str:
 
 def _clean_trigger_type(value: Any) -> str:
     trigger_type = _clean_text(value, "manual").lower()
-
     if trigger_type in {"manual", "scheduled"}:
         return trigger_type
-
     return "manual"
 
 
@@ -70,7 +66,6 @@ def _sanitize_error_message(error: str | None) -> str | None:
         return None
 
     sanitized = " ".join(str(error).split())
-
     for secret in (
         settings.api_football_key,
         settings.zafronix_api_key,
@@ -89,7 +84,6 @@ def _freshness_thresholds() -> tuple[int, int]:
         fresh_after_seconds + 60,
         int(settings.fixture_sync_stale_after_minutes) * 60,
     )
-
     return fresh_after_seconds, stale_after_seconds
 
 
@@ -120,7 +114,6 @@ def _build_freshness(
         0,
         round((datetime.now(timezone.utc) - completed_at).total_seconds()),
     )
-
     if latest_run is not None and latest_run.status == "error":
         state = "last_sync_failed"
     elif data_age_seconds <= fresh_after_seconds:
@@ -139,13 +132,7 @@ def _build_freshness(
 
 
 def _build_scheduler_status() -> dict:
-    """
-    Return safe, read-only scheduling metadata for the dashboard and API.
-
-    Startup validates the same configuration before a scheduler is created.
-    This fallback keeps the status route readable if an invalid value is
-    introduced into a running process configuration.
-    """
+    """Return safe, read-only scheduling metadata for the dashboard and API."""
     try:
         status = get_scheduled_sync_runtime_status(
             enabled=settings.provider_sync_scheduler_enabled,
@@ -156,8 +143,9 @@ def _build_scheduler_status() -> dict:
         status = {
             "enabled": bool(settings.provider_sync_scheduler_enabled),
             "mode": "fixed_daily_times",
-            "timezone": str(settings.provider_sync_schedule_timezone or "").strip()
-            or None,
+            "timezone": (
+                str(settings.provider_sync_schedule_timezone or "").strip() or None
+            ),
             "scheduled_times": [],
             "next_run_at": None,
             "configuration_error": "Invalid fixed-time provider sync schedule.",
@@ -166,7 +154,6 @@ def _build_scheduler_status() -> dict:
     # Preserve this legacy field for dashboard compatibility while the runtime
     # uses fixed daily slots.
     status["interval_minutes"] = int(settings.provider_sync_interval_minutes)
-
     return status
 
 
@@ -191,7 +178,6 @@ def _serialize_sync_run(run: FixtureSyncRun) -> dict:
 
 def _default_fixture_sync_status() -> dict:
     fresh_after_seconds, stale_after_seconds = _freshness_thresholds()
-
     return {
         "status": "not_started",
         "source": None,
@@ -223,8 +209,7 @@ def _default_fixture_sync_status() -> dict:
 
 
 def reset_fixture_sync_status() -> None:
-    """
-    Compatibility helper retained for older tests and local scripts.
+    """Compatibility helper retained for older tests and local scripts.
 
     Sync state is now persisted per database, so callers should reset their test
     database rather than relying on process-memory state.
@@ -254,7 +239,9 @@ def get_fixture_sync_status(db: Session) -> dict:
         "trigger_type": latest_run.trigger_type,
         "last_run_at": latest_run.completed_at,
         "last_success_at": (
-            last_successful_run.completed_at if last_successful_run is not None else None
+            last_successful_run.completed_at
+            if last_successful_run is not None
+            else None
         ),
         "duration_seconds": latest_run.duration_seconds,
         "total_fixtures": latest_run.total_fixtures,
@@ -281,8 +268,55 @@ def list_fixture_sync_runs(db: Session, limit: int = 10) -> list[dict]:
         .limit(limit)
         .all()
     )
-
     return [_serialize_sync_run(run) for run in runs]
+
+
+def _extract_change_summaries(result: dict[str, Any]) -> list[dict[str, Any]]:
+    """Keep only the internal factual summaries produced by Phase 1 contracts."""
+    raw_summaries = result.get("change_summaries")
+    if not isinstance(raw_summaries, list):
+        return []
+
+    summaries: list[dict[str, Any]] = []
+    for summary in raw_summaries:
+        if not isinstance(summary, dict):
+            continue
+
+        external_id = str(summary.get("external_id") or "").strip()
+        changes = summary.get("changes")
+        if not external_id or not isinstance(changes, list) or not changes:
+            continue
+
+        summaries.append(deepcopy(summary))
+
+    return summaries
+
+
+def _record_fixture_sync_change_set(
+    db: Session,
+    run: FixtureSyncRun,
+    result: dict[str, Any],
+) -> None:
+    summaries = _extract_change_summaries(result)
+    total_change_count = sum(
+        len(summary.get("changes", []))
+        for summary in summaries
+        if isinstance(summary.get("changes"), list)
+    )
+
+    change_set = FixtureSyncChangeSet(
+        sync_run_id=run.id,
+        capture_state="recorded",
+        compared_fixture_count=max(
+            0,
+            _to_int(result.get("compared_fixture_count")),
+        ),
+        changed_fixture_count=len(summaries),
+        total_change_count=total_change_count,
+        changes=summaries,
+        created_at=_utc_now_iso(),
+    )
+    db.add(change_set)
 
 
 def record_fixture_sync_status(
@@ -296,20 +330,21 @@ def record_fixture_sync_status(
     trigger_type: str = "manual",
     started_at: str | None = None,
 ) -> dict:
-    """
-    Persist one terminal fixture sync result for dashboard and API audit history.
+    """Persist one terminal fixture sync result for dashboard and API audit history.
 
-    Only safe, normalized run metadata is stored. Configured secrets are
-    redacted from provider or runtime error messages before persistence.
+    Only safe, normalized run metadata is stored. Configured secrets are redacted
+    from provider or runtime error messages before persistence. A successful v1.18+
+    run also receives one additive companion change set; pre-v1.18 history has no
+    such row and will later be presented as not recorded rather than empty.
     """
     result = result or {}
     completed_at = _utc_now_iso()
-
+    normalized_status = "success" if status == "success" else "error"
     run = FixtureSyncRun(
         source=_clean_text(source, "unknown"),
         provider=_clean_text(provider, "unknown"),
         trigger_type=_clean_trigger_type(trigger_type),
-        status="success" if status == "success" else "error",
+        status=normalized_status,
         started_at=started_at or completed_at,
         completed_at=completed_at,
         duration_seconds=_to_float(duration_seconds),
@@ -320,10 +355,13 @@ def record_fixture_sync_status(
         newly_completed=list(result.get("newly_completed", [])),
         last_error=_sanitize_error_message(error),
     )
-
     db.add(run)
-    db.commit()
+    db.flush()
 
+    if normalized_status == "success":
+        _record_fixture_sync_change_set(db=db, run=run, result=result)
+
+    db.commit()
     return _serialize_sync_run(run)
 
 

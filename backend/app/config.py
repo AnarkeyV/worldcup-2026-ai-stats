@@ -5,9 +5,11 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     app_name: str = "World Cup 2026 AI Stats"
     app_env: str = "development"
-    app_version: str = "1.17.1"
+    app_version: str = "1.18.0"
 
-    database_url: str = "postgresql+psycopg://worldcup:worldcup@postgres:5432/worldcup"
+    database_url: str = (
+        "postgresql+psycopg://worldcup:worldcup@postgres:5432/worldcup"
+    )
 
     football_api_provider: str = "api_football"
     api_football_base_url: str = "https://v3.football.api-sports.io"
@@ -29,11 +31,19 @@ class Settings(BaseSettings):
     provider_sync_schedule_times: str = "03:45,09:45,12:45"
 
     # Retained for backward-compatible status output and existing local
-    # configuration. The runtime scheduler now uses fixed daily times above.
+    # configuration. The runtime scheduler uses the fixed daily times above.
     provider_sync_interval_minutes: int = Field(default=30, ge=5, le=1440)
 
-    fixture_sync_fresh_after_minutes: int = Field(default=60, ge=1, le=10080)
-    fixture_sync_stale_after_minutes: int = Field(default=180, ge=2, le=20160)
+    fixture_sync_fresh_after_minutes: int = Field(
+        default=60,
+        ge=1,
+        le=10080,
+    )
+    fixture_sync_stale_after_minutes: int = Field(
+        default=180,
+        ge=2,
+        le=20160,
+    )
 
     public_dashboard_url: str = "http://localhost:8000/dashboard"
 
@@ -41,7 +51,10 @@ class Settings(BaseSettings):
     llama_model: str = "llama3.2:1b"
     llama_timeout_seconds: int = 60
 
-    model_config = SettingsConfigDict(env_file=(".env", "../.env"), extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=(".env", "../.env"),
+        extra="ignore",
+    )
 
 
 settings = Settings()
