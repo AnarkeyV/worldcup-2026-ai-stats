@@ -1,6 +1,6 @@
 # World Cup 2026 AI Stats
 
-![Version](https://img.shields.io/badge/version-v1.17.0-purple)
+![Version](https://img.shields.io/badge/version-v1.17.1-purple)
 ![Backend](https://img.shields.io/badge/backend-FastAPI-009688)
 ![Database](https://img.shields.io/badge/database-PostgreSQL-336791)
 ![AI](https://img.shields.io/badge/AI-Ollama%20%2B%20Local%20Llama-green)
@@ -18,13 +18,13 @@ https://wc2026.khairulrizal.qzz.io/dashboard
 **Current release**
 
 ```text
-v1.17.0 — Provider-Backed Match Story and Official Watch
+v1.17.1 — Runtime Reliability Safeguards
 ```
 
 **Release verification**
 
 ```text
-234 automated tests passed
+241 automated tests passed
 ```
 
 ---
@@ -49,31 +49,40 @@ The project is intentionally self-hosted, provider-backed, explainable, and safe
 
 ---
 
-## Current Release: v1.17.0
+## Current Release: v1.17.1
 
-### Provider-Backed Match Story and Official Watch
+### Runtime Reliability Safeguards
 
-v1.17.0 turns stored match detail into a more useful match narrative while retaining the project’s local-read and no-invention boundaries.
+v1.17.1 hardens the **operator-facing** reliability boundary of the Windows home runtime. It does not add a new data source, change dashboard behaviour, or expand automation into sensitive host services.
 
 It adds:
 
-- `GET /fixtures/{fixture_id}/story`, a computed read-only route derived only from local `Fixture`, `MatchDetail`, and approved outbound-video records
-- a **Story** tab in the existing match-detail panel, alongside Timeline, Stats, and Lineups
-- a score-progression sequence only when stored goal events reconcile exactly with the stored final score
-- a chronological key-event flow for goals, cards, substitutions, and valid stoppage-time values
-- paired-stat rendering that hides incomplete metrics instead of turning missing provider values into `0` or a false 50:50 bar
-- visible provider, provider-match-ID, and stored-detail-refresh provenance
-- an **Official Highlights / Watch** area using server-vetted outbound links only
-- no-video-yet and region-dependent states, including official FIFA and meWATCH coverage-hub fallbacks
-- a small local `official_match_videos` registry for future manually verified match-specific links
+- `scripts/windows/get-worldcup-runtime-status.ps1`, a read-only status checker for the Windows runtime
+- checks for Docker engine and Compose service state, backend health, dashboard health, Cloudflared service state, public health, host Ollama, application AI health, and the local Ollama launch task
+- local/public backend version-consistency reporting, so an active `.env` version override cannot silently leave the public runtime reporting an earlier release
+- a private-safe Windows recovery guide that keeps `.env`, tunnel credentials, model files, task XML, runtime logs, and provider credentials out of Git
+- report-only Cloudflared and Ollama handling in the existing startup and watchdog scripts
 
-The release does not scrape websites, search platforms, download or rehost video, bypass territory restrictions, embed third-party players, trigger provider work, alter scheduled sync behaviour, or send Telegram messages.
+The existing startup/watchdog workflows still start Docker Desktop when required and can recover unhealthy Docker containers. They no longer start or restart Cloudflared, and they do not launch, stop, kill, reconfigure, or download Ollama models. A stopped tunnel or unavailable local AI is recorded for a human-approved recovery decision instead.
+
+The release does not run a provider sync, backfill stored data, send Telegram, alter the scheduler, create a tunnel, expose Ollama outside the Windows host, modify an active `.env`, or change existing Docker volumes.
 
 **Release verification**
 
 ```text
-234 automated tests passed
+241 automated tests passed
+296 known FastAPI/Starlette Python 3.14 deprecation warnings
 ```
+
+### Match Story and Official Watch Remain Available
+
+v1.17.0 remains the current user-facing feature foundation:
+
+- `GET /fixtures/{fixture_id}/story`, computed only from local `Fixture`, `MatchDetail`, and approved outbound-video records
+- conservative score progression and event timeline behaviour
+- paired-stat rendering that omits incomplete provider values
+- visible local provider and stored-detail provenance
+- manually verified outbound-only Official Watch states and official coverage-hub fallbacks
 
 ---
 
@@ -246,12 +255,14 @@ After merge and explicit runtime-deployment approval, use Windows PowerShell:
 
 ```powershell
 cd "C:\Users\Khairul Rizal\Documents\worldcup-2026-ai-stats"
-docker compose ps
-curl.exe http://localhost:8000/health
-curl.exe http://localhost:8000/fixtures/sync/status
+.\scripts\windows\get-worldcup-runtime-status.ps1
 ```
 
-Do not modify the active `.env` directly. Use the existing candidate → non-secret validation → timestamped backup → promote → verify workflow when configuration changes are approved.
+The status checker is read-only: it does not rebuild or restart Docker, run a provider sync, send Telegram, start/restart Cloudflared, start/stop Ollama, change Scheduled Tasks, or print `.env` values. It reports local/public version consistency in addition to Docker, backend, dashboard, tunnel, Ollama, and local AI state.
+
+The existing startup and watchdog scripts retain Docker/container recovery. Cloudflared and Ollama are deliberately report-only and require a human-approved recovery action when unavailable.
+
+Do not modify the active `.env` directly. Use the existing candidate → non-secret validation → timestamped backup → promote → verify workflow when configuration changes are approved. In particular, an approved runtime version promotion must update `APP_VERSION` through that workflow so `/health` reflects the released version.
 
 ---
 
@@ -273,7 +284,7 @@ Keep local:
 - production database credentials
 - host-specific runtime files
 
-The v1.17.0 release changes only the safe version placeholder in `.env.example`. It does not create, replace, or expose an active `.env` file.
+The v1.17.1 source release updates only the safe `APP_VERSION` placeholder in `.env.example`. It does not create, replace, or expose an active `.env` file.
 
 ---
 
@@ -293,6 +304,7 @@ python -m pytest -q \
   tests/test_match_story_routes.py \
   tests/test_official_match_video_service.py \
   tests/test_match_story_dashboard.py \
+  tests/test_windows_runtime_reliability.py \
   tests/test_release_workflow.py \
   tests/test_dashboard.py
 ```
@@ -306,6 +318,7 @@ v1.14.0: 205 passed
 v1.15.0: 209 passed
 v1.16.0: 218 passed
 v1.17.0: 234 passed
+v1.17.1: 241 passed
 ```
 
 Python 3.14 may emit FastAPI/Starlette deprecation warnings related to `asyncio.iscoroutinefunction`. They remain warnings, not failing tests, in the current suite.
@@ -348,6 +361,8 @@ Then:
 - [Changelog](docs/changelog.md)
 - [Roadmap](docs/roadmap.md)
 - [Demo Walkthrough](docs/demo-walkthrough.md)
+- [v1.17.1 Runtime Reliability Notes](docs/v1.17.1-runtime-reliability.md)
+- [Windows Runtime Recovery Guide](docs/windows-runtime-recovery.md)
 - [v1.17.0 Release Notes](docs/v1.17.0-match-story-official-watch.md)
 - [Portfolio Release Summary](docs/portfolio-release.md)
 
@@ -382,6 +397,7 @@ Then:
 | v1.14.0 | Match data quality dashboard | Completed |
 | v1.15.0 | Visual Matchday UX and charts | Completed |
 | v1.16.0 | Fixed-time scheduled sync and Telegram digest | Completed |
+| v1.17.1 | Runtime reliability safeguards and read-only Windows status checker | Completed |
 | v1.17.0 | Provider-backed match story and official watch | Completed |
 
 ---
@@ -399,6 +415,7 @@ Then:
 - Historical event-correction/version storage and provider event IDs are not implemented.
 - Assist leaderboards remain unavailable until the provider supplies assist events.
 - Local Llama requires Ollama to be running on the Windows host.
+- The Windows runtime scripts deliberately report Cloudflared and Ollama failure rather than blindly repairing sensitive host services.
 - The default local stack does not implement production authentication or hardened secret management.
 - Dashboard data is a stored provider snapshot and changes after future approved syncs.
 - Fixed-time provider sync and scheduled Telegram digest delivery remain configured separately and are not changed by this release.
