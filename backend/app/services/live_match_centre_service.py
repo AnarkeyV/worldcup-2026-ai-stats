@@ -279,6 +279,10 @@ def _build_latest_successful_refresh(
 def _build_data_freshness(sync_status: dict[str, Any]) -> dict[str, Any]:
     freshness = sync_status.get("freshness")
     freshness = freshness if isinstance(freshness, dict) else {}
+    freshness_context = sync_status.get("freshness_context")
+    freshness_context = (
+        freshness_context if isinstance(freshness_context, dict) else {}
+    )
     state = str(freshness.get("state") or "unavailable")
 
     return {
@@ -287,7 +291,8 @@ def _build_data_freshness(sync_status: dict[str, Any]) -> dict[str, Any]:
         "data_age_seconds": freshness.get("data_age_seconds"),
         "fresh_after_seconds": freshness.get("fresh_after_seconds"),
         "stale_after_seconds": freshness.get("stale_after_seconds"),
-        "message": _freshness_message(state),
+        "message": str(freshness_context.get("message") or _freshness_message(state)),
+        "freshness_context": freshness_context,
     }
 
 
