@@ -77,7 +77,20 @@
         return {
             state,
             message: freshness.message || fallback[state] || fallback.unavailable,
+            context: freshness.freshness_context && typeof freshness.freshness_context === "object"
+                ? freshness.freshness_context
+                : {},
         };
+    }
+
+    function isStoredSnapshotNotCurrent(freshnessState) {
+        return ["stale", "last_sync_failed"].includes(String(freshnessState || ""));
+    }
+
+    function getStoredLiveLabel(freshnessState) {
+        return isStoredSnapshotNotCurrent(freshnessState)
+            ? "Last confirmed live from stored snapshot"
+            : "Live from stored status";
     }
 
     async function fetchLiveMatchCentre() {
@@ -142,7 +155,7 @@
         `;
     }
 
-    function renderLiveMatch(match) {
+    function renderLiveMatch(match, freshnessState) {
         const home = match?.home_team || "Home team";
         const away = match?.away_team || "Away team";
         const fixtureId = match?.fixture_id;
@@ -166,7 +179,7 @@
             <article class="live-match-card">
                 <div class="live-match-card-heading">
                     <div>
-                        <span class="live-match-state">Live from stored status</span>
+                        <span class="live-match-state">${escapeHtml(getStoredLiveLabel(freshnessState))}</span>
                         <h3>${escapeHtml(home)} <span>vs</span> ${escapeHtml(away)}</h3>
                         <p>${escapeHtml(context)}</p>
                     </div>
@@ -195,10 +208,22 @@
 
         if (elements.message) {
             const count = matches.length;
-            const suffix = count === 1 ? "fixture is" : "fixtures are";
-            elements.message.textContent = count > 0
-                ? `${count} ${suffix} explicitly marked live in the latest stored snapshot.`
-                : "No fixture is marked live in the latest stored snapshot.";
+            const suffix = count === 1 ? "fixture was" : "fixtures were";
+            const snapshotMayBeOutdated = isStoredSnapshotNotCurrent(freshness.state);
+
+            if (count > 0 && snapshotMayBeOutdated) {
+                elements.message.textContent =
+                    `${count} ${suffix} explicitly marked live in the last confirmed stored snapshot. Current live status is not inferred from kickoff time.`;
+            } else if (count > 0) {
+                elements.message.textContent =
+                    `${count} ${count === 1 ? "fixture is" : "fixtures are"} explicitly marked live in the latest stored snapshot.`;
+            } else if (snapshotMayBeOutdated) {
+                elements.message.textContent =
+                    "No fixture was marked live in the last confirmed stored snapshot. Current live status is not inferred from kickoff time.";
+            } else {
+                elements.message.textContent =
+                    "No fixture is marked live in the latest stored snapshot.";
+            }
         }
 
         if (!elements.matches) {
@@ -215,7 +240,9 @@
             return;
         }
 
-        elements.matches.innerHTML = matches.map(renderLiveMatch).join("");
+        elements.matches.innerHTML = matches
+            .map((match) => renderLiveMatch(match, freshness.state))
+            .join("");
     }
 
     function describeChange(change) {

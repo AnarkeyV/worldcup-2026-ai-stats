@@ -72,6 +72,8 @@ const elements = {
     syncLastSuccess: document.querySelector("#sync-last-success"),
     syncDataFreshness: document.querySelector("#sync-data-freshness"),
     syncDataAge: document.querySelector("#sync-data-age"),
+    syncFreshnessContext: document.querySelector("#sync-freshness-context"),
+    syncFreshnessSchedule: document.querySelector("#sync-freshness-schedule"),
     syncSchedulerMode: document.querySelector("#sync-scheduler-mode"),
     syncAlertPolicy: document.querySelector("#sync-alert-policy"),
     syncErrorMessage: document.querySelector("#sync-error-message"),
@@ -807,6 +809,8 @@ function setSyncStatusError(message) {
     elements.syncFreshnessBadge.textContent = "Data: Unavailable";
     elements.syncDataFreshness.textContent = "Unavailable";
     elements.syncDataAge.textContent = "The dashboard could not read persisted sync status.";
+    elements.syncFreshnessContext.textContent = "Freshness context unavailable";
+    elements.syncFreshnessSchedule.textContent = "The dashboard could not read schedule-aware freshness context.";
     elements.syncSchedulerMode.textContent = "Unknown";
     elements.syncAlertPolicy.textContent = "Telegram sync-alert policy could not be loaded.";
     elements.syncErrorMessage.className = "sync-error-message has-error";
@@ -824,6 +828,9 @@ function renderFixtureSyncStatus(data) {
     const newlyCompleted = formatNumber(data.newly_completed_count);
     const freshness = data.freshness || { state: "unavailable" };
     const freshnessState = freshness.state || "unavailable";
+    const freshnessContext = data.freshness_context && typeof data.freshness_context === "object"
+        ? data.freshness_context
+        : {};
     const scheduler = data.scheduler || {};
 
     elements.syncStatusBadge.className = `sync-status-badge ${getSyncStatusClass(status)}`;
@@ -840,17 +847,27 @@ function renderFixtureSyncStatus(data) {
     elements.syncLastSuccess.textContent = formatDateTime(data.last_success_at);
     elements.syncDataFreshness.textContent = formatSyncFreshness(freshnessState);
     elements.syncDataAge.textContent = formatDataAgeSeconds(freshness.data_age_seconds);
+    elements.syncFreshnessContext.textContent = formatFreshnessContextDiagnostic(
+        freshnessContext,
+        freshnessState,
+    );
+    elements.syncFreshnessSchedule.textContent = formatFreshnessContextSchedule(freshnessContext);
     elements.syncSchedulerMode.textContent = formatSchedulerMode(scheduler);
     elements.syncAlertPolicy.textContent = data.completed_match_alerts_enabled
         ? "Completed-match Telegram alerts are explicitly enabled."
         : "Completed-match Telegram alerts are disabled by configuration.";
+
+    const freshnessContextMessage = formatFreshnessContextMessage(
+        freshnessContext,
+        freshnessState,
+    );
 
     if (status === "not_started") {
         elements.providerSyncMessage.textContent =
             "No fixture sync has been recorded yet. Automated provider sync is disabled unless explicitly enabled in configuration.";
     } else if (status === "success") {
         elements.providerSyncMessage.textContent =
-            `Last ${triggerType} ${source} sync succeeded using ${provider}: ${totalFixtures} fetched, ${created} created, ${updated} updated. Stored data is ${formatSyncFreshness(freshnessState).toLowerCase()}.`;
+            `Last ${triggerType} ${source} sync succeeded using ${provider}: ${totalFixtures} fetched, ${created} created, ${updated} updated. ${freshnessContextMessage}`;
     } else {
         elements.providerSyncMessage.textContent =
             `Last ${triggerType} ${source} sync failed using ${provider}. The dashboard continues to show the last stored data state; check the safe error message below.`;
@@ -3327,6 +3344,116 @@ function formatDataAgeSeconds(value) {
     }
 
     return `Last successful sync was ${Math.floor(seconds / 3600)} hour${Math.floor(seconds / 3600) === 1 ? "" : "s"} ago.`;
+}
+
+function formatFreshnessContextMessage(context, freshnessState) {
+    const message = context && typeof context.message === "string"
+        ? context.message.trim()
+        : "";
+
+    if (message) {
+        return message;
+    }
+
+    const fallback = {
+        fresh: "The stored snapshot is within its current freshness window.",
+        aging: "The stored snapshot is aging and may be delayed.",
+        stale: "The latest provider refresh succeeded, but its stored snapshot is stale.",
+        last_sync_failed: "The latest provider refresh failed; displayed data is from the last successful stored snapshot.",
+        not_started: "No successful provider snapshot has been stored yet.",
+    };
+
+    return fallback[freshnessState] || "Stored provider freshness is unavailable.";
+}
+
+function formatFreshnessContextDiagnostic(context, freshnessState) {
+    const diagnostic = context && typeof context.diagnostic === "string"
+        ? context.diagnostic
+        : "";
+
+    const labels = {
+        snapshot_stale_before_next_scheduled_refresh: "Stale before next refresh",
+        snapshot_will_be_stale_before_next_scheduled_refresh: "Will be stale before next refresh",
+        latest_sync_failed: "Latest refresh failed",
+        no_successful_snapshot: "No successful snapshot",
+        last_success_timestamp_unavailable: "Last-success time unavailable",
+        stale_without_next_scheduled_refresh: "Stale; next refresh unavailable",
+        stale_snapshot: "Stored snapshot stale",
+        no_next_scheduled_refresh: "Next refresh unavailable",
+        snapshot_within_freshness_window: "Within freshness window",
+    };
+
+    return labels[diagnostic] || formatSyncFreshness(freshnessState);
+}
+
+function formatFreshnessContextSchedule(context) {
+    const details = context && typeof context === "object" ? context : {};
+    const timezone = String(details.schedule_timezone || "").trim();
+    const timezoneLabel = formatScheduleTimezoneLabel(timezone);
+    const parts = [];
+
+    if (details.last_success_at_local || details.last_success_at) {
+        parts.push(
+            `Last success: ${formatFreshnessContextDateTime(
+                details.last_success_at_local || details.last_success_at,
+                timezone,
+            )}`,
+        );
+    }
+
+    if (details.next_scheduled_run_at) {
+        parts.push(
+            `Next scheduled: ${formatFreshnessContextDateTime(
+                details.next_scheduled_run_at,
+                timezone,
+            )}`,
+        );
+    }
+
+    if (details.snapshot_becomes_stale_at_local || details.snapshot_becomes_stale_at) {
+        parts.push(
+            `Snapshot stale after: ${formatFreshnessContextDateTime(
+                details.snapshot_becomes_stale_at_local || details.snapshot_becomes_stale_at,
+                timezone,
+            )}`,
+        );
+    }
+
+    if (parts.length === 0) {
+        return "No successful provider snapshot or next scheduled refresh is recorded.";
+    }
+
+    return `${parts.join(" · ")} (${timezoneLabel})`;
+}
+
+function formatFreshnessContextDateTime(value, timezone) {
+    const parsed = new Date(value);
+
+    if (Number.isNaN(parsed.getTime())) {
+        return String(value);
+    }
+
+    try {
+        return new Intl.DateTimeFormat("en-SG", {
+            timeZone: timezone || "Asia/Singapore",
+            year: "numeric",
+            month: "short",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            hourCycle: "h23",
+        }).format(parsed);
+    } catch (error) {
+        return formatDateTime(value);
+    }
+}
+
+function formatScheduleTimezoneLabel(timezone) {
+    if (timezone === "Asia/Singapore") {
+        return "Singapore time";
+    }
+
+    return timezone || "configured schedule time";
 }
 
 function formatSchedulerMode(scheduler) {

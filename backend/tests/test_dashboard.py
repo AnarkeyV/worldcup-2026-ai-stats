@@ -297,7 +297,7 @@ def test_dashboard_page_includes_fixture_group_tabs():
     assert 'id="fixture-group-tabs"' in response.text
     assert "Browse fixtures by group" in response.text
     assert "Provider-backed Rich Match Dashboard" in response.text
-    assert "dashboard.js?v=v1.18.1" in response.text
+    assert "dashboard.js?v=v1.19.0" in response.text
     assert "dashboard.css?v=v1.18.1" in response.text
 
 def test_dashboard_page_includes_fixture_status_browser_controls():
@@ -435,6 +435,8 @@ def test_dashboard_page_includes_sync_freshness_and_safety_elements():
     assert 'id="sync-data-age"' in response.text
     assert 'id="sync-scheduler-mode"' in response.text
     assert 'id="sync-alert-policy"' in response.text
+    assert 'id="sync-freshness-context"' in response.text
+    assert 'id="sync-freshness-schedule"' in response.text
     assert "Completed-match Telegram alerts are off by default." in response.text
 
 
@@ -456,6 +458,12 @@ def test_dashboard_js_includes_sync_freshness_and_stored_detail_refresh_logic():
     assert "formatSyncFreshness" in response.text
     assert "formatDataAgeSeconds" in response.text
     assert "formatSchedulerMode" in response.text
+    assert "formatFreshnessContextMessage" in response.text
+    assert "formatFreshnessContextDiagnostic" in response.text
+    assert "formatFreshnessContextSchedule" in response.text
+    assert "snapshot_stale_before_next_scheduled_refresh" in response.text
+    assert "Singapore time" in response.text
+    assert "freshness_context" in response.text
     assert "last_sync_failed" in response.text
     assert "formatStoredDetailRefresh" in response.text
     assert "Stored detail refresh" in response.text
