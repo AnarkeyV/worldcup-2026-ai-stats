@@ -1,32 +1,32 @@
 # Roadmap
 
-## Current release: v1.19.0 — Freshness Context and Matchday Trust Signals
+## Current release: v1.19.1 — Fixed Schedule Sync Mode Truthfulness
 
-v1.19.0 is complete in source form.
+v1.19.1 is complete in source form.
 
-It is a narrow reliability and Matchday trust improvement. The release explains how a successful stored provider refresh can later be stale under the existing fixed-time schedule, without inventing data, inferring live state from time, or changing operational behavior.
+It is a small dashboard-only truthfulness patch. The release corrects a misleading Sync Mode label by presenting the active fixed daily schedule rather than legacy interval compatibility metadata.
 
-### Completed in v1.19.0
+### Completed in v1.19.1
+
+- [x] Provider Sync Runtime now shows `fixed_daily_times` as configured daily slots in the configured timezone.
+- [x] The active schedule is displayed as **Fixed daily: 03:45 · 09:45 · 12:45 (Singapore time)**.
+- [x] Interval wording is reserved for actual interval-mode scheduling.
+- [x] Dashboard JavaScript cache-busting advances to `v1.19.1`.
+- [x] Focused dashboard tests and full regression pass.
+- [x] No provider schedule, threshold, Windows `.env`, Docker, database, Telegram, Cloudflared, Ollama, provider-request, sync-trigger, or data-write behavior changes.
+
+### Retained v1.19.0 / v1.18.1 / v1.18.0 capabilities
 
 - [x] Additive, read-only `freshness_context` in provider sync status and Live Match Centre freshness data.
-- [x] Latest successful snapshot, next scheduled refresh, and stale-after timing context, with safe configured-timezone display values.
-- [x] Diagnostics separating `latest_sync_failed`, stale stored snapshots, and snapshots that become stale before the next scheduled refresh.
-- [x] Dashboard Freshness Context and conservative **Last confirmed live from stored snapshot** wording when freshness is stale or the latest refresh failed.
-- [x] Focused tests for fixed-slot schedule gaps, thresholds, timezone-aware values, failed-sync distinction, and stale live-state wording.
-- [x] No provider schedule change, browser polling, provider request, sync trigger, database write, Telegram send, Docker change, Cloudflared change, Ollama change, or active runtime `.env` change.
-
-### Retained v1.18.1 / v1.18.0 capabilities
-
-- [x] Conservative future-`unknown` display derivation: stored kickoff may support scheduled display only before kickoff with valid timezone-aware time and absent scores.
+- [x] Latest successful snapshot, next scheduled refresh, stale-after timing context, and diagnostics that separate failed syncs from stale snapshots.
+- [x] Dashboard Freshness Context and conservative **Last confirmed live from stored snapshot** wording.
+- [x] Conservative future-`unknown` display derivation from valid stored kickoff time only before kickoff with absent scores.
 - [x] Explicit stored match-state contract: `live`, `completed`, `scheduled`, `unavailable`.
-- [x] Local-only `GET /live-match-centre` API.
-- [x] Additive event-coverage evidence and successful-sync change sets.
-- [x] Factual score, status, completion, goals, cards, substitutions, and provider-event-revision changes.
-- [x] Live Match Centre inside Matchday and What changed? inside Provider Sync Runtime.
+- [x] Local-only `GET /live-match-centre` API with factual sync-change and event-coverage evidence.
 
 ## Deliberately deferred
 
-These remain deliberately outside v1.19.0:
+These remain deliberately outside v1.19.1:
 
 - Any provider schedule, threshold, Windows `.env`, Docker, database, Telegram, Cloudflared, or Ollama configuration change.
 - Automatic or browser-triggered provider polling.
