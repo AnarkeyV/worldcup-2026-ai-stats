@@ -3461,6 +3461,23 @@ function formatSchedulerMode(scheduler) {
         return "Manual only";
     }
 
+    const mode = String(scheduler.mode || "").trim();
+    const scheduledTimes = Array.isArray(scheduler.scheduled_times)
+        ? scheduler.scheduled_times
+            .filter((value) => typeof value === "string" && value.trim())
+            .map((value) => value.trim())
+        : [];
+
+    if (mode === "fixed_daily_times") {
+        if (scheduledTimes.length === 0) {
+            return "Fixed daily times";
+        }
+
+        const timezoneLabel = formatScheduleTimezoneLabel(scheduler.timezone);
+
+        return `Fixed daily: ${scheduledTimes.join(" · ")} (${timezoneLabel})`;
+    }
+
     const interval = Number(scheduler.interval_minutes);
 
     if (Number.isNaN(interval) || interval <= 0) {

@@ -6,6 +6,28 @@ The project follows semantic versioning and milestone-based releases.
 
 ---
 
+## [1.19.1] — Fixed Schedule Sync Mode Truthfulness
+
+### Changed
+
+- Provider Sync Runtime now renders `fixed_daily_times` using the configured schedule slots and timezone, for example: **Fixed daily: 03:45 · 09:45 · 12:45 (Singapore time)**.
+- Interval wording such as **Every 30 min** is reserved for genuine interval-mode scheduling only.
+- Dashboard JavaScript cache-busting advances to `v1.19.1`.
+
+### Verified
+
+```text
+277 automated tests passed
+325 known FastAPI/Starlette Python 3.14 deprecation warnings
+```
+
+### Boundaries
+
+- This is a dashboard truthfulness correction only. It does not alter the runtime scheduler, configured slot times, freshness thresholds, provider calls, sync history, fixture data, Telegram, Docker, Cloudflared, Ollama, or an active runtime `.env`.
+- `interval_minutes` remains backward-compatible status metadata and is not treated as the active schedule when `mode` is `fixed_daily_times`.
+
+---
+
 ## [1.19.0] — Freshness Context & Matchday Trust Signals
 
 ### Added

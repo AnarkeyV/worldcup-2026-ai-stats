@@ -1,6 +1,6 @@
 # World Cup 2026 AI Stats
 
-![Version](https://img.shields.io/badge/version-v1.19.0-purple)
+![Version](https://img.shields.io/badge/version-v1.19.1-purple)
 ![Backend](https://img.shields.io/badge/backend-FastAPI-009688)
 ![Database](https://img.shields.io/badge/database-PostgreSQL-336791)
 ![AI](https://img.shields.io/badge/AI-Ollama%20%2B%20Local%20Llama-green)
@@ -18,7 +18,7 @@ https://wc2026.khairulrizal.qzz.io/dashboard
 **Current release**
 
 ```text
-v1.19.0 — Freshness Context and Matchday Trust Signals
+v1.19.1 — Fixed Schedule Sync Mode Truthfulness
 ```
 
 **Release verification**
@@ -33,6 +33,22 @@ v1.19.0 — Freshness Context and Matchday Trust Signals
 World Cup 2026 AI Stats is a local-first football analytics project built as a practical DevOps, backend, automation, observability, and AI portfolio system.
 
 It aims to be useful on matchday without pretending the available provider data is richer or fresher than it is. The dashboard distinguishes stored facts from unavailable or delayed data instead of filling gaps with guessed events, invented player details, fake timelines, or unverified live claims.
+
+## v1.19.1: Fixed Schedule Sync Mode Truthfulness
+
+v1.19.1 is a small dashboard-only truthfulness patch. It corrects the Provider Sync Runtime display so a fixed daily scheduler is shown as the configured Singapore-time slots rather than as an interval derived from legacy compatibility metadata.
+
+### Changed
+
+- `fixed_daily_times` now displays **Fixed daily: 03:45 · 09:45 · 12:45 (Singapore time)** using the scheduler API payload.
+- Interval wording such as **Every 30 min** is now shown only when the scheduler is actually interval-based.
+- The dashboard JavaScript cache-buster advances to `v1.19.1` so the corrected label is fetched after deployment.
+
+### Truthfulness rules
+
+- This patch changes display wording only. It does not change the configured provider schedule, thresholds, scheduler behavior, provider requests, stored fixtures, or sync history.
+- `interval_minutes` remains a backward-compatible status field. It does not describe a `fixed_daily_times` runtime schedule.
+- The v1.19.0 Freshness Context and v1.18.1 no-time-inference safeguards remain unchanged.
 
 ## v1.19.0: Freshness Context and Matchday Trust Signals
 
@@ -253,7 +269,7 @@ Run the full suite from `backend`:
 python -m pytest -q
 ```
 
-v1.19.0 source verification:
+v1.19.1 source verification:
 
 ```text
 277 passed, 325 warnings
@@ -296,6 +312,7 @@ Then:
 - [Roadmap](docs/roadmap.md)
 - [Demo Walkthrough](docs/demo-walkthrough.md)
 - [Portfolio Release Summary](docs/portfolio-release.md)
+- [v1.19.1 Fixed Schedule Sync Mode Truthfulness](docs/v1.19.1-fixed-schedule-sync-mode.md)
 - [v1.19.0 Freshness Context and Matchday Trust Signals](docs/v1.19.0-freshness-context-trust-signals.md)
 - [v1.17.1 Runtime Reliability Notes](docs/v1.17.1-runtime-reliability.md)
 - [Windows Runtime Recovery Guide](docs/windows-runtime-recovery.md)
@@ -322,6 +339,7 @@ Then:
 | v1.16.0 | Fixed-time scheduled sync and Telegram digest | Completed |
 | v1.17.0 | Provider-backed Match Story and Official Watch | Completed |
 | v1.17.1 | Runtime reliability safeguards and read-only Windows status checker | Completed |
+| v1.19.1 | Fixed schedule sync-mode truthfulness | Completed |
 | v1.19.0 | Freshness context and matchday trust signals | Completed |
 | v1.18.1 | Scheduled-from-stored-kickoff display derivation | Completed |
 | v1.18.0 | Live Match Centre and factual sync-change visibility | Completed |
