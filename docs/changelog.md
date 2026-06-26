@@ -6,6 +6,42 @@ The project follows semantic versioning and milestone-based releases.
 
 ---
 
+## [1.19.0] — Freshness Context & Matchday Trust Signals
+
+### Added
+
+- Additive, read-only `freshness_context` in `GET /fixtures/sync/status`.
+- Mirrored context in `GET /live-match-centre` at `data_freshness.freshness_context`.
+- Snapshot timing metadata for the latest successful refresh, next configured scheduled refresh, and stale-after boundary, including derived configured-timezone values when valid.
+- Factual diagnostic states that distinguish:
+  - a latest refresh failure;
+  - a successful snapshot that is already stale;
+  - a successful snapshot that will become stale before the next scheduled refresh;
+  - a snapshot within its current freshness window.
+- Dashboard Freshness Context presentation and conservative stale Live Match Centre labels: **Last confirmed live from stored snapshot**.
+
+### Changed
+
+- Freshness messaging now explains that successful sync outcome and stored-snapshot age are separate facts.
+- Stale or failed freshness no longer lets Live Match Centre wording imply that stored live state is definitely current.
+- Safe version declarations and dashboard JavaScript cache-busters align to `1.19.0` / `v1.19.0`.
+
+### Verified
+
+```text
+277 automated tests passed
+325 known FastAPI/Starlette Python 3.14 deprecation warnings
+```
+
+### Boundaries
+
+- The configured provider schedule remains unchanged: `03:45`, `09:45`, and `12:45` in `Asia/Singapore`.
+- Freshness Context is read-only explanatory metadata. It does not trigger provider requests, alter a scheduled slot, write fixture or sync data, send Telegram, or change Docker, Cloudflared, Ollama, or active runtime `.env` values.
+- A successful refresh may become stale before the next configured slot. This describes the stored snapshot age; it does not mean that the refresh failed.
+- Time is never used to infer that a fixture is live or completed. The v1.18.1 conservative `unknown` fixture-display contract remains intact.
+
+---
+
 ## [1.18.1] — Scheduled from Stored Kickoff
 
 ### Added

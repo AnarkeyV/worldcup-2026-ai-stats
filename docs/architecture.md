@@ -4,7 +4,7 @@
 
 World Cup 2026 AI Stats is a self-hosted football analytics platform built around a FastAPI backend, PostgreSQL, provider-backed match detail, a static browser dashboard, local AI summaries, Telegram notifications, and Prometheus/Grafana observability.
 
-The current release is **v1.18.0 — Live Match Centre & Data Freshness**.
+The current release is **v1.19.0 — Freshness Context & Matchday Trust Signals**.
 
 The platform remains local-first:
 
@@ -239,7 +239,22 @@ not_started
 unavailable
 ```
 
-This is not a claim of real-time provider delivery.
+v1.19.0 adds an additive `freshness_context` object to sync status and mirrors it into `data_freshness.freshness_context` in the Live Match Centre response. The object is derived only from the existing stored success timestamp, configured thresholds, and read-only schedule metadata:
+
+```text
+last_success_at
+last_success_at_local
+next_scheduled_run_at
+snapshot_becomes_stale_at
+snapshot_becomes_stale_at_local
+stale_before_next_scheduled_run
+diagnostic
+message
+```
+
+A successful sync result and a stale snapshot are compatible states. The former describes the latest sync attempt; the latter describes the age of the last successful stored snapshot. `stale_before_next_scheduled_run` is an explanation of the configured schedule and thresholds, not a trigger to sync and not a prediction that the next sync will succeed.
+
+Freshness is not a claim of real-time provider delivery.
 
 ### Change-capture contract
 
@@ -269,6 +284,8 @@ It adds:
 - a concise What changed? view inside Provider Sync Runtime;
 - conditional unavailable-status handling in the fixture browser.
 
+v1.19.0 adds a compact Freshness Context presentation for the last successful snapshot, next scheduled refresh, and stale-after boundary. When freshness is `stale` or `last_sync_failed`, live cards are labelled **Last confirmed live from stored snapshot** and the dashboard explicitly states that it does not infer current live status from kickoff time.
+
 The browser does not poll automatically. It does not ask a provider to refresh data.
 
 ## Match Story and official watch
@@ -290,11 +307,13 @@ slots: 03:45, 09:45, 12:45
 
 The scheduler is opt-in and waits for the next future configured slot after startup or restart. Scheduled Telegram digests remain separately controlled and disabled by default.
 
+The v1.19.0 release does not alter the schedule or freshness thresholds. It exposes the relationship between the configured slots and the stale-after boundary so an operator can see when a successful stored snapshot has aged beyond that boundary before the next planned refresh.
+
 The Live Match Centre does not change the schedule, send Telegram messages, or run an automatic provider request.
 
 ## Database bootstrap boundary
 
-The project uses SQLAlchemy metadata bootstrap. v1.18.0 uses additive companion tables rather than altering existing deployed tables.
+The project uses SQLAlchemy metadata bootstrap. v1.18.0 uses additive companion tables rather than altering existing deployed tables. v1.19.0 adds no table, migration, or persisted-data change.
 
 On a later approved runtime deployment, missing companion tables can be created through normal application bootstrap. Source preparation alone does not modify active runtime data, run migrations, backfill historical data, or alter live database records.
 
@@ -335,10 +354,10 @@ The repository stores placeholders only. Active `.env`, provider keys, Telegram 
 
 ## Testing and release verification
 
-v1.18.0 local source verification:
+v1.19.0 local source verification:
 
 ```text
-267 passed, 316 warnings
+277 passed, 325 warnings
 ```
 
 The warnings are known FastAPI/Starlette Python 3.14 deprecations related to `asyncio.iscoroutinefunction`; they are not test failures.
@@ -348,6 +367,7 @@ The warnings are known FastAPI/Starlette Python 3.14 deprecations related to `as
 - Provider payload quality determines available fixture and event detail.
 - A stored empty event array does not prove that no event occurred.
 - The Live Match Centre reports local stored snapshots, not provider real-time delivery.
+- Freshness Context explains stored-snapshot age relative to the configured schedule; it does not change schedule, thresholds, or provider behavior.
 - Historical sync changes before v1.18 are not reconstructed.
 - Provider event identifiers and complete historical event-correction/version storage are not implemented.
 - The system is self-hosted and does not implement production authentication.

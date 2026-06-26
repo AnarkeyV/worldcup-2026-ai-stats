@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 
+import app.services.sync_observability_service as sync_observability_service
 from app.models.fixture import Fixture
 from app.models.fixture_sync_change_set import FixtureSyncChangeSet
 from app.models.fixture_sync_run import FixtureSyncRun
@@ -307,14 +308,26 @@ def test_live_match_centre_marks_no_successful_refresh_as_not_started(client):
 
     assert response.status_code == 200
     data = response.json()
-    assert data["data_freshness"] == {
-        "state": "not_started",
-        "last_success_at": None,
-        "data_age_seconds": None,
-        "fresh_after_seconds": 3600,
-        "stale_after_seconds": 10800,
-        "message": "No successful provider snapshot has been stored yet.",
-    }
+    data_freshness = data["data_freshness"]
+    assert data_freshness["state"] == "not_started"
+    assert data_freshness["last_success_at"] is None
+    assert data_freshness["data_age_seconds"] is None
+    assert data_freshness["fresh_after_seconds"] == 3600
+    assert data_freshness["stale_after_seconds"] == 10800
+    assert data_freshness["message"] == (
+        "No successful provider snapshot has been stored yet."
+    )
+    freshness_context = data_freshness["freshness_context"]
+    assert freshness_context["state"] == "not_started"
+    assert freshness_context["last_success_at"] is None
+    assert freshness_context["last_success_at_local"] is None
+    assert freshness_context["snapshot_becomes_stale_at"] is None
+    assert freshness_context["snapshot_becomes_stale_at_local"] is None
+    assert freshness_context["stale_before_next_scheduled_run"] is None
+    assert freshness_context["diagnostic"] == "no_successful_snapshot"
+    assert freshness_context["message"] == (
+        "No successful provider snapshot has been stored yet."
+    )
     assert data["latest_successful_refresh"] == {
         "availability": "not_started",
         "sync_run_id": None,
@@ -477,3 +490,57 @@ def test_live_match_centre_counts_unknown_future_kickoff_as_scheduled(
     assert [match["external_id"] for match in data["matches"]] == [
         "explicit-live-001"
     ]
+
+
+def test_live_match_centre_mirrors_schedule_aware_freshness_context(
+    client,
+    db_session,
+    monkeypatch,
+):
+    db_session.add(
+        _success_run(completed_at="2026-06-26T04:45:00+00:00")
+    )
+    db_session.commit()
+
+    monkeypatch.setattr(
+        sync_observability_service,
+        "_utc_now",
+        lambda: datetime(2026, 6, 26, 7, 46, 41, tzinfo=timezone.utc),
+    )
+    monkeypatch.setattr(
+        sync_observability_service,
+        "_build_scheduler_status",
+        lambda: {
+            "enabled": True,
+            "mode": "fixed_daily_times",
+            "timezone": "Asia/Singapore",
+            "scheduled_times": ["03:45", "09:45", "12:45"],
+            "next_run_at": "2026-06-27T03:45:00+08:00",
+            "interval_minutes": 30,
+        },
+    )
+
+    response = client.get("/live-match-centre")
+
+    assert response.status_code == 200
+    data_freshness = response.json()["data_freshness"]
+    assert data_freshness["state"] == "stale"
+    assert data_freshness["message"] == (
+        "The latest provider refresh succeeded, but its stored snapshot is "
+        "stale before the next scheduled refresh."
+    )
+    assert data_freshness["freshness_context"] == {
+        "state": "stale",
+        "schedule_timezone": "Asia/Singapore",
+        "last_success_at": "2026-06-26T04:45:00+00:00",
+        "last_success_at_local": "2026-06-26T12:45:00+08:00",
+        "next_scheduled_run_at": "2026-06-27T03:45:00+08:00",
+        "snapshot_becomes_stale_at": "2026-06-26T07:45:00+00:00",
+        "snapshot_becomes_stale_at_local": "2026-06-26T15:45:00+08:00",
+        "stale_before_next_scheduled_run": True,
+        "diagnostic": "snapshot_stale_before_next_scheduled_refresh",
+        "message": (
+            "The latest provider refresh succeeded, but its stored snapshot is "
+            "stale before the next scheduled refresh."
+        ),
+    }

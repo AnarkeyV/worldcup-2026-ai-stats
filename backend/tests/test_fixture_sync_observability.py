@@ -1,4 +1,8 @@
+from datetime import datetime, timezone
+
 import app.routes.fixtures as fixtures_routes
+import app.services.sync_observability_service as sync_observability_service
+from app.models.fixture_sync_run import FixtureSyncRun
 from app.providers.api_football import ApiFootballProviderError
 
 
@@ -239,3 +243,101 @@ def test_sample_fixture_sync_exposes_runtime_metrics(client):
     assert 'source="sample"' in text
     assert 'provider="sample_data"' in text
     assert 'status="success"' in text
+
+
+def test_fixture_sync_status_exposes_schedule_aware_stale_context(
+    client,
+    db_session,
+    monkeypatch,
+):
+    db_session.add(
+        FixtureSyncRun(
+            source="provider",
+            provider="zafronix",
+            trigger_type="scheduled",
+            status="success",
+            started_at="2026-06-26T04:44:59+00:00",
+            completed_at="2026-06-26T04:45:00+00:00",
+            duration_seconds=1.0,
+            total_fixtures=72,
+            created=0,
+            updated=72,
+            newly_completed_count=0,
+            newly_completed=[],
+            last_error=None,
+        )
+    )
+    db_session.commit()
+
+    monkeypatch.setattr(
+        sync_observability_service,
+        "_utc_now",
+        lambda: datetime(2026, 6, 26, 7, 46, 41, tzinfo=timezone.utc),
+    )
+    monkeypatch.setattr(
+        sync_observability_service,
+        "_build_scheduler_status",
+        lambda: {
+            "enabled": True,
+            "mode": "fixed_daily_times",
+            "timezone": "Asia/Singapore",
+            "scheduled_times": ["03:45", "09:45", "12:45"],
+            "next_run_at": "2026-06-27T03:45:00+08:00",
+            "interval_minutes": 30,
+        },
+    )
+
+    response = client.get("/fixtures/sync/status")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["freshness"] == {
+        "state": "stale",
+        "data_age_seconds": 10901,
+        "fresh_after_seconds": 3600,
+        "stale_after_seconds": 10800,
+    }
+    assert data["freshness_context"] == {
+        "state": "stale",
+        "schedule_timezone": "Asia/Singapore",
+        "last_success_at": "2026-06-26T04:45:00+00:00",
+        "last_success_at_local": "2026-06-26T12:45:00+08:00",
+        "next_scheduled_run_at": "2026-06-27T03:45:00+08:00",
+        "snapshot_becomes_stale_at": "2026-06-26T07:45:00+00:00",
+        "snapshot_becomes_stale_at_local": "2026-06-26T15:45:00+08:00",
+        "stale_before_next_scheduled_run": True,
+        "diagnostic": "snapshot_stale_before_next_scheduled_refresh",
+        "message": (
+            "The latest provider refresh succeeded, but its stored snapshot is "
+            "stale before the next scheduled refresh."
+        ),
+    }
+
+
+def test_failed_sync_context_stays_distinct_from_stale(client, monkeypatch):
+    first_response = client.post("/fixtures/sync/sample")
+    assert first_response.status_code == 200
+
+    class MockProvider:
+        def get_world_cup_fixtures(self):
+            raise ApiFootballProviderError("provider unavailable for demo")
+
+    monkeypatch.setattr(
+        fixtures_routes,
+        "get_configured_football_provider",
+        lambda: ("api_football", MockProvider()),
+    )
+
+    sync_response = client.post("/fixtures/sync/provider")
+    assert sync_response.status_code == 502
+
+    status_response = client.get("/fixtures/sync/status")
+
+    assert status_response.status_code == 200
+    context = status_response.json()["freshness_context"]
+    assert context["state"] == "last_sync_failed"
+    assert context["diagnostic"] == "latest_sync_failed"
+    assert context["message"] == (
+        "The latest provider refresh failed; displayed data is from the last "
+        "successful stored snapshot."
+    )
