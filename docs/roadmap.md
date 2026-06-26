@@ -1,22 +1,23 @@
 # Roadmap
 
-## Current release: v1.18.1 — Scheduled from Stored Kickoff
+## Current release: v1.19.0 — Freshness Context and Matchday Trust Signals
 
-v1.18.1 is complete in source form.
+v1.19.0 is complete in source form.
 
-It is a narrow data-quality and Matchday usability improvement: fixtures stored with `unknown` provider status can be shown as scheduled only when their existing stored kickoff data proves they are still future fixtures and their scores are absent.
+It is a narrow reliability and Matchday trust improvement. The release explains how a successful stored provider refresh can later be stale under the existing fixed-time schedule, without inventing data, inferring live state from time, or changing operational behavior.
 
-### Completed in v1.18.1
+### Completed in v1.19.0
 
-- [x] Pure kickoff-aware display-state contract for future `unknown` fixtures.
-- [x] UTC-aware future-kickoff validation with no inference from a naive or malformed timestamp.
-- [x] `scheduled_sources` in the local-only Live Match Centre response.
-- [x] Dashboard Scheduled tab, Matchday next-up context, counts, and fixture presentation use the same conservative display rule.
-- [x] Clear **Scheduled from stored kickoff** and **Provider match status unavailable** wording.
-- [x] No stored provider status rewrite, provider call, sync trigger, Telegram send, database write, browser polling, or runtime setting change.
+- [x] Additive, read-only `freshness_context` in provider sync status and Live Match Centre freshness data.
+- [x] Latest successful snapshot, next scheduled refresh, and stale-after timing context, with safe configured-timezone display values.
+- [x] Diagnostics separating `latest_sync_failed`, stale stored snapshots, and snapshots that become stale before the next scheduled refresh.
+- [x] Dashboard Freshness Context and conservative **Last confirmed live from stored snapshot** wording when freshness is stale or the latest refresh failed.
+- [x] Focused tests for fixed-slot schedule gaps, thresholds, timezone-aware values, failed-sync distinction, and stale live-state wording.
+- [x] No provider schedule change, browser polling, provider request, sync trigger, database write, Telegram send, Docker change, Cloudflared change, Ollama change, or active runtime `.env` change.
 
-### Retained v1.18.0 capabilities
+### Retained v1.18.1 / v1.18.0 capabilities
 
+- [x] Conservative future-`unknown` display derivation: stored kickoff may support scheduled display only before kickoff with valid timezone-aware time and absent scores.
 - [x] Explicit stored match-state contract: `live`, `completed`, `scheduled`, `unavailable`.
 - [x] Local-only `GET /live-match-centre` API.
 - [x] Additive event-coverage evidence and successful-sync change sets.
@@ -25,14 +26,14 @@ It is a narrow data-quality and Matchday usability improvement: fixtures stored 
 
 ## Deliberately deferred
 
-These remain deliberately outside v1.18.1:
+These remain deliberately outside v1.19.0:
 
-- Historical reconstruction of sync deltas before v1.18 change capture.
+- Any provider schedule, threshold, Windows `.env`, Docker, database, Telegram, Cloudflared, or Ollama configuration change.
+- Automatic or browser-triggered provider polling.
 - Treating a future stored kickoff as provider-confirmed scheduling or using time to infer a live match.
+- Historical reconstruction of sync deltas before v1.18 change capture.
 - Full event-version history or provider event identifiers.
-- Automatic provider polling from the browser.
 - New provider assumptions, scraping, backfill work, or fabricated live timelines.
-- Automatic updates to Telegram or scheduler behaviour.
 - Runtime deployment, database changes, or Windows host changes before explicit approval.
 
 ## Candidate future work
@@ -41,6 +42,7 @@ Future work should remain evidence-led and separately approved.
 
 | Area | Possible direction | Guardrail |
 |---|---|---|
+| Sync policy review | Assess schedule and threshold alignment after real observed matchdays | Do not change runtime schedule or thresholds without a separate audited decision |
 | Event correction history | Provider IDs and durable correction/version lineage | Do not claim a complete history until a provider supports it and stored data proves it |
 | Provider coverage | Better normalised detail coverage from supported providers | No scraped or unsupported sources |
 | Match-day UX | Small readability improvements for high-density tournament days | Preserve mobile clarity and avoid generic sports-app clutter |

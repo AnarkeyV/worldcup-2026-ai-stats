@@ -1,6 +1,6 @@
 # World Cup 2026 AI Stats
 
-![Version](https://img.shields.io/badge/version-v1.18.1-purple)
+![Version](https://img.shields.io/badge/version-v1.19.0-purple)
 ![Backend](https://img.shields.io/badge/backend-FastAPI-009688)
 ![Database](https://img.shields.io/badge/database-PostgreSQL-336791)
 ![AI](https://img.shields.io/badge/AI-Ollama%20%2B%20Local%20Llama-green)
@@ -18,14 +18,14 @@ https://wc2026.khairulrizal.qzz.io/dashboard
 **Current release**
 
 ```text
-v1.18.1 — Scheduled from Stored Kickoff
+v1.19.0 — Freshness Context and Matchday Trust Signals
 ```
 
 **Release verification**
 
 ```text
-274 automated tests passed
-318 known FastAPI/Starlette Python 3.14 deprecation warnings
+277 automated tests passed
+325 known FastAPI/Starlette Python 3.14 deprecation warnings
 ```
 
 ## Why this project exists
@@ -33,6 +33,26 @@ v1.18.1 — Scheduled from Stored Kickoff
 World Cup 2026 AI Stats is a local-first football analytics project built as a practical DevOps, backend, automation, observability, and AI portfolio system.
 
 It aims to be useful on matchday without pretending the available provider data is richer or fresher than it is. The dashboard distinguishes stored facts from unavailable or delayed data instead of filling gaps with guessed events, invented player details, fake timelines, or unverified live claims.
+
+## v1.19.0: Freshness Context and Matchday Trust Signals
+
+v1.19.0 makes stored-snapshot freshness easier to interpret on matchday. It explains the relationship between the latest successful stored provider refresh, the configured Asia/Singapore fixed-time schedule, and the point at which that snapshot becomes stale.
+
+### Added
+
+- Additive, read-only `freshness_context` metadata in `GET /fixtures/sync/status`.
+- Mirrored schedule-aware context in `GET /live-match-centre` under `data_freshness.freshness_context`.
+- Exact stored-snapshot times for the last successful refresh, next scheduled refresh, and stale-after boundary, with derived configured-timezone display values when available.
+- A factual diagnostic that distinguishes a successful-but-stale stored snapshot from a failed latest refresh.
+- Dashboard Freshness Context presentation for last successful snapshot, next scheduled refresh, and stale-after time.
+- Conservative stale Live Match Centre wording: **Last confirmed live from stored snapshot**.
+
+### Truthfulness rules
+
+- A successful provider refresh and a stale snapshot are compatible facts: success records the terminal result of the latest sync attempt, while freshness records the age of the latest successful stored snapshot.
+- The schedule-aware diagnostic is explanatory only. It does not create a new sync, change a scheduled time, rewrite a provider status, or alter stored data.
+- A stale timestamp never makes a fixture live or completed. Fixture state remains based on stored provider status and the conservative v1.18.1 display contract.
+- Reading these routes and dashboard panels remains local-data-only: no provider call, sync, database write, Telegram send, or scheduler change occurs.
 
 ## v1.18.1: Scheduled from Stored Kickoff
 
@@ -86,7 +106,7 @@ v1.18.0 adds a focused Live Match Centre that makes existing stored provider dat
 | Capability | What it shows | What it does not claim |
 |---|---|---|
 | Live Match Centre | Fixtures whose stored status is explicitly live, score, local update time, and stored event coverage | That the provider is real-time or that no unreported event occurred |
-| Data freshness | Latest successful stored-sync time, age, and freshness state | That the result is current beyond the stored snapshot |
+| Data freshness | Latest successful stored-sync time, age, state, scheduled next refresh, stale-after boundary, and explanatory diagnostic | That the result is current beyond the stored snapshot or that a successful refresh cannot later become stale |
 | What changed? | Persisted v1.18+ score/status/event deltas from successful syncs | A full historical replay or changes before v1.18 capture |
 | Event coverage | Whether stored goals, cards, and substitutions are available, not supplied, unknown, or absent with no detail | Complete match-event coverage |
 
@@ -233,10 +253,10 @@ Run the full suite from `backend`:
 python -m pytest -q
 ```
 
-v1.18.1 source verification:
+v1.19.0 source verification:
 
 ```text
-267 passed, 316 warnings
+277 passed, 325 warnings
 ```
 
 The warnings are FastAPI/Starlette Python 3.14 deprecations related to `asyncio.iscoroutinefunction`. They are warnings, not failing tests.
@@ -276,6 +296,7 @@ Then:
 - [Roadmap](docs/roadmap.md)
 - [Demo Walkthrough](docs/demo-walkthrough.md)
 - [Portfolio Release Summary](docs/portfolio-release.md)
+- [v1.19.0 Freshness Context and Matchday Trust Signals](docs/v1.19.0-freshness-context-trust-signals.md)
 - [v1.17.1 Runtime Reliability Notes](docs/v1.17.1-runtime-reliability.md)
 - [Windows Runtime Recovery Guide](docs/windows-runtime-recovery.md)
 - [v1.17.0 Match Story and Official Watch Notes](docs/v1.17.0-match-story-official-watch.md)
@@ -301,6 +322,7 @@ Then:
 | v1.16.0 | Fixed-time scheduled sync and Telegram digest | Completed |
 | v1.17.0 | Provider-backed Match Story and Official Watch | Completed |
 | v1.17.1 | Runtime reliability safeguards and read-only Windows status checker | Completed |
+| v1.19.0 | Freshness context and matchday trust signals | Completed |
 | v1.18.1 | Scheduled-from-stored-kickoff display derivation | Completed |
 | v1.18.0 | Live Match Centre and factual sync-change visibility | Completed |
 
@@ -312,6 +334,7 @@ Then:
 - Historical event correction/version storage is not implemented beyond v1.18+ sync change capture.
 - Historical sync runs before v1.18 do not have a reconstructed change log.
 - The Live Match Centre does not poll providers or certify real-time delivery.
+- Freshness Context explains the age of the latest stored snapshot against the configured schedule; it does not guarantee that the next scheduled refresh will succeed or create a provider update.
 - Scheduled-from-stored-kickoff is a display derivation for a future fixture with missing provider status; it never certifies provider scheduling or infers a live match.
 - Incomplete statistics are hidden instead of normalised into misleading zero values.
 - The official-video registry is empty until a controlled curator workflow adds individually verified match-specific links.
