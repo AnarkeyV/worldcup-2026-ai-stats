@@ -297,7 +297,7 @@ def test_dashboard_page_includes_fixture_group_tabs():
     assert 'id="fixture-group-tabs"' in response.text
     assert "Browse fixtures by group" in response.text
     assert "Provider-backed Rich Match Dashboard" in response.text
-    assert "dashboard.js?v=v1.19.0" in response.text
+    assert "dashboard.js?v=v1.19.1" in response.text
     assert "dashboard.css?v=v1.18.1" in response.text
 
 def test_dashboard_page_includes_fixture_status_browser_controls():
@@ -458,6 +458,10 @@ def test_dashboard_js_includes_sync_freshness_and_stored_detail_refresh_logic():
     assert "formatSyncFreshness" in response.text
     assert "formatDataAgeSeconds" in response.text
     assert "formatSchedulerMode" in response.text
+    assert 'mode === "fixed_daily_times"' in response.text
+    assert "scheduler.scheduled_times" in response.text
+    assert "Fixed daily:" in response.text
+    assert "Every ${interval} min" in response.text
     assert "formatFreshnessContextMessage" in response.text
     assert "formatFreshnessContextDiagnostic" in response.text
     assert "formatFreshnessContextSchedule" in response.text
