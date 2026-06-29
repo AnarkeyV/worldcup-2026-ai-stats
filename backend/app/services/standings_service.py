@@ -57,6 +57,12 @@ def build_group_standings(
     for fixture in fixtures:
         fixture_group_name = getattr(fixture, "group_name", None)
 
+        # Group standings apply only to fixtures with an explicit group.
+        # Ungrouped fixtures remain available in fixtures and match detail but
+        # do not participate in group rankings.
+        if fixture_group_name is None:
+            continue
+
         if group_name is not None and fixture_group_name != group_name:
             continue
 

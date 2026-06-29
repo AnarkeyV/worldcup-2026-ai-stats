@@ -1418,55 +1418,106 @@ function updateSummary(allFixtures, visibleFixtures) {
     elements.visibleFixtures.textContent = visibleFixtures.length;
 }
 
+
+/* v1.20.1 dashboard independent panel loading */
+function renderFixtureLoadError(message, browserMessage) {
+    elements.dashboardMessage.textContent = message;
+    renderMatchdayHome([]);
+
+    if (elements.fixtureBrowserMessage) {
+        elements.fixtureBrowserMessage.textContent = browserMessage;
+    }
+
+    elements.fixturesContainer.innerHTML = `
+        <div class="empty-state">
+            The dashboard could not load fixture data. Please check that the API server is running.
+        </div>
+    `;
+}
+
+function renderStandingsLoadError() {
+    elements.standingsMessage.textContent = "Unable to load standings.";
+    elements.standingsContainer.innerHTML = `
+        <div class="empty-state">
+            The dashboard could not load standings data. Please check that the standings API is running.
+        </div>
+    `;
+}
+
+function renderInsightsLoadError() {
+    elements.insightsMessage.textContent = "Unable to load insights.";
+    elements.insightsContainer.innerHTML = `
+        <div class="empty-state">
+            The dashboard could not load group insight data. Please check that the insights API is running.
+        </div>
+    `;
+}
+
+function getDashboardPanelValue(result, panelName) {
+    if (result.status === "fulfilled") {
+        return result.value;
+    }
+
+    console.error(`Unable to load ${panelName}.`, result.reason);
+    return null;
+}
+
+async function loadDashboardPanelsIndependently(filters = {}) {
+    const [fixturesResult, standingsResult, insightsResult, aiInsightsResult] =
+        await Promise.allSettled([
+            fetchFixtures(filters),
+            fetchStandings(filters),
+            fetchInsights(filters),
+            fetchAiInsights(filters),
+        ]);
+
+    return {
+        fixtures: getDashboardPanelValue(fixturesResult, "fixtures"),
+        standings: getDashboardPanelValue(standingsResult, "standings"),
+        insights: getDashboardPanelValue(insightsResult, "group insights"),
+        aiInsights: getDashboardPanelValue(aiInsightsResult, "structured AI insights"),
+    };
+}
+
 async function applyFilters() {
     setLoadingState();
 
-    try {
-        const [fixtures, standings, insights, aiInsights] = await Promise.all([
-            fetchFixtures(state.filters),
-            fetchStandings(state.filters),
-            fetchInsights(state.filters),
-            fetchAiInsights(state.filters),
-        ]);
+    const panels = await loadDashboardPanelsIndependently(state.filters);
 
-        state.matchdayFixtures = fixtures;
-        state.standings = standings;
-        state.insights = insights;
-        state.aiInsights = aiInsights;
-
+    if (panels.fixtures !== null) {
+        state.matchdayFixtures = panels.fixtures;
         renderMatchdayHome(state.matchdayFixtures);
-        renderInsights(state.insights);
-        renderAiInsights(state.aiInsights);
-        void refreshProviderLeaders(state.filters);
-        void refreshMatchDataQuality(state.filters);
-        renderStandings(state.standings);
-        renderFixtureBrowser(fixtures, { selectFirst: true });
-    } catch (error) {
-        console.error(error);
-        elements.dashboardMessage.textContent = "Unable to apply filters.";
-        if (elements.fixtureBrowserMessage) {
-            elements.fixtureBrowserMessage.textContent = "Unable to load the selected fixture browser view.";
-        }
-        elements.fixturesContainer.innerHTML = `
-            <div class="empty-state">
-                The dashboard could not load filtered fixture data. Please check that the fixtures API is running.
-            </div>
-        `;
-        elements.standingsMessage.textContent = "Unable to load standings.";
-        elements.standingsContainer.innerHTML = `
-            <div class="empty-state">
-                The dashboard could not load standings data. Please check that the standings API is running.
-            </div>
-        `;
-        elements.insightsMessage.textContent = "Unable to load insights.";
-        elements.insightsContainer.innerHTML = `
-            <div class="empty-state">
-                The dashboard could not load group insight data. Please check that the insights API is running.
-            </div>
-        `;
-        setAiInsightsError("Unable to load structured AI insights.");
-        setProviderLeadersError();
+        renderFixtureBrowser(panels.fixtures, { selectFirst: true });
+    } else {
+        renderFixtureLoadError(
+            "Unable to apply filters.",
+            "Unable to load the selected fixture browser view.",
+        );
     }
+
+    if (panels.standings !== null) {
+        state.standings = panels.standings;
+        renderStandings(state.standings);
+    } else {
+        renderStandingsLoadError();
+    }
+
+    if (panels.insights !== null) {
+        state.insights = panels.insights;
+        renderInsights(state.insights);
+    } else {
+        renderInsightsLoadError();
+    }
+
+    if (panels.aiInsights !== null) {
+        state.aiInsights = panels.aiInsights;
+        renderAiInsights(state.aiInsights);
+    } else {
+        setAiInsightsError("Unable to load structured AI insights.");
+    }
+
+    void refreshProviderLeaders(state.filters);
+    void refreshMatchDataQuality(state.filters);
 }
 
 function setLoadingState() {
@@ -3762,51 +3813,40 @@ async function initializeDashboard() {
     void refreshLatestCompletedSummary();
     void refreshProviderLeaders();
 
-    try {
-        const [fixtures, standings, insights, aiInsights] = await Promise.all([
-            fetchFixtures(),
-            fetchStandings(),
-            fetchInsights(),
-            fetchAiInsights(),
-        ]);
+    const panels = await loadDashboardPanelsIndependently();
 
-        state.allFixtures = fixtures;
-        state.matchdayFixtures = fixtures;
-        state.standings = standings;
-        state.insights = insights;
-        state.aiInsights = aiInsights;
-
+    if (panels.fixtures !== null) {
+        state.allFixtures = panels.fixtures;
+        state.matchdayFixtures = panels.fixtures;
         renderMatchdayHome(state.matchdayFixtures);
         populateFilters(state.allFixtures);
-        renderInsights(state.insights);
-        renderAiInsights(state.aiInsights);
-        renderStandings(state.standings);
         renderFixtureBrowser(state.allFixtures, { selectFirst: true });
-    } catch (error) {
-        console.error(error);
-        elements.dashboardMessage.textContent = "Unable to load fixtures.";
-        if (elements.fixtureBrowserMessage) {
-            elements.fixtureBrowserMessage.textContent = "The fixture browser could not load match data.";
-        }
-        elements.fixturesContainer.innerHTML = `
-            <div class="empty-state">
-                The dashboard could not load fixture data. Please check that the API server is running.
-            </div>
-        `;
+    } else {
+        renderFixtureLoadError(
+            "Unable to load fixtures.",
+            "The fixture browser could not load match data.",
+        );
+    }
+
+    if (panels.standings !== null) {
+        state.standings = panels.standings;
+        renderStandings(state.standings);
+    } else {
+        renderStandingsLoadError();
+    }
+
+    if (panels.insights !== null) {
+        state.insights = panels.insights;
+        renderInsights(state.insights);
+    } else {
+        renderInsightsLoadError();
+    }
+
+    if (panels.aiInsights !== null) {
+        state.aiInsights = panels.aiInsights;
+        renderAiInsights(state.aiInsights);
+    } else {
         setAiInsightsError("Unable to load structured AI insights.");
-        elements.standingsMessage.textContent = "Unable to load standings.";
-        elements.standingsContainer.innerHTML = `
-            <div class="empty-state">
-                The dashboard could not load standings data. Please check that the standings API is running.
-            </div>
-        `;
-        elements.insightsMessage.textContent = "Unable to load insights.";
-        elements.insightsContainer.innerHTML = `
-            <div class="empty-state">
-                The dashboard could not load group insight data. Please check that the insights API is running.
-            </div>
-        `;
-        setProviderLeadersError();
     }
 }
 

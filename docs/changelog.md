@@ -6,6 +6,32 @@ The project follows semantic versioning and milestone-based releases.
 
 ---
 
+## [1.20.1] — Standings and Dashboard Resilience Hotfix
+
+### Fixed
+
+- Group standings now ignore completed fixtures without an explicit group label, preventing mixed `None` and text group values from breaking standings sorting.
+- Structured AI insights remain available because they reuse the safe group-standings result.
+- Dashboard fixture and Matchday panels now load independently from standings, group insights, and structured AI insights, so one secondary-panel failure does not hide healthy fixture data.
+
+### Preserved boundaries
+
+- Ungrouped fixtures remain in fixture and match-detail data; the fix only excludes them from group rankings.
+- No provider request, sync, scheduler, threshold, database, Telegram, Docker, Cloudflared, Ollama, Windows runtime, or active `.env` behavior changed.
+
+### Verified
+
+```text
+Focused standings, AI, and dashboard tests: 82 passed
+Full regression: 283 passed
+Known warnings: 325 FastAPI/Starlette Python 3.14 deprecation warnings
+```
+
+- Static JavaScript syntax check and `git diff --check` completed without findings.
+- Dashboard and Live Match Centre cache-busting values advance to `v1.20.1`.
+
+---
+
 ## [1.20.0] — Matchday Home & Compact Sync UX
 
 ### Changed

@@ -1,12 +1,23 @@
 # Roadmap
 
-## Current release: v1.20.0 — Matchday Home & Compact Sync UX
+## Current release: v1.20.1 — Standings & Dashboard Resilience Hotfix
 
-v1.20.0 is complete in source form.
+v1.20.1 is complete in source form.
 
-It improves the matchday dashboard hierarchy, keeps provider-snapshot freshness distinct from local match-detail coverage, reduces mobile navigation density, and keeps Sync change detail compact without changing any source-of-truth contracts.
+It corrects an ungrouped-fixture standings edge case and makes the dashboard preserve healthy fixture and Matchday data when a secondary panel is unavailable.
 
-### Completed in v1.20.0
+### Completed in v1.20.1
+
+- [x] Completed fixtures without an explicit group are excluded from group standings while remaining visible in fixture and match-detail views.
+- [x] `/standings` and dependent `/ai/insights` no longer fail when stored provider data contains both grouped and ungrouped completed fixtures.
+- [x] Dashboard fixture, Matchday, standings, group-insights, and structured-AI-insights panels settle independently.
+- [x] A secondary data-panel failure no longer hides healthy fixture-browser data.
+- [x] Dashboard and Live Match Centre static asset cache-busting values advance to `v1.20.1`.
+- [x] Focused coverage and full regression pass: 283 passed, 325 known warnings.
+- [x] No provider schedule, threshold, active Windows `.env`, Docker, database, Telegram, Cloudflared, Ollama, provider-request, sync-trigger, or data-write behaviour changes.
+
+### Retained from v1.20.0
+
 
 - [x] Matchday cards prioritise **Now**, **Next**, and **Latest**.
 - [x] A compact Data trust strip links to Sync details and remains separate from Match detail coverage.
@@ -18,7 +29,7 @@ It improves the matchday dashboard hierarchy, keeps provider-snapshot freshness 
 - [x] Focused UI tests and full regression pass: 281 passed, 325 known warnings.
 - [x] No provider schedule, threshold, Windows `.env`, Docker, database, Telegram, Cloudflared, Ollama, provider-request, sync-trigger, or data-write behaviour changes.
 
-### Retained v1.19.1 / v1.19.0 / v1.18.1 / v1.18.0 capabilities
+### Retained v1.20.0 / v1.19.1 / v1.19.0 / v1.18.1 / v1.18.0 capabilities
 
 - [x] Fixed daily scheduler wording: **Fixed daily: 03:45 · 09:45 · 12:45 (Singapore time)**.
 - [x] Additive, read-only `freshness_context` in provider sync status and Live Match Centre freshness data.
@@ -29,7 +40,7 @@ It improves the matchday dashboard hierarchy, keeps provider-snapshot freshness 
 
 ## Deliberately deferred
 
-These remain deliberately outside v1.20.0:
+These remain deliberately outside v1.20.1:
 
 - Any provider schedule, threshold, Windows `.env`, Docker, database, Telegram, Cloudflared, or Ollama configuration change.
 - Automatic or browser-triggered provider polling.

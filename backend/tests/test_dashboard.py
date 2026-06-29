@@ -297,9 +297,9 @@ def test_dashboard_page_includes_fixture_group_tabs():
     assert 'id="fixture-group-tabs"' in response.text
     assert "Browse fixtures by group" in response.text
     assert "Provider-backed Rich Match Dashboard" in response.text
-    assert "dashboard.js?v=v1.20.0" in response.text
-    assert "dashboard.css?v=v1.20.0" in response.text
-    assert "dashboard.css?v=v1.20.0" in response.text
+    assert "dashboard.js?v=v1.20.1" in response.text
+    assert "dashboard.css?v=v1.20.1" in response.text
+    assert "dashboard.css?v=v1.20.1" in response.text
 
 def test_dashboard_page_includes_fixture_status_browser_controls():
     response = client.get("/dashboard")
@@ -576,3 +576,14 @@ def test_dashboard_js_includes_stored_kickoff_schedule_derivation():
     assert 'status !== "unknown"' in response.text
     assert 'matchState: "scheduled",' in response.text
     assert 'matchState: "unavailable",' in response.text
+
+
+def test_dashboard_js_loads_core_panels_independently():
+    response = client.get("/static/dashboard.js")
+
+    assert response.status_code == 200
+    assert "loadDashboardPanelsIndependently" in response.text
+    assert "Promise.allSettled" in response.text
+    assert "renderFixtureLoadError" in response.text
+    assert "renderStandingsLoadError" in response.text
+    assert "renderInsightsLoadError" in response.text
