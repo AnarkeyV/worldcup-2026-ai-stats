@@ -1,6 +1,6 @@
 # World Cup 2026 AI Stats
 
-![Version](https://img.shields.io/badge/version-v1.20.0-purple)
+![Version](https://img.shields.io/badge/version-v1.20.1-purple)
 ![Backend](https://img.shields.io/badge/backend-FastAPI-009688)
 ![Database](https://img.shields.io/badge/database-PostgreSQL-336791)
 ![AI](https://img.shields.io/badge/AI-Ollama%20%2B%20Local%20Llama-green)
@@ -18,13 +18,13 @@ https://wc2026.khairulrizal.qzz.io/dashboard
 **Current release**
 
 ```text
-v1.20.0 — Matchday Home & Compact Sync UX
+v1.20.1 — Standings & Dashboard Resilience Hotfix
 ```
 
 **Release verification**
 
 ```text
-281 automated tests passed
+283 automated tests passed
 325 known FastAPI/Starlette Python 3.14 deprecation warnings
 ```
 
@@ -33,6 +33,24 @@ v1.20.0 — Matchday Home & Compact Sync UX
 World Cup 2026 AI Stats is a local-first football analytics project built as a practical DevOps, backend, automation, observability, and AI portfolio system.
 
 It aims to be useful on matchday without pretending the available provider data is richer or fresher than it is. The dashboard distinguishes stored facts from unavailable or delayed data instead of filling gaps with guessed events, invented player details, fake timelines, or unverified live claims.
+
+## v1.20.1: Standings & Dashboard Resilience Hotfix
+
+v1.20.1 is a focused corrective release for provider data that includes a completed fixture without an explicit group label.
+
+### What changed
+
+- Group standings now exclude completed fixtures without an explicit `group_name`. Those fixtures remain available in the fixture browser and match-detail views, but do not participate in group rankings.
+- The same guard keeps dependent structured AI insights available when an ungrouped completed fixture is present.
+- Dashboard core panels now settle independently: a standings, group-insights, or structured-AI-insights failure no longer hides a healthy fixture browser or Matchday view.
+- Dashboard and Live Match Centre cache-busting values advance to `v1.20.1`.
+
+### Validation
+
+- Focused standings, AI, and dashboard coverage: **82 passed**.
+- Full regression: **283 passed**.
+- Known warnings: **325** FastAPI/Starlette Python 3.14 deprecation warnings.
+- Static JavaScript syntax check and `git diff --check` completed without findings.
 
 ## v1.20.0: Matchday Home & Compact Sync UX
 
@@ -292,6 +310,12 @@ Run the full suite from `backend`:
 python -m pytest -q
 ```
 
+v1.20.1 source verification:
+
+- 82 focused standings, AI, and dashboard tests passed.
+- 283 full regression tests passed.
+- 325 known FastAPI/Starlette Python 3.14 deprecation warnings.
+
 v1.20.0 source verification:
 
 ```text
@@ -335,6 +359,7 @@ Then:
 - [Roadmap](docs/roadmap.md)
 - [Demo Walkthrough](docs/demo-walkthrough.md)
 - [Portfolio Release Summary](docs/portfolio-release.md)
+- [v1.20.1 Standings & Dashboard Resilience Hotfix](docs/v1.20.1-standings-dashboard-resilience-hotfix.md)
 - [v1.20.0 Matchday Home & Compact Sync UX](docs/v1.20.0-matchday-home-compact-sync-ux.md)
 - [v1.19.1 Fixed Schedule Sync Mode Truthfulness](docs/v1.19.1-fixed-schedule-sync-mode.md)
 - [v1.19.0 Freshness Context and Matchday Trust Signals](docs/v1.19.0-freshness-context-trust-signals.md)
@@ -363,6 +388,7 @@ Then:
 | v1.16.0 | Fixed-time scheduled sync and Telegram digest | Completed |
 | v1.17.0 | Provider-backed Match Story and Official Watch | Completed |
 | v1.17.1 | Runtime reliability safeguards and read-only Windows status checker | Completed |
+| v1.20.1 | Standings and dashboard resilience hotfix | Completed |
 | v1.20.0 | Matchday Home and compact Sync UX | Completed |
 | v1.19.1 | Fixed schedule sync-mode truthfulness | Completed |
 | v1.19.0 | Freshness context and matchday trust signals | Completed |
