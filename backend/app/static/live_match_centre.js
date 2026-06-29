@@ -339,15 +339,20 @@
 
         const visibleChanges = changes.slice(0, CHANGE_LIMIT);
         const remaining = Math.max(0, changes.length - visibleChanges.length);
+        const recordedChangeCount = Number(refresh.change_count ?? changes.length);
+
         container.innerHTML = `
             <h3>What changed?</h3>
-            <p>${escapeHtml(`${refresh.change_count ?? changes.length} provider-backed change${Number(refresh.change_count ?? changes.length) === 1 ? "" : "s"} recorded in the latest successful refresh.`)}</p>
-            <ul>
-                ${visibleChanges.map(({ fixtureLabel, change }) => `
-                    <li><strong>${escapeHtml(fixtureLabel)}:</strong> ${escapeHtml(describeChange(change))}</li>
-                `).join("")}
-            </ul>
-            ${remaining > 0 ? `<p class="live-match-centre-more">${escapeHtml(`${remaining} additional provider-backed change${remaining === 1 ? "" : "s"} not shown.`)}</p>` : ""}
+            <p>${escapeHtml(`${recordedChangeCount} provider-backed change${recordedChangeCount === 1 ? "" : "s"} recorded in the latest successful refresh.`)}</p>
+            <details class="live-match-centre-change-details">
+                <summary>Show change details</summary>
+                <ul>
+                    ${visibleChanges.map(({ fixtureLabel, change }) => `
+                        <li><strong>${escapeHtml(fixtureLabel)}:</strong> ${escapeHtml(describeChange(change))}</li>
+                    `).join("")}
+                </ul>
+                ${remaining > 0 ? `<p class="live-match-centre-more">${escapeHtml(`${remaining} additional provider-backed change${remaining === 1 ? "" : "s"} not shown.`)}</p>` : ""}
+            </details>
         `;
     }
 

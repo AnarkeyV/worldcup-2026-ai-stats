@@ -6,6 +6,35 @@ The project follows semantic versioning and milestone-based releases.
 
 ---
 
+## [1.20.0] — Matchday Home & Compact Sync UX
+
+### Changed
+
+- Matchday cards now prioritise **Now**, **Next**, and **Latest**.
+- A compact **Data trust** strip presents stored provider-snapshot freshness and links to Sync details; **Match detail coverage** remains separately labelled as local stored-detail coverage.
+- A stored live fixture uses **Last recorded live** when snapshot freshness is stale or unavailable, rather than present-tense live wording.
+- Matchday hero selection reuses the established conservative fixture-state classifier for live, completed, scheduled, and unavailable display states.
+- Primary desktop and mobile navigation prioritises Matchday, Matches, Groups, and Players; less frequent destinations remain under **More**.
+- Sync's factual **What changed?** summary uses native **Show change details** disclosure for individual records.
+- Dashboard and Live Match Centre CSS and JavaScript cache-busting values advance to `v1.20.0`.
+
+### Verified
+
+```text
+Focused dashboard and Live Match Centre UI tests: 57 passed
+Full regression: 281 passed
+325 known FastAPI/Starlette Python 3.14 deprecation warnings
+```
+
+### Boundaries
+
+- This is a static dashboard UX release. It does not alter provider schedules, configured slot times, freshness thresholds, provider calls, sync history, fixture data, Telegram, Docker, Cloudflared, Ollama, or an active runtime `.env`.
+- A stale stored snapshot never certifies a fixture as currently live.
+- A future stored kickoff remains derived context only; it does not rewrite provider status or make a past/unknown fixture available.
+- Windows runtime deployment and public visual review remain separate approved steps.
+
+---
+
 ## [1.19.1] — Fixed Schedule Sync Mode Truthfulness
 
 ### Changed

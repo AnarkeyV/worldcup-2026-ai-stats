@@ -17,8 +17,8 @@ def test_dashboard_page_includes_live_match_centre_panel_and_read_only_controls(
     assert 'id="refresh-live-match-centre"' in response.text
     assert "Refresh stored live state" in response.text
     assert "No provider request is made by this panel." in response.text
-    assert "/static/live_match_centre.css?v=v1.18.0-phase4" in response.text
-    assert "/static/live_match_centre.js?v=v1.19.0" in response.text
+    assert "/static/live_match_centre.css?v=v1.20.0" in response.text
+    assert "/static/live_match_centre.js?v=v1.20.0" in response.text
 
 
 def test_live_match_centre_static_script_uses_only_read_only_endpoint_logic():

@@ -3820,4 +3820,241 @@ window.addEventListener("live-match-centre:open-fixture", (event) => {
 });
 
 
+/*
+ * v1.20.0 Matchday Home & Compact Sync UX
+ *
+ * Presentation only: all status decisions remain based on stored fixture and
+ * sync data already loaded by the dashboard. No provider request is introduced.
+ */
+function v120FreshnessState() {
+    return String(state.fixtureSyncStatus?.freshness?.state || "checking");
+}
+
+function v120IsFreshEnoughForCurrentStoredState() {
+    return ["fresh", "aging"].includes(v120FreshnessState());
+}
+
+function v120FormatTrustPresentation() {
+    const sync = state.fixtureSyncStatus;
+
+    if (!sync) {
+        return {
+            className: "checking",
+            value: "Checking",
+            detail: "Reading stored provider freshness.",
+        };
+    }
+
+    const freshnessState = v120FreshnessState();
+    const lastSuccess = sync.last_success_at
+        ? `Last successful provider refresh: ${formatDateTime(sync.last_success_at)}.`
+        : "No successful provider refresh is recorded.";
+
+    if (freshnessState === "stale") {
+        return {
+            className: "stale",
+            value: "Stale",
+            detail: `${lastSuccess} The provider snapshot is stale; current match status is not inferred.`,
+        };
+    }
+
+    if (freshnessState === "last_sync_failed") {
+        return {
+            className: "last-sync-failed",
+            value: "Last refresh failed",
+            detail: `${lastSuccess} Current match status is not inferred.`,
+        };
+    }
+
+    if (freshnessState === "fresh" || freshnessState === "aging") {
+        return {
+            className: freshnessState,
+            value: freshnessState === "fresh" ? "Fresh" : "Aging",
+            detail: lastSuccess,
+        };
+    }
+
+    return {
+        className: "unavailable",
+        value: "Unavailable",
+        detail: `${lastSuccess} Current match status is not inferred.`,
+    };
+}
+
+function renderMatchdayDataTrust() {
+    const trust = document.querySelector("#matchday-data-trust");
+
+    if (!trust) {
+        return;
+    }
+
+    const presentation = v120FormatTrustPresentation();
+
+    trust.className = `matchday-data-trust ${presentation.className}`;
+    trust.innerHTML = `
+        <span>Data trust</span>
+        <strong>${escapeHtml(presentation.value)}</strong>
+        <small>${escapeHtml(presentation.detail)}</small>
+        <a href="#sync-runtime">View Sync details</a>
+    `;
+}
+
+function v120IsFutureStoredKickoff(fixture) {
+    const kickoffTime = Date.parse(fixture?.kickoff_time || "");
+
+    return Number.isFinite(kickoffTime) && kickoffTime > Date.now();
+}
+
+getMatchdayHeroFixtures = function getMatchdayHeroFixturesV120(fixtures = []) {
+    const safeFixtures = Array.isArray(fixtures) ? fixtures : [];
+    const sortedByNewest = [...safeFixtures].sort(
+        (left, right) => new Date(right?.kickoff_time || 0) - new Date(left?.kickoff_time || 0),
+    );
+    const sortedBySoonest = [...safeFixtures].sort(
+        (left, right) => new Date(left?.kickoff_time || 0) - new Date(right?.kickoff_time || 0),
+    );
+
+    return {
+        live: sortedByNewest.find(
+            (fixture) => getFixtureStatusCategory(fixture) === "live",
+        ) || null,
+        latestCompleted: sortedByNewest.find(
+            (fixture) => getFixtureStatusCategory(fixture) === "completed",
+        ) || null,
+        nextUpcoming: sortedBySoonest.find(
+            (fixture) => getFixtureStatusCategory(fixture) === "scheduled",
+        ) || null,
+    };
+};
+
+renderMatchdayScoreCard = function renderMatchdayScoreCardV120(fixture, label, tone) {
+    if (!fixture) {
+        return "";
+    }
+
+    const matchLabel = `${fixture.home_team || "Home team"} vs ${fixture.away_team || "Away team"}`;
+    const statusPresentation = getFixtureStatusPresentation(fixture);
+    const isUpcoming = statusPresentation.matchState === "scheduled";
+    const isRecordedLive = statusPresentation.matchState === "live";
+    const isCurrentStoredLive = isRecordedLive && v120IsFreshEnoughForCurrentStoredState();
+    const isStoredKickoffUpcoming = isUpcoming
+        && statusPresentation.stateSource === DISPLAY_STATE_SOURCE_STORED_KICKOFF;
+    const cardLabel = isRecordedLive
+        ? (isCurrentStoredLive ? "Live in latest stored refresh" : "Last recorded live")
+        : (isStoredKickoffUpcoming ? "Upcoming from stored kickoff" : label);
+    const scoreLine = isUpcoming
+        ? "Upcoming"
+        : `${formatScore(fixture.home_score)} – ${formatScore(fixture.away_score)}`;
+    const timeLabel = isUpcoming
+        ? formatDateTime(fixture.kickoff_time)
+        : formatStatus(fixture.status);
+    const statusDetail = isRecordedLive && !isCurrentStoredLive
+        ? " · Stored snapshot is stale; current status is not inferred."
+        : (isStoredKickoffUpcoming
+            ? " · Provider match status unavailable; shown from future stored kickoff."
+            : "");
+
+    return `
+        <button
+            class="matchday-score-card ${escapeHtml(tone)}"
+            type="button"
+            data-matchday-fixture-id="${escapeHtml(fixture.id)}"
+            aria-label="Open match detail for ${escapeHtml(matchLabel)}"
+        >
+            <span class="matchday-card-label">${escapeHtml(cardLabel)}</span>
+            <span class="matchday-card-context">${escapeHtml(fixture.group_name || fixture.stage || "World Cup 2026")}</span>
+            <span class="matchday-card-teams">
+                <strong>${escapeHtml(fixture.home_team || "Home team")}</strong>
+                <strong>${escapeHtml(fixture.away_team || "Away team")}</strong>
+            </span>
+            <strong class="matchday-card-score">${escapeHtml(scoreLine)}</strong>
+            <span class="matchday-card-meta">${escapeHtml(`${timeLabel}${statusDetail}`)}</span>
+            <span class="matchday-card-action">Open match</span>
+        </button>
+    `;
+};
+
+renderMatchdayHome = function renderMatchdayHomeV120(fixtures = state.matchdayFixtures) {
+    if (
+        !elements.matchdayHomeContent
+        || !elements.matchdayHomeMessage
+        || !elements.dataHealthBadge
+    ) {
+        return;
+    }
+
+    const safeFixtures = Array.isArray(fixtures) ? fixtures : [];
+    const health = getDataHealthPresentation();
+    const heroes = getMatchdayHeroFixtures(safeFixtures);
+    const cards = [
+        heroes.live ? renderMatchdayScoreCard(heroes.live, "Now", "live") : "",
+        renderMatchdayScoreCard(heroes.nextUpcoming, "Next", "upcoming"),
+        renderMatchdayScoreCard(heroes.latestCompleted, "Latest", "completed"),
+    ].filter(Boolean);
+
+    elements.dataHealthBadge.className = `data-health-badge ${health.className}`;
+    elements.dataHealthBadge.innerHTML = `
+        <span>Match detail coverage</span>
+        <strong>${escapeHtml(health.value)}</strong>
+        <small>${escapeHtml(health.detail)}</small>
+    `;
+    renderMatchdayDataTrust();
+
+    if (safeFixtures.length === 0 || cards.length === 0) {
+        elements.matchdayHomeMessage.textContent =
+            "No stored fixture cards are available in the current view yet.";
+        elements.matchdayHomeContent.innerHTML = `
+            <div class="matchday-home-empty">
+                Matchday cards will appear as stored fixture data becomes available.
+            </div>
+        `;
+        return;
+    }
+
+    const liveMessage = heroes.live
+        ? (v120IsFreshEnoughForCurrentStoredState()
+            ? "A fixture is marked live in the latest stored snapshot."
+            : "A fixture was last recorded live, but the provider snapshot is stale.")
+        : "Next stored kickoff and latest result are ready.";
+
+    elements.matchdayHomeMessage.textContent =
+        `${liveMessage} ${safeFixtures.length} fixture${safeFixtures.length === 1 ? "" : "s"} in this view.`;
+    elements.matchdayHomeContent.innerHTML = cards.join("");
+};
+
+const v120RenderFixtureSyncStatus = renderFixtureSyncStatus;
+renderFixtureSyncStatus = function renderFixtureSyncStatusWithMatchdayTrust(data) {
+    v120RenderFixtureSyncStatus(data);
+    renderMatchdayDataTrust();
+};
+
+const v120SetSyncStatusLoading = setSyncStatusLoading;
+setSyncStatusLoading = function setSyncStatusLoadingWithMatchdayTrust() {
+    v120SetSyncStatusLoading();
+    renderMatchdayDataTrust();
+};
+
+const v120SetSyncStatusError = setSyncStatusError;
+setSyncStatusError = function setSyncStatusErrorWithMatchdayTrust(message) {
+    v120SetSyncStatusError(message);
+    renderMatchdayDataTrust();
+};
+
+function v120CloseMoreMenuAfterNavigation(event) {
+    event.currentTarget.closest("details")?.removeAttribute("open");
+}
+
+function initializeV120CompactNavigation() {
+    document
+        .querySelectorAll(".dashboard-more-menu a, .mobile-more-menu a")
+        .forEach((link) => {
+            link.addEventListener("click", v120CloseMoreMenuAfterNavigation);
+        });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    initializeV120CompactNavigation();
+    renderMatchdayDataTrust();
+});
+
 document.addEventListener("DOMContentLoaded", initializeDashboard);

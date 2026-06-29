@@ -5,8 +5,8 @@
     <title>World Cup 2026 AI Stats Dashboard</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <link rel="stylesheet" href="/static/dashboard.css?v=v1.18.1">
-  <link rel="stylesheet" href="/static/live_match_centre.css?v=v1.18.0-phase4">
+    <link rel="stylesheet" href="/static/dashboard.css?v=v1.20.0">
+  <link rel="stylesheet" href="/static/live_match_centre.css?v=v1.20.0">
 </head>
 <body id="dashboard-top">
     <header class="app-header">
@@ -24,16 +24,22 @@
     </header>
 
     <nav id="dashboard-section-nav" class="dashboard-section-nav" aria-label="Quick dashboard navigation">
+
         <div class="dashboard-section-nav-inner">
             <span class="dashboard-section-nav-label">Quick links</span>
             <a class="dashboard-section-nav-link is-active" href="#matchday-home" data-section-nav-link="matchday-home" aria-current="page">Matchday</a>
-            <a class="dashboard-section-nav-link" href="#dashboard-overview" data-section-nav-link="dashboard-overview">Overview</a>
             <a class="dashboard-section-nav-link" href="#fixtures" data-section-nav-link="fixtures">Matches</a>
             <a class="dashboard-section-nav-link" href="#group-standings" data-section-nav-link="group-standings">Groups</a>
             <a class="dashboard-section-nav-link" href="#player-statistics" data-section-nav-link="player-statistics">Players</a>
-            <a class="dashboard-section-nav-link" href="#match-data-quality" data-section-nav-link="match-data-quality">Data</a>
-            <a class="dashboard-section-nav-link" href="#ai-insights" data-section-nav-link="ai-insights">Insights</a>
-            <a class="dashboard-section-nav-link" href="#sync-runtime" data-section-nav-link="sync-runtime">Sync</a>
+            <details id="dashboard-more-menu" class="dashboard-more-menu">
+                <summary data-more-menu-toggle>More</summary>
+                <div class="dashboard-more-menu-links">
+                    <a class="dashboard-section-nav-link" href="#dashboard-overview" data-section-nav-link="dashboard-overview">Overview</a>
+                    <a class="dashboard-section-nav-link" href="#match-data-quality" data-section-nav-link="match-data-quality">Data</a>
+                    <a class="dashboard-section-nav-link" href="#ai-insights" data-section-nav-link="ai-insights">Insights</a>
+                    <a class="dashboard-section-nav-link" href="#sync-runtime" data-section-nav-link="sync-runtime">Sync</a>
+                </div>
+            </details>
         </div>
     </nav>
 
@@ -54,12 +60,25 @@
                     </p>
                 </div>
 
+
+                <div
+                    id="matchday-data-trust"
+                    class="matchday-data-trust checking"
+                    aria-live="polite"
+                    aria-label="Matchday data trust"
+                >
+                    <span>Data trust</span>
+                    <strong>Checking</strong>
+                    <small>Reading stored provider freshness.</small>
+                    <a href="#sync-runtime">View Sync details</a>
+                </div>
+
                 <div
                     id="data-health-badge"
                     class="data-health-badge checking"
                     aria-live="polite"
                 >
-                    <span>Data health</span>
+                    <span>Match detail coverage</span>
                     <strong>Checking</strong>
                     <small>Stored match data</small>
                 </div>
@@ -482,12 +501,21 @@
     </main>
 
 
+
     <nav id="mobile-bottom-nav" class="mobile-bottom-nav" aria-label="Mobile dashboard navigation">
         <a href="#matchday-home" data-section-nav-link="matchday-home">Matchday</a>
         <a href="#fixtures" data-section-nav-link="fixtures">Matches</a>
         <a href="#group-standings" data-section-nav-link="group-standings">Groups</a>
         <a href="#player-statistics" data-section-nav-link="player-statistics">Players</a>
-        <a href="#match-data-quality" data-section-nav-link="match-data-quality">Data</a>
+        <details id="mobile-more-menu" class="mobile-more-menu">
+            <summary data-more-menu-toggle>More</summary>
+            <div class="dashboard-more-menu-links">
+                <a href="#dashboard-overview" data-section-nav-link="dashboard-overview">Overview</a>
+                <a href="#match-data-quality" data-section-nav-link="match-data-quality">Data</a>
+                <a href="#ai-insights" data-section-nav-link="ai-insights">Insights</a>
+                <a href="#sync-runtime" data-section-nav-link="sync-runtime">Sync</a>
+            </div>
+        </details>
     </nav>
 
     <footer class="app-footer">
@@ -496,7 +524,7 @@
         </p>
     </footer>
 
-    <script src="/static/dashboard.js?v=v1.19.1"></script>
-  <script src="/static/live_match_centre.js?v=v1.19.0"></script>
+    <script src="/static/dashboard.js?v=v1.20.0"></script>
+  <script src="/static/live_match_centre.js?v=v1.20.0"></script>
 </body>
 </html>
