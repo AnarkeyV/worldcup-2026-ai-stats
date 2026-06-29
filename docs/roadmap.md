@@ -1,32 +1,35 @@
 # Roadmap
 
-## Current release: v1.19.1 — Fixed Schedule Sync Mode Truthfulness
+## Current release: v1.20.0 — Matchday Home & Compact Sync UX
 
-v1.19.1 is complete in source form.
+v1.20.0 is complete in source form.
 
-It is a small dashboard-only truthfulness patch. The release corrects a misleading Sync Mode label by presenting the active fixed daily schedule rather than legacy interval compatibility metadata.
+It improves the matchday dashboard hierarchy, keeps provider-snapshot freshness distinct from local match-detail coverage, reduces mobile navigation density, and keeps Sync change detail compact without changing any source-of-truth contracts.
 
-### Completed in v1.19.1
+### Completed in v1.20.0
 
-- [x] Provider Sync Runtime now shows `fixed_daily_times` as configured daily slots in the configured timezone.
-- [x] The active schedule is displayed as **Fixed daily: 03:45 · 09:45 · 12:45 (Singapore time)**.
-- [x] Interval wording is reserved for actual interval-mode scheduling.
-- [x] Dashboard JavaScript cache-busting advances to `v1.19.1`.
-- [x] Focused dashboard tests and full regression pass.
-- [x] No provider schedule, threshold, Windows `.env`, Docker, database, Telegram, Cloudflared, Ollama, provider-request, sync-trigger, or data-write behavior changes.
+- [x] Matchday cards prioritise **Now**, **Next**, and **Latest**.
+- [x] A compact Data trust strip links to Sync details and remains separate from Match detail coverage.
+- [x] Stored live fixtures use **Last recorded live** when freshness is stale or otherwise not current enough for present-tense wording.
+- [x] Matchday hero selection reuses the established conservative fixture-state classifier.
+- [x] Primary desktop and mobile navigation prioritises Matchday, Matches, Groups, and Players; More retains Overview, Data, Insights, and Sync.
+- [x] Sync change records use native Show change details disclosure.
+- [x] Touch targets and keyboard focus styling are strengthened for the matchday controls.
+- [x] Focused UI tests and full regression pass: 281 passed, 325 known warnings.
+- [x] No provider schedule, threshold, Windows `.env`, Docker, database, Telegram, Cloudflared, Ollama, provider-request, sync-trigger, or data-write behaviour changes.
 
-### Retained v1.19.0 / v1.18.1 / v1.18.0 capabilities
+### Retained v1.19.1 / v1.19.0 / v1.18.1 / v1.18.0 capabilities
 
+- [x] Fixed daily scheduler wording: **Fixed daily: 03:45 · 09:45 · 12:45 (Singapore time)**.
 - [x] Additive, read-only `freshness_context` in provider sync status and Live Match Centre freshness data.
 - [x] Latest successful snapshot, next scheduled refresh, stale-after timing context, and diagnostics that separate failed syncs from stale snapshots.
-- [x] Dashboard Freshness Context and conservative **Last confirmed live from stored snapshot** wording.
 - [x] Conservative future-`unknown` display derivation from valid stored kickoff time only before kickoff with absent scores.
 - [x] Explicit stored match-state contract: `live`, `completed`, `scheduled`, `unavailable`.
 - [x] Local-only `GET /live-match-centre` API with factual sync-change and event-coverage evidence.
 
 ## Deliberately deferred
 
-These remain deliberately outside v1.19.1:
+These remain deliberately outside v1.20.0:
 
 - Any provider schedule, threshold, Windows `.env`, Docker, database, Telegram, Cloudflared, or Ollama configuration change.
 - Automatic or browser-triggered provider polling.

@@ -3276,3 +3276,159 @@ select:focus {
         left: 1.45rem;
     }
 }
+/* v1.20.0 Matchday Home & Compact Sync UX */
+.matchday-data-trust {
+    display: grid;
+    gap: 0.2rem;
+    min-width: min(100%, 19rem);
+    padding: 0.75rem 0.85rem;
+    border: 1px solid rgba(148, 163, 184, 0.45);
+    border-radius: 0.85rem;
+    background: rgba(15, 23, 42, 0.45);
+}
+
+.matchday-data-trust span,
+.matchday-data-trust small {
+    font-size: 0.82rem;
+    line-height: 1.4;
+}
+
+.matchday-data-trust strong {
+    font-size: 1rem;
+}
+
+.matchday-data-trust a {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.88rem;
+    font-weight: 700;
+}
+
+.matchday-data-trust.fresh {
+    border-color: rgba(74, 222, 128, 0.65);
+}
+
+.matchday-data-trust.aging,
+.matchday-data-trust.stale {
+    border-color: rgba(251, 191, 36, 0.78);
+}
+
+.matchday-data-trust.last-sync-failed,
+.matchday-data-trust.unavailable {
+    border-color: rgba(248, 113, 113, 0.8);
+}
+
+.matchday-data-trust.checking {
+    border-color: rgba(148, 163, 184, 0.55);
+}
+
+.dashboard-more-menu,
+.mobile-more-menu {
+    position: relative;
+}
+
+.dashboard-more-menu > summary,
+.mobile-more-menu > summary {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    font-weight: 700;
+    list-style: none;
+}
+
+.dashboard-more-menu > summary::-webkit-details-marker,
+.mobile-more-menu > summary::-webkit-details-marker {
+    display: none;
+}
+
+.dashboard-more-menu-links {
+    display: grid;
+    gap: 0.25rem;
+    min-width: 10rem;
+    padding: 0.45rem;
+    border: 1px solid rgba(148, 163, 184, 0.42);
+    border-radius: 0.75rem;
+    background: var(--panel, #111827);
+    box-shadow: 0 0.75rem 1.5rem rgba(15, 23, 42, 0.22);
+}
+
+.dashboard-more-menu .dashboard-more-menu-links {
+    position: absolute;
+    z-index: 20;
+    top: calc(100% + 0.35rem);
+    right: 0;
+}
+
+.dashboard-more-menu-links a {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    padding: 0.35rem 0.55rem;
+    border-radius: 0.55rem;
+}
+
+.fixture-status-tabs,
+.fixture-group-tabs {
+    scroll-snap-type: x proximity;
+    scrollbar-width: thin;
+}
+
+.fixture-status-tabs button,
+.fixture-group-tabs button {
+    min-height: 44px;
+    scroll-snap-align: start;
+}
+
+.matchday-score-card,
+.fixture-status-tabs button,
+.fixture-group-tabs button,
+.mobile-bottom-nav > a,
+.mobile-more-menu > summary {
+    min-height: 44px;
+}
+
+button:focus-visible,
+a:focus-visible,
+summary:focus-visible {
+    outline: 3px solid currentColor;
+    outline-offset: 3px;
+}
+
+@media (max-width: 900px) {
+    .matchday-home-heading {
+        align-items: stretch;
+    }
+
+    .matchday-data-trust {
+        min-width: 0;
+    }
+
+    .fixture-status-tabs,
+    .fixture-group-tabs {
+        overflow-x: auto;
+        overscroll-behavior-inline: contain;
+        padding-bottom: 0.25rem;
+    }
+}
+
+@media (max-width: 700px) {
+    .mobile-bottom-nav {
+        align-items: stretch;
+    }
+
+    .mobile-bottom-nav > a,
+    .mobile-more-menu > summary {
+        justify-content: center;
+        text-align: center;
+    }
+
+    .mobile-more-menu .dashboard-more-menu-links {
+        position: absolute;
+        z-index: 25;
+        right: 0;
+        bottom: calc(100% + 0.5rem);
+        min-width: 11rem;
+    }
+}

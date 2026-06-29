@@ -1,6 +1,6 @@
 # World Cup 2026 AI Stats
 
-![Version](https://img.shields.io/badge/version-v1.19.1-purple)
+![Version](https://img.shields.io/badge/version-v1.20.0-purple)
 ![Backend](https://img.shields.io/badge/backend-FastAPI-009688)
 ![Database](https://img.shields.io/badge/database-PostgreSQL-336791)
 ![AI](https://img.shields.io/badge/AI-Ollama%20%2B%20Local%20Llama-green)
@@ -18,13 +18,13 @@ https://wc2026.khairulrizal.qzz.io/dashboard
 **Current release**
 
 ```text
-v1.19.1 — Fixed Schedule Sync Mode Truthfulness
+v1.20.0 — Matchday Home & Compact Sync UX
 ```
 
 **Release verification**
 
 ```text
-277 automated tests passed
+281 automated tests passed
 325 known FastAPI/Starlette Python 3.14 deprecation warnings
 ```
 
@@ -33,6 +33,29 @@ v1.19.1 — Fixed Schedule Sync Mode Truthfulness
 World Cup 2026 AI Stats is a local-first football analytics project built as a practical DevOps, backend, automation, observability, and AI portfolio system.
 
 It aims to be useful on matchday without pretending the available provider data is richer or fresher than it is. The dashboard distinguishes stored facts from unavailable or delayed data instead of filling gaps with guessed events, invented player details, fake timelines, or unverified live claims.
+
+## v1.20.0: Matchday Home & Compact Sync UX
+
+v1.20.0 improves the dashboard's matchday information hierarchy while preserving the factual stored-data boundaries established in v1.18.1 through v1.19.1.
+
+### Changed
+
+- Matchday now prioritises **Now**, **Next**, and **Latest** fixture cards.
+- A compact **Data trust** strip presents provider-snapshot freshness separately from **Match detail coverage**, which remains a local stored-detail measure.
+- A stored live fixture is labelled **Last recorded live** when snapshot freshness is stale; present-tense wording is reserved for a fresh or aging stored snapshot.
+- Future fixtures derived from a valid stored kickoff are labelled **Upcoming from stored kickoff**. Explicit provider scheduled states remain distinct.
+- Desktop and mobile primary navigation prioritise Matchday, Matches, Groups, and Players, with Overview, Data, Insights, and Sync retained under **More**.
+- Sync's factual change summary now uses native **Show change details** disclosure for individual records.
+- Cache-busting values for dashboard and Live Match Centre CSS and JavaScript advance to `v1.20.0`.
+
+### Accessibility and truthfulness rules
+
+- Interactive navigation, fixture controls, cards, and disclosure controls use 44px minimum tap targets with visible keyboard focus.
+- The established four-state fixture display contract remains: Live, Completed, Upcoming, and Data unavailable.
+- Matchday uses the same conservative fixture-state classifier as the fixture browser.
+- Time is never used to infer that a fixture is live. A past or unresolved `unknown` fixture remains unavailable.
+- This release changes front-end presentation only. It does not change provider schedules, thresholds, sync behaviour, provider requests, stored data, Telegram, Docker, Cloudflared, Ollama, or an active runtime `.env`.
+- Windows runtime deployment and public visual review remain separate approved steps.
 
 ## v1.19.1: Fixed Schedule Sync Mode Truthfulness
 
@@ -269,10 +292,10 @@ Run the full suite from `backend`:
 python -m pytest -q
 ```
 
-v1.19.1 source verification:
+v1.20.0 source verification:
 
 ```text
-277 passed, 325 warnings
+281 passed, 325 warnings
 ```
 
 The warnings are FastAPI/Starlette Python 3.14 deprecations related to `asyncio.iscoroutinefunction`. They are warnings, not failing tests.
@@ -312,6 +335,7 @@ Then:
 - [Roadmap](docs/roadmap.md)
 - [Demo Walkthrough](docs/demo-walkthrough.md)
 - [Portfolio Release Summary](docs/portfolio-release.md)
+- [v1.20.0 Matchday Home & Compact Sync UX](docs/v1.20.0-matchday-home-compact-sync-ux.md)
 - [v1.19.1 Fixed Schedule Sync Mode Truthfulness](docs/v1.19.1-fixed-schedule-sync-mode.md)
 - [v1.19.0 Freshness Context and Matchday Trust Signals](docs/v1.19.0-freshness-context-trust-signals.md)
 - [v1.17.1 Runtime Reliability Notes](docs/v1.17.1-runtime-reliability.md)
@@ -339,6 +363,7 @@ Then:
 | v1.16.0 | Fixed-time scheduled sync and Telegram digest | Completed |
 | v1.17.0 | Provider-backed Match Story and Official Watch | Completed |
 | v1.17.1 | Runtime reliability safeguards and read-only Windows status checker | Completed |
+| v1.20.0 | Matchday Home and compact Sync UX | Completed |
 | v1.19.1 | Fixed schedule sync-mode truthfulness | Completed |
 | v1.19.0 | Freshness context and matchday trust signals | Completed |
 | v1.18.1 | Scheduled-from-stored-kickoff display derivation | Completed |

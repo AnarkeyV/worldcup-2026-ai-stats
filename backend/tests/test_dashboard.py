@@ -297,8 +297,9 @@ def test_dashboard_page_includes_fixture_group_tabs():
     assert 'id="fixture-group-tabs"' in response.text
     assert "Browse fixtures by group" in response.text
     assert "Provider-backed Rich Match Dashboard" in response.text
-    assert "dashboard.js?v=v1.19.1" in response.text
-    assert "dashboard.css?v=v1.18.1" in response.text
+    assert "dashboard.js?v=v1.20.0" in response.text
+    assert "dashboard.css?v=v1.20.0" in response.text
+    assert "dashboard.css?v=v1.20.0" in response.text
 
 def test_dashboard_page_includes_fixture_status_browser_controls():
     response = client.get("/dashboard")
@@ -555,7 +556,10 @@ def test_dashboard_page_keeps_read_only_data_coverage_in_visual_home():
     response = client.get("/dashboard")
 
     assert response.status_code == 200
-    assert "Data health" in response.text
+    assert 'id="matchday-data-trust"' in response.text
+    assert "Data trust" in response.text
+    assert "Match detail coverage" in response.text
+    assert "View Sync details" in response.text
     assert "Stored match data" in response.text
     assert "No provider request was made by this panel." in response.text
 

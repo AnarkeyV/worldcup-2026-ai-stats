@@ -155,3 +155,26 @@
         width: 100%;
     }
 }
+/* v1.20.0 compact change disclosure */
+.live-match-centre-change-details {
+    margin-top: 0.75rem;
+    border-top: 1px solid rgba(148, 163, 184, 0.25);
+    padding-top: 0.7rem;
+}
+
+.live-match-centre-change-details summary {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    font-weight: 700;
+}
+
+.live-match-centre-change-details summary:focus-visible {
+    outline: 3px solid currentColor;
+    outline-offset: 3px;
+}
+
+.live-match-centre-change-details ul {
+    margin-bottom: 0;
+}
