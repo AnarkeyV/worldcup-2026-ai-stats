@@ -10,7 +10,7 @@ def test_dashboard_js_includes_read_only_match_story_and_official_watch_logic(cl
     assert "renderStoryEventTimeline" in response.text
     assert "renderStoryStatistics" in response.text
     assert "renderOfficialWatch" in response.text
-    assert "Official Highlights / Watch" in response.text
+    assert "Official Match Video" in response.text
     assert "No video is embedded, downloaded, or rehosted here." in response.text
     assert "target=\"_blank\"" in response.text
     assert "rel=\"noopener noreferrer\"" in response.text

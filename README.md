@@ -1,6 +1,6 @@
 # World Cup 2026 AI Stats
 
-![Version](https://img.shields.io/badge/version-v1.20.1-purple)
+![Version](https://img.shields.io/badge/version-v1.21.0-purple)
 ![Backend](https://img.shields.io/badge/backend-FastAPI-009688)
 ![Database](https://img.shields.io/badge/database-PostgreSQL-336791)
 ![AI](https://img.shields.io/badge/AI-Ollama%20%2B%20Local%20Llama-green)
@@ -18,13 +18,13 @@ https://wc2026.khairulrizal.qzz.io/dashboard
 **Current release**
 
 ```text
-v1.20.1 — Standings & Dashboard Resilience Hotfix
+v1.21.0 — Knockout Stage UX & Official Match Video Links
 ```
 
 **Release verification**
 
 ```text
-283 automated tests passed
+296 automated tests passed
 325 known FastAPI/Starlette Python 3.14 deprecation warnings
 ```
 
@@ -33,6 +33,35 @@ v1.20.1 — Standings & Dashboard Resilience Hotfix
 World Cup 2026 AI Stats is a local-first football analytics project built as a practical DevOps, backend, automation, observability, and AI portfolio system.
 
 It aims to be useful on matchday without pretending the available provider data is richer or fresher than it is. The dashboard distinguishes stored facts from unavailable or delayed data instead of filling gaps with guessed events, invented player details, fake timelines, or unverified live claims.
+
+## v1.21.0: Knockout Stage UX & Official Match Video Links
+
+v1.21.0 shifts the live dashboard hierarchy toward provider-backed knockout fixtures while preserving conservative fixture-state, freshness, and stored-detail boundaries.
+
+### What changed
+
+- Matchday recognises only the stored provider-backed knockout stage labels: **Round of 32**, **Round of 16**, **Quarter-finals**, **Semi-finals**, **Third-place Playoff**, and **Final**.
+- When recognised knockout fixtures exist, Matchday prioritises the latest completed knockout result and the next confirmed knockout fixture without inventing future pairings, outcomes, or live state.
+- Fixture browsing can be scoped by recognised knockout stage. Unknown or malformed stages are not promoted into the knockout view.
+- Group Standings, Group Race, and Group Insights now sit inside a semantic **Group Stage** disclosure. It collapses only after recognised stored knockout fixtures are available and remains keyboard accessible.
+- The desktop and mobile **More** menus now use resilient close behavior for destination selection, Escape, click-away, and viewport changes. Desktop navigation releases the menu from its clipping context.
+- Official Match Video cards now state source, video type, match-specific association, territory, publication time when verified, and curator verification time.
+- `mediacorp_sports_youtube` is a narrow manual-curation policy for direct videos from the official `@SportsMediacorp` channel. It does not search YouTube, scrape pages, require an API key, create records automatically, or add a live database record.
+
+### Preserved boundaries
+
+- Stored provider fixtures remain the source of truth. Time never infers that a match is live.
+- No future knockout bracket is fabricated when later stages are absent from provider data.
+- Provider schedule, freshness thresholds, Telegram, Cloudflared, Ollama, Docker, database data, active runtime `.env`, and the Windows host remain unchanged.
+- Official-video links remain manually verified, outbound-only, no-embed links. A fixture without a verified match-specific record shows an honest unavailable state.
+
+### Validation
+
+- Focused knockout UX, disclosure, navigation, Official Watch, route, and presentation coverage passed.
+- Full regression: **296 passed**.
+- Known warnings: **325** FastAPI/Starlette Python 3.14 deprecation warnings.
+- `git diff --check` completed without findings before release alignment.
+
 
 ## v1.20.1: Standings & Dashboard Resilience Hotfix
 
@@ -310,6 +339,12 @@ Run the full suite from `backend`:
 python -m pytest -q
 ```
 
+v1.21.0 source verification:
+
+- Focused knockout UX, disclosure, navigation, Official Watch, route, and presentation coverage passed.
+- 296 full regression tests passed.
+- 325 known FastAPI/Starlette Python 3.14 deprecation warnings.
+
 v1.20.1 source verification:
 
 - 82 focused standings, AI, and dashboard tests passed.
@@ -359,6 +394,9 @@ Then:
 - [Roadmap](docs/roadmap.md)
 - [Demo Walkthrough](docs/demo-walkthrough.md)
 - [Portfolio Release Summary](docs/portfolio-release.md)
+- [v1.21.0 Knockout Stage UX & Official Match Video Links](docs/v1.21.0-knockout-stage-ux-official-video-links.md)
+- [Official Match Video Curation Guide](docs/official-match-video-curation.md)
+
 - [v1.20.1 Standings & Dashboard Resilience Hotfix](docs/v1.20.1-standings-dashboard-resilience-hotfix.md)
 - [v1.20.0 Matchday Home & Compact Sync UX](docs/v1.20.0-matchday-home-compact-sync-ux.md)
 - [v1.19.1 Fixed Schedule Sync Mode Truthfulness](docs/v1.19.1-fixed-schedule-sync-mode.md)
@@ -388,6 +426,8 @@ Then:
 | v1.16.0 | Fixed-time scheduled sync and Telegram digest | Completed |
 | v1.17.0 | Provider-backed Match Story and Official Watch | Completed |
 | v1.17.1 | Runtime reliability safeguards and read-only Windows status checker | Completed |
+| v1.21.0 | Knockout Stage UX and official match video trust signals | Completed |
+
 | v1.20.1 | Standings and dashboard resilience hotfix | Completed |
 | v1.20.0 | Matchday Home and compact Sync UX | Completed |
 | v1.19.1 | Fixed schedule sync-mode truthfulness | Completed |

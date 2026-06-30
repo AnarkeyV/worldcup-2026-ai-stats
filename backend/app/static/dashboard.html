@@ -5,8 +5,8 @@
     <title>World Cup 2026 AI Stats Dashboard</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <link rel="stylesheet" href="/static/dashboard.css?v=v1.20.1">
-  <link rel="stylesheet" href="/static/live_match_centre.css?v=v1.20.1">
+    <link rel="stylesheet" href="/static/dashboard.css?v=v1.21.0">
+  <link rel="stylesheet" href="/static/live_match_centre.css?v=v1.21.0">
 </head>
 <body id="dashboard-top">
     <header class="app-header">
@@ -29,11 +29,11 @@
             <span class="dashboard-section-nav-label">Quick links</span>
             <a class="dashboard-section-nav-link is-active" href="#matchday-home" data-section-nav-link="matchday-home" aria-current="page">Matchday</a>
             <a class="dashboard-section-nav-link" href="#fixtures" data-section-nav-link="fixtures">Matches</a>
-            <a class="dashboard-section-nav-link" href="#group-standings" data-section-nav-link="group-standings">Groups</a>
+            <a class="dashboard-section-nav-link" href="#group-stage" data-section-nav-link="group-stage">Groups</a>
             <a class="dashboard-section-nav-link" href="#player-statistics" data-section-nav-link="player-statistics">Players</a>
             <details id="dashboard-more-menu" class="dashboard-more-menu">
-                <summary data-more-menu-toggle>More</summary>
-                <div class="dashboard-more-menu-links">
+                <summary data-more-menu-toggle aria-controls="dashboard-more-menu-links">More</summary>
+                <div id="dashboard-more-menu-links" class="dashboard-more-menu-links">
                     <a class="dashboard-section-nav-link" href="#dashboard-overview" data-section-nav-link="dashboard-overview">Overview</a>
                     <a class="dashboard-section-nav-link" href="#match-data-quality" data-section-nav-link="match-data-quality">Data</a>
                     <a class="dashboard-section-nav-link" href="#ai-insights" data-section-nav-link="ai-insights">Insights</a>
@@ -289,47 +289,94 @@
             </button>
         </section>
 
+                        <details
+            id="group-stage"
+            class="group-stage-disclosure"
+            data-dashboard-section
+            aria-label="Group Stage"
+            open
+        >
+            <summary>
+                <span class="group-stage-disclosure-heading">
+                    <span class="eyebrow">Tournament context</span>
+                    <span>
+                        <span class="group-stage-disclosure-title">Group Stage</span>
+                        <span id="group-stage-message" class="group-stage-disclosure-copy">
+                            Group standings, Group Race, and group insights.
+                        </span>
+                    </span>
+                </span>
+                <span class="group-stage-disclosure-toggle" aria-hidden="true">Hide group data</span>
+            </summary>
+
+            <div class="group-stage-disclosure-content">
                 <section id="ai-insights" class="ai-insights-panel" data-dashboard-section aria-label="Structured AI insights">
-            <div class="ai-insights-heading">
-                <div>
-                    <p class="eyebrow">AI Insights Upgrade</p>
-                    <h2>Structured AI Insights</h2>
-                    <p id="ai-insights-message">
-                        Loading structured fixture, standings, and sync insights...
-                    </p>
-                </div>
+                            <div class="ai-insights-heading">
+                                <div>
+                                    <p class="eyebrow">AI Insights Upgrade</p>
+                                    <h2>Structured AI Insights</h2>
+                                    <p id="ai-insights-message">
+                                        Loading structured fixture, standings, and sync insights...
+                                    </p>
+                                </div>
 
-                <button id="refresh-ai-insights" type="button">
-                    Refresh AI Insights
-                </button>
+                                <button id="refresh-ai-insights" type="button">
+                                    Refresh AI Insights
+                                </button>
+                            </div>
+
+                            <div id="ai-insights-summary" class="ai-insights-summary">
+                                AI insights will appear after the dashboard checks fixture data.
+                            </div>
+
+                            <section class="group-race-board" aria-label="Top two teams in each group">
+                                <div class="group-race-heading">
+                                    <div>
+                                        <p class="eyebrow">Standings Snapshot</p>
+                                        <h3>Group Race</h3>
+                                        <p id="group-race-message">
+                                            Loading the current top two teams in each group.
+                                        </p>
+                                    </div>
+
+                                    <span class="group-race-badge">Top 2</span>
+                                </div>
+
+                                <div id="group-race-container" class="group-race-grid" aria-live="polite">
+                                    <div class="group-race-empty">
+                                        Group race positions will appear after completed fixtures are available.
+                                    </div>
+                                </div>
+                            </section>
+
+                            <div id="ai-insights-container" class="ai-insights-grid" aria-live="polite"></div>
+                        </section>
+
+                <section id="group-insights" class="insights-section" data-dashboard-section aria-label="Group insights">
+                            <div class="section-heading">
+                                <div>
+                                    <h2>Group Insights</h2>
+                                    <p id="insights-message">Loading insights...</p>
+                                </div>
+                            </div>
+
+                            <div id="insights-container" class="insights-grid" aria-live="polite"></div>
+                        </section>
+
+                <section id="group-standings" class="standings-section" data-dashboard-section aria-label="Group standings">
+                            <div class="section-heading">
+                                <div>
+                                    <h2>Group Standings</h2>
+                                    <p id="standings-message">Loading standings...</p>
+                                </div>
+                            </div>
+
+                            <div id="standings-container" class="standings-container" aria-live="polite"></div>
+                        </section>
             </div>
+        </details>
 
-            <div id="ai-insights-summary" class="ai-insights-summary">
-                AI insights will appear after the dashboard checks fixture data.
-            </div>
 
-            <section class="group-race-board" aria-label="Top two teams in each group">
-                <div class="group-race-heading">
-                    <div>
-                        <p class="eyebrow">Standings Snapshot</p>
-                        <h3>Group Race</h3>
-                        <p id="group-race-message">
-                            Loading the current top two teams in each group.
-                        </p>
-                    </div>
-
-                    <span class="group-race-badge">Top 2</span>
-                </div>
-
-                <div id="group-race-container" class="group-race-grid" aria-live="polite">
-                    <div class="group-race-empty">
-                        Group race positions will appear after completed fixtures are available.
-                    </div>
-                </div>
-            </section>
-
-            <div id="ai-insights-container" class="ai-insights-grid" aria-live="polite"></div>
-        </section>
 
         <section class="controls-panel" aria-label="Dashboard filters">
             <div class="control-group">
@@ -360,16 +407,7 @@
             </button>
         </section>
 
-        <section id="group-insights" class="insights-section" data-dashboard-section aria-label="Group insights">
-            <div class="section-heading">
-                <div>
-                    <h2>Group Insights</h2>
-                    <p id="insights-message">Loading insights...</p>
-                </div>
-            </div>
 
-            <div id="insights-container" class="insights-grid" aria-live="polite"></div>
-        </section>
 
         <section id="player-statistics" class="player-stats-section" data-dashboard-section aria-label="Provider-backed player leaders">
             <div class="section-heading">
@@ -432,16 +470,7 @@
             </section>
         </section>
 
-        <section id="group-standings" class="standings-section" data-dashboard-section aria-label="Group standings">
-            <div class="section-heading">
-                <div>
-                    <h2>Group Standings</h2>
-                    <p id="standings-message">Loading standings...</p>
-                </div>
-            </div>
 
-            <div id="standings-container" class="standings-container" aria-live="polite"></div>
-        </section>
 
         <section id="fixtures" class="fixtures-section" data-dashboard-section aria-label="Fixture browser">
             <div class="section-heading fixture-browser-heading">
@@ -505,11 +534,11 @@
     <nav id="mobile-bottom-nav" class="mobile-bottom-nav" aria-label="Mobile dashboard navigation">
         <a href="#matchday-home" data-section-nav-link="matchday-home">Matchday</a>
         <a href="#fixtures" data-section-nav-link="fixtures">Matches</a>
-        <a href="#group-standings" data-section-nav-link="group-standings">Groups</a>
+        <a href="#group-stage" data-section-nav-link="group-stage">Groups</a>
         <a href="#player-statistics" data-section-nav-link="player-statistics">Players</a>
         <details id="mobile-more-menu" class="mobile-more-menu">
-            <summary data-more-menu-toggle>More</summary>
-            <div class="dashboard-more-menu-links">
+            <summary data-more-menu-toggle aria-controls="mobile-more-menu-links">More</summary>
+            <div id="mobile-more-menu-links" class="dashboard-more-menu-links">
                 <a href="#dashboard-overview" data-section-nav-link="dashboard-overview">Overview</a>
                 <a href="#match-data-quality" data-section-nav-link="match-data-quality">Data</a>
                 <a href="#ai-insights" data-section-nav-link="ai-insights">Insights</a>
@@ -524,7 +553,7 @@
         </p>
     </footer>
 
-    <script src="/static/dashboard.js?v=v1.20.1"></script>
-  <script src="/static/live_match_centre.js?v=v1.20.1"></script>
+    <script src="/static/dashboard.js?v=v1.21.0"></script>
+  <script src="/static/live_match_centre.js?v=v1.21.0"></script>
 </body>
 </html>

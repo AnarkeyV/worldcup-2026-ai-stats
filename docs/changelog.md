@@ -6,6 +6,33 @@ The project follows semantic versioning and milestone-based releases.
 
 ---
 
+## [1.21.0] — Knockout Stage UX & Official Match Video Links
+
+### Changed
+
+- Matchday now prioritises recognised stored knockout fixtures when they exist, including the latest completed knockout result and next confirmed knockout fixture.
+- Fixture browsing adds recognised knockout-stage scopes without treating unknown or malformed stage values as knockout data.
+- Group Standings, Group Race, and Group Insights move into an accessible Group Stage disclosure that defaults collapsed only when recognised knockout data is stored.
+- Desktop and mobile More navigation receive close-on-destination, Escape, click-away, and viewport-change behavior; desktop positioning no longer relies on an overflow-clipped context.
+- Official Match Video cards show source, type, match-specific association, territory, verified publication time where available, and curator verification time.
+- `mediacorp_sports_youtube` adds a manual-only, direct-video policy for verified `@SportsMediacorp` links.
+
+### Verified
+
+```text
+Full regression: 296 passed
+Known warnings: 325 FastAPI/Starlette Python 3.14 deprecation warnings
+```
+
+### Boundaries
+
+- No YouTube API key, automated polling, scraping, database import, provider request, schedule, threshold, Telegram, Docker, Cloudflared, Ollama, Windows runtime, active `.env`, or stored-data behavior changed.
+- No fixture video record is inserted by this source release.
+- A match without a verified match-specific official video remains unavailable rather than receiving an unrelated link.
+
+
+---
+
 ## [1.20.1] — Standings and Dashboard Resilience Hotfix
 
 ### Fixed

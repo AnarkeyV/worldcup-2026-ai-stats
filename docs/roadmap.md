@@ -1,53 +1,43 @@
 # Roadmap
 
-## Current release: v1.20.1 — Standings & Dashboard Resilience Hotfix
+## Current release: v1.21.0 — Knockout Stage UX & Official Match Video Links
 
-v1.20.1 is complete in source form.
+v1.21.0 is complete in source form.
 
-It corrects an ungrouped-fixture standings edge case and makes the dashboard preserve healthy fixture and Matchday data when a secondary panel is unavailable.
+It shifts the live dashboard toward recognised provider-backed knockout fixtures, moves group-era information behind accessible progressive disclosure, repairs desktop More navigation behavior, and strengthens transparent official-video presentation.
 
-### Completed in v1.20.1
+### Completed in v1.21.0
 
-- [x] Completed fixtures without an explicit group are excluded from group standings while remaining visible in fixture and match-detail views.
-- [x] `/standings` and dependent `/ai/insights` no longer fail when stored provider data contains both grouped and ungrouped completed fixtures.
-- [x] Dashboard fixture, Matchday, standings, group-insights, and structured-AI-insights panels settle independently.
-- [x] A secondary data-panel failure no longer hides healthy fixture-browser data.
-- [x] Dashboard and Live Match Centre static asset cache-busting values advance to `v1.20.1`.
-- [x] Focused coverage and full regression pass: 283 passed, 325 known warnings.
-- [x] No provider schedule, threshold, active Windows `.env`, Docker, database, Telegram, Cloudflared, Ollama, provider-request, sync-trigger, or data-write behaviour changes.
+- [x] Matchday prioritises recognised stored knockout fixtures without fabricating later-stage pairings, outcomes, or live state.
+- [x] Fixture browsing offers stage-specific scopes for recognised Round of 32 through Final labels when supplied by stored provider data.
+- [x] Group Standings, Group Race, and Group Insights are available in a semantic Group Stage disclosure that collapses only when recognised knockout fixtures exist.
+- [x] Desktop and mobile More menus support destination close, Escape-to-close, click-away close, focus restoration, and viewport-change close behavior.
+- [x] Desktop More navigation is released from the overflow/stacking context that clipped the opened panel.
+- [x] Official Match Video presentation distinguishes verified match-specific videos, official coverage hubs, and unavailable records.
+- [x] `mediacorp_sports_youtube` is limited to curator-verified direct `@SportsMediacorp` video URLs; no API key, discovery polling, scraping, or automatic import is added.
+- [x] Full regression passes: 296 passed, 325 known warnings.
+- [x] No provider schedule, threshold, active Windows `.env`, Docker, database, Telegram, Cloudflared, Ollama, provider-request, sync-trigger, or data-write behavior changes.
 
-### Retained from v1.20.0
-
-
-- [x] Matchday cards prioritise **Now**, **Next**, and **Latest**.
-- [x] A compact Data trust strip links to Sync details and remains separate from Match detail coverage.
-- [x] Stored live fixtures use **Last recorded live** when freshness is stale or otherwise not current enough for present-tense wording.
-- [x] Matchday hero selection reuses the established conservative fixture-state classifier.
-- [x] Primary desktop and mobile navigation prioritises Matchday, Matches, Groups, and Players; More retains Overview, Data, Insights, and Sync.
-- [x] Sync change records use native Show change details disclosure.
-- [x] Touch targets and keyboard focus styling are strengthened for the matchday controls.
-- [x] Focused UI tests and full regression pass: 281 passed, 325 known warnings.
-- [x] No provider schedule, threshold, Windows `.env`, Docker, database, Telegram, Cloudflared, Ollama, provider-request, sync-trigger, or data-write behaviour changes.
-
-### Retained v1.20.0 / v1.19.1 / v1.19.0 / v1.18.1 / v1.18.0 capabilities
+### Retained v1.20.1 / v1.20.0 / v1.19.1 / v1.19.0 / v1.18.1 / v1.18.0 capabilities
 
 - [x] Fixed daily scheduler wording: **Fixed daily: 03:45 · 09:45 · 12:45 (Singapore time)**.
-- [x] Additive, read-only `freshness_context` in provider sync status and Live Match Centre freshness data.
-- [x] Latest successful snapshot, next scheduled refresh, stale-after timing context, and diagnostics that separate failed syncs from stale snapshots.
-- [x] Conservative future-`unknown` display derivation from valid stored kickoff time only before kickoff with absent scores.
-- [x] Explicit stored match-state contract: `live`, `completed`, `scheduled`, `unavailable`.
-- [x] Local-only `GET /live-match-centre` API with factual sync-change and event-coverage evidence.
+- [x] Additive, read-only freshness context and conservative stored fixture-state presentation.
+- [x] Local-only Live Match Centre with factual sync-change and stored-detail coverage evidence.
+- [x] Grouped fixture browsing, provider-backed match detail, player leaders, local AI fallback, and runtime observability remain available.
+
 
 ## Deliberately deferred
 
-These remain deliberately outside v1.20.1:
+These remain deliberately outside v1.21.0:
 
 - Any provider schedule, threshold, Windows `.env`, Docker, database, Telegram, Cloudflared, or Ollama configuration change.
 - Automatic or browser-triggered provider polling.
+- YouTube Data API credentials, automated YouTube discovery, scraping, automated video imports, or production video-record writes.
 - Treating a future stored kickoff as provider-confirmed scheduling or using time to infer a live match.
+- Fabricated later-round knockout pairings or outcomes when provider stage data is absent.
 - Historical reconstruction of sync deltas before v1.18 change capture.
 - Full event-version history or provider event identifiers.
-- New provider assumptions, scraping, backfill work, or fabricated live timelines.
+- New provider assumptions, backfill work, or fabricated live timelines.
 - Runtime deployment, database changes, or Windows host changes before explicit approval.
 
 ## Candidate future work

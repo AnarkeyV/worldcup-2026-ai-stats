@@ -1167,14 +1167,61 @@ function getGroupNameFromScope(scope) {
         : "";
 }
 
+const RECOGNIZED_KNOCKOUT_STAGES = Object.freeze([
+    "Round of 32",
+    "Round of 16",
+    "Quarter-finals",
+    "Semi-finals",
+    "Third-place Playoff",
+    "Final",
+]);
+
+const KNOCKOUT_STAGE_SCOPE_PREFIX = "knockout-stage:";
+const recognizedKnockoutStageByNormalizedLabel = new Map(
+    RECOGNIZED_KNOCKOUT_STAGES.map((stage) => [normalizeKnockoutStageLabel(stage), stage]),
+);
+
+function normalizeKnockoutStageLabel(value) {
+    return String(value || "")
+        .trim()
+        .toLowerCase()
+        .replaceAll("_", " ")
+        .replaceAll("-", " ")
+        .replace(/\s+/g, " ");
+}
+
+function getRecognizedKnockoutStage(fixture) {
+    const normalizedStage = normalizeKnockoutStageLabel(fixture?.stage);
+
+    return recognizedKnockoutStageByNormalizedLabel.get(normalizedStage) || null;
+}
+
 function isKnockoutFixture(fixture) {
-    if (fixture.group_name) {
-        return false;
+    return Boolean(getRecognizedKnockoutStage(fixture));
+}
+
+function getRecognizedKnockoutStages(fixtures) {
+    const presentStages = new Set(
+        (Array.isArray(fixtures) ? fixtures : [])
+            .map(getRecognizedKnockoutStage)
+            .filter(Boolean),
+    );
+
+    return RECOGNIZED_KNOCKOUT_STAGES.filter((stage) => presentStages.has(stage));
+}
+
+function getFixtureScopeFromKnockoutStage(stage) {
+    return `${KNOCKOUT_STAGE_SCOPE_PREFIX}${stage}`;
+}
+
+function getKnockoutStageFromScope(scope) {
+    if (!String(scope || "").startsWith(KNOCKOUT_STAGE_SCOPE_PREFIX)) {
+        return null;
     }
 
-    const stage = String(fixture.stage || "").toLowerCase();
+    const stage = String(scope).slice(KNOCKOUT_STAGE_SCOPE_PREFIX.length);
 
-    return Boolean(stage) && !stage.includes("group");
+    return recognizedKnockoutStageByNormalizedLabel.get(normalizeKnockoutStageLabel(stage)) || null;
 }
 
 function getFixturesForStatus(fixtures, statusScope = state.fixtureStatusScope) {
@@ -1183,6 +1230,13 @@ function getFixturesForStatus(fixtures, statusScope = state.fixtureStatusScope) 
 
 function filterFixturesForScope(fixtures) {
     const statusFixtures = getFixturesForStatus(fixtures);
+    const knockoutStage = getKnockoutStageFromScope(state.fixtureScope);
+
+    if (knockoutStage) {
+        return statusFixtures.filter(
+            (fixture) => getRecognizedKnockoutStage(fixture) === knockoutStage,
+        );
+    }
 
     if (state.fixtureScope === "knockout") {
         return statusFixtures.filter(isKnockoutFixture);
@@ -1225,20 +1279,30 @@ function ensureFixtureBrowserSelection(fixtures) {
 
     const statusFixtures = getFixturesForStatus(fixtures);
     const selectedGroup = getGroupNameFromScope(state.fixtureScope);
+    const selectedKnockoutStage = getKnockoutStageFromScope(state.fixtureScope);
     const availableGroups = getFixtureGroups(statusFixtures);
+    const availableKnockoutStages = getRecognizedKnockoutStages(statusFixtures);
     const hasSelectedGroup = selectedGroup && availableGroups.includes(selectedGroup);
-    const hasKnockoutFixtures = statusFixtures.some(isKnockoutFixture);
+    const hasSelectedKnockoutStage = selectedKnockoutStage
+        && availableKnockoutStages.includes(selectedKnockoutStage);
+    const hasKnockoutFixtures = availableKnockoutStages.length > 0;
 
     if (state.filters.group && availableGroups.includes(state.filters.group)) {
         state.fixtureScope = getFixtureScopeFromGroup(state.filters.group);
         return;
     }
 
-    if (hasSelectedGroup || (state.fixtureScope === "knockout" && hasKnockoutFixtures)) {
+    if (
+        hasSelectedGroup
+        || hasSelectedKnockoutStage
+        || (state.fixtureScope === "knockout" && hasKnockoutFixtures)
+    ) {
         return;
     }
 
-    if (availableGroups.length > 0) {
+    if (availableKnockoutStages.length > 0) {
+        state.fixtureScope = getFixtureScopeFromKnockoutStage(availableKnockoutStages[0]);
+    } else if (availableGroups.length > 0) {
         state.fixtureScope = getFixtureScopeFromGroup(availableGroups[0]);
     } else if (hasKnockoutFixtures) {
         state.fixtureScope = "knockout";
@@ -1305,28 +1369,26 @@ function renderFixtureGroupTabs(fixtures) {
 
     const statusFixtures = getFixturesForStatus(fixtures);
     const groups = getFixtureGroups(statusFixtures);
+    const knockoutStages = getRecognizedKnockoutStages(statusFixtures);
     const tabs = [
         {
             scope: "all",
-            label: "All groups",
+            label: "All fixtures",
             count: statusFixtures.length,
         },
+        ...knockoutStages.map((stage) => ({
+            scope: getFixtureScopeFromKnockoutStage(stage),
+            label: stage,
+            count: statusFixtures.filter(
+                (fixture) => getRecognizedKnockoutStage(fixture) === stage,
+            ).length,
+        })),
         ...groups.map((group) => ({
             scope: getFixtureScopeFromGroup(group),
             label: group,
             count: statusFixtures.filter((fixture) => fixture.group_name === group).length,
         })),
     ];
-
-    const knockoutFixtures = statusFixtures.filter(isKnockoutFixture);
-
-    if (knockoutFixtures.length > 0) {
-        tabs.push({
-            scope: "knockout",
-            label: "Knockout",
-            count: knockoutFixtures.length,
-        });
-    }
 
     if (tabs.length === 1 && statusFixtures.length === 0) {
         elements.fixtureGroupTabs.innerHTML = `
@@ -1361,11 +1423,14 @@ function updateFixtureBrowserMessage(fixtures) {
     const label = state.fixtureStatusScope === "scheduled"
         ? "upcoming"
         : state.fixtureStatusScope;
+    const selectedKnockoutStage = getKnockoutStageFromScope(state.fixtureScope);
     const scopeLabel = state.fixtureScope === "all"
-        ? "all groups"
-        : state.fixtureScope === "knockout"
-            ? "the knockout stage"
-            : getGroupNameFromScope(state.fixtureScope);
+        ? "all fixtures"
+        : selectedKnockoutStage
+            ? selectedKnockoutStage
+            : state.fixtureScope === "knockout"
+                ? "the knockout stage"
+                : getGroupNameFromScope(state.fixtureScope);
 
     elements.fixtureBrowserMessage.textContent =
         `Showing ${fixtures.length} ${label} fixture${fixtures.length === 1 ? "" : "s"} for ${scopeLabel}.`;
@@ -2757,22 +2822,79 @@ function isSafeOfficialOutboundUrl(value) {
     }
 }
 
+/*
+ * v1.21.0 checkpoint 3: transparent Official Watch presentation.
+ * Link discovery remains manual and local-record only. This renderer does not
+ * search video sites, fetch external URLs, or create video records.
+ */
+function formatOfficialWatchContentType(value, fallback = false) {
+    if (fallback) {
+        return "Official coverage hub — not match-specific";
+    }
+
+    const normalized = String(value || "")
+        .trim()
+        .toLowerCase()
+        .replaceAll("-", "_")
+        .replaceAll(" ", "_");
+    const labels = {
+        highlights: "Highlights",
+        full_match: "Full-match replay",
+        recap: "Match recap",
+        live: "Live coverage",
+    };
+
+    return labels[normalized] || "Official match video";
+}
+
+function formatOfficialWatchTimestamp(value) {
+    const rawValue = String(value || "").trim();
+
+    if (!rawValue) {
+        return "";
+    }
+
+    const parsed = new Date(rawValue);
+
+    if (Number.isNaN(parsed.getTime())) {
+        return rawValue;
+    }
+
+    return new Intl.DateTimeFormat(undefined, {
+        dateStyle: "medium",
+        timeStyle: "short",
+    }).format(parsed);
+}
+
 function renderOfficialWatchLink(link, fallback = false) {
     if (!isSafeOfficialOutboundUrl(link?.url)) {
         return "";
     }
 
-    const contentLabel = fallback
-        ? "Official coverage hub"
-        : String(link.content_type || "official video").replaceAll("_", " ");
+    const contentLabel = formatOfficialWatchContentType(link?.content_type, fallback);
+    const associationLabel = fallback
+        ? "Not linked to this selected match"
+        : "Verified for this selected match";
+    const publishedAt = !fallback ? formatOfficialWatchTimestamp(link?.published_at) : "";
+    const verifiedAt = !fallback ? formatOfficialWatchTimestamp(link?.verified_at) : "";
+    const publicationDetail = fallback
+        ? ""
+        : publishedAt
+            ? `<small class="official-watch-record">Published: ${escapeHtml(publishedAt)}</small>`
+            : `<small class="official-watch-record">Publication time is not recorded in the verified local record.</small>`;
+    const verificationDetail = !fallback && verifiedAt
+        ? `<small class="official-watch-record">Source and match association checked: ${escapeHtml(verifiedAt)}</small>`
+        : "";
 
     return `
-        <article class="official-watch-card ${fallback ? "is-fallback" : ""}">
+        <article class="official-watch-card ${fallback ? "is-fallback" : "is-match-specific"}">
             <div>
                 <span class="official-watch-source">${escapeHtml(link.source_name || "Official source")}</span>
                 <h5>${escapeHtml(link.title || "Official match video")}</h5>
-                <p>${escapeHtml(contentLabel)} · ${escapeHtml(link.territory || "Availability may vary")}</p>
-                ${link.territory_note ? `<small>${escapeHtml(link.territory_note)}</small>` : ""}
+                <p class="official-watch-meta">${escapeHtml(contentLabel)} · ${escapeHtml(associationLabel)} · ${escapeHtml(link.territory || "Availability may vary")}</p>
+                ${link.territory_note ? `<small class="official-watch-record">${escapeHtml(link.territory_note)}</small>` : ""}
+                ${publicationDetail}
+                ${verificationDetail}
             </div>
             <a
                 class="official-watch-link"
@@ -2786,6 +2908,7 @@ function renderOfficialWatchLink(link, fallback = false) {
     `;
 }
 
+
 function renderOfficialWatch(story, options = {}) {
     if (options.isLoading) {
         return `
@@ -2793,7 +2916,7 @@ function renderOfficialWatch(story, options = {}) {
                 <div class="official-watch-heading">
                     <div>
                         <span class="match-story-eyebrow">Trusted outbound links only</span>
-                        <h4>Official Highlights / Watch</h4>
+                        <h4>Official Match Video</h4>
                     </div>
                     <span class="official-watch-status">Checking</span>
                 </div>
@@ -2810,7 +2933,7 @@ function renderOfficialWatch(story, options = {}) {
                 <div class="official-watch-heading">
                     <div>
                         <span class="match-story-eyebrow">Trusted outbound links only</span>
-                        <h4>Official Highlights / Watch</h4>
+                        <h4>Official Match Video</h4>
                     </div>
                     <span class="official-watch-status">Unavailable</span>
                 </div>
@@ -2832,7 +2955,7 @@ function renderOfficialWatch(story, options = {}) {
             <div class="official-watch-heading">
                 <div>
                     <span class="match-story-eyebrow">Trusted outbound links only</span>
-                    <h4>Official Highlights / Watch</h4>
+                    <h4>Official Match Video</h4>
                 </div>
                 <span class="official-watch-status ${escapeHtml(watch.state || "not_available_yet")}">
                     ${escapeHtml(formatOfficialWatchState(watch.state))}
@@ -3627,8 +3750,10 @@ function initializeSectionNavigation() {
     }
 
     links.forEach((link) => {
-        link.addEventListener("click", () => {
-            setActiveSectionNavLink(link.dataset.sectionNavLink);
+        link.addEventListener("click", (event) => {
+            const sectionId = link.dataset.sectionNavLink;
+            revealGroupStageForNavigation(event, sectionId);
+            setActiveSectionNavLink(sectionId);
         });
     });
 
@@ -3805,6 +3930,7 @@ function bindEvents() {
 
 async function initializeDashboard() {
     initializeSectionNavigation();
+    initializeMoreMenuBehavior();
     bindEvents();
     setLoadingState();
     checkAiHealth();
@@ -3821,6 +3947,7 @@ async function initializeDashboard() {
         renderMatchdayHome(state.matchdayFixtures);
         populateFilters(state.allFixtures);
         renderFixtureBrowser(state.allFixtures, { selectFirst: true });
+        syncGroupStageDisclosure(state.allFixtures);
     } else {
         renderFixtureLoadError(
             "Unable to load fixtures.",
@@ -3945,12 +4072,14 @@ function v120IsFutureStoredKickoff(fixture) {
     return Number.isFinite(kickoffTime) && kickoffTime > Date.now();
 }
 
-getMatchdayHeroFixtures = function getMatchdayHeroFixturesV120(fixtures = []) {
+getMatchdayHeroFixtures = function getMatchdayHeroFixturesV121(fixtures = []) {
     const safeFixtures = Array.isArray(fixtures) ? fixtures : [];
-    const sortedByNewest = [...safeFixtures].sort(
+    const knockoutFixtures = safeFixtures.filter(isKnockoutFixture);
+    const preferredFixtures = knockoutFixtures.length > 0 ? knockoutFixtures : safeFixtures;
+    const sortedByNewest = [...preferredFixtures].sort(
         (left, right) => new Date(right?.kickoff_time || 0) - new Date(left?.kickoff_time || 0),
     );
-    const sortedBySoonest = [...safeFixtures].sort(
+    const sortedBySoonest = [...preferredFixtures].sort(
         (left, right) => new Date(left?.kickoff_time || 0) - new Date(right?.kickoff_time || 0),
     );
 
@@ -3964,6 +4093,8 @@ getMatchdayHeroFixtures = function getMatchdayHeroFixturesV120(fixtures = []) {
         nextUpcoming: sortedBySoonest.find(
             (fixture) => getFixtureStatusCategory(fixture) === "scheduled",
         ) || null,
+        knockoutFocused: knockoutFixtures.length > 0,
+        knockoutStages: getRecognizedKnockoutStages(knockoutFixtures),
     };
 };
 
@@ -4014,7 +4145,7 @@ renderMatchdayScoreCard = function renderMatchdayScoreCardV120(fixture, label, t
     `;
 };
 
-renderMatchdayHome = function renderMatchdayHomeV120(fixtures = state.matchdayFixtures) {
+renderMatchdayHome = function renderMatchdayHomeV121(fixtures = state.matchdayFixtures) {
     if (
         !elements.matchdayHomeContent
         || !elements.matchdayHomeMessage
@@ -4027,9 +4158,23 @@ renderMatchdayHome = function renderMatchdayHomeV120(fixtures = state.matchdayFi
     const health = getDataHealthPresentation();
     const heroes = getMatchdayHeroFixtures(safeFixtures);
     const cards = [
-        heroes.live ? renderMatchdayScoreCard(heroes.live, "Now", "live") : "",
-        renderMatchdayScoreCard(heroes.nextUpcoming, "Next", "upcoming"),
-        renderMatchdayScoreCard(heroes.latestCompleted, "Latest", "completed"),
+        heroes.live
+            ? renderMatchdayScoreCard(
+                heroes.live,
+                heroes.knockoutFocused ? "Knockout now" : "Now",
+                "live",
+            )
+            : "",
+        renderMatchdayScoreCard(
+            heroes.nextUpcoming,
+            heroes.knockoutFocused ? "Next confirmed knockout match" : "Next",
+            "upcoming",
+        ),
+        renderMatchdayScoreCard(
+            heroes.latestCompleted,
+            heroes.knockoutFocused ? "Latest knockout result" : "Latest",
+            "completed",
+        ),
     ].filter(Boolean);
 
     elements.dataHealthBadge.className = `data-health-badge ${health.className}`;
@@ -4056,9 +4201,12 @@ renderMatchdayHome = function renderMatchdayHomeV120(fixtures = state.matchdayFi
             ? "A fixture is marked live in the latest stored snapshot."
             : "A fixture was last recorded live, but the provider snapshot is stale.")
         : "Next stored kickoff and latest result are ready.";
+    const knockoutContext = heroes.knockoutFocused
+        ? ` Stored ${heroes.knockoutStages.join(", ")} fixture${heroes.knockoutStages.length === 1 ? " is" : "s are"} prioritised.`
+        : "";
 
     elements.matchdayHomeMessage.textContent =
-        `${liveMessage} ${safeFixtures.length} fixture${safeFixtures.length === 1 ? "" : "s"} in this view.`;
+        `${liveMessage}${knockoutContext} ${safeFixtures.length} fixture${safeFixtures.length === 1 ? "" : "s"} in this view.`;
     elements.matchdayHomeContent.innerHTML = cards.join("");
 };
 
@@ -4096,5 +4244,164 @@ document.addEventListener("DOMContentLoaded", () => {
     initializeV120CompactNavigation();
     renderMatchdayDataTrust();
 });
+
+/*
+ * v1.21.0 checkpoint 2: Group Stage progressive disclosure and resilient
+ * desktop/mobile More-menu behavior. Presentation only; fixture state remains
+ * provider-backed and uses the recognised knockout-stage resolver.
+ */
+function getGroupStageDisclosure() {
+    return document.querySelector("#group-stage");
+}
+
+function syncGroupStageDisclosure(fixtures) {
+    const disclosure = getGroupStageDisclosure();
+
+    if (!disclosure || disclosure.dataset.initialized === "true") {
+        return;
+    }
+
+    const recognisedStages = getRecognizedKnockoutStages(fixtures);
+    const knockoutActive = recognisedStages.length > 0;
+    const message = document.querySelector("#group-stage-message");
+
+    disclosure.open = !knockoutActive;
+    disclosure.dataset.initialized = "true";
+    disclosure.dataset.knockoutActive = String(knockoutActive);
+
+    if (message) {
+        message.textContent = knockoutActive
+            ? `${recognisedStages.join(", ")} fixtures are stored. Group standings, Group Race, and group insights remain available here.`
+            : "Group standings, Group Race, and group insights.";
+    }
+}
+
+function focusSummary(summary) {
+    if (!summary || typeof summary.focus !== "function") {
+        return;
+    }
+
+    try {
+        summary.focus({ preventScroll: true });
+    } catch (error) {
+        summary.focus();
+    }
+}
+
+function revealGroupStageForNavigation(event, sectionId) {
+    const disclosure = getGroupStageDisclosure();
+
+    if (!disclosure) {
+        return;
+    }
+
+    const target = document.getElementById(sectionId);
+    const targetIsGroupStage = sectionId === "group-stage";
+    const targetInsideGroupStage = Boolean(target && disclosure.contains(target));
+
+    if (!targetIsGroupStage && !targetInsideGroupStage) {
+        return;
+    }
+
+    disclosure.open = true;
+
+    if (!targetIsGroupStage) {
+        return;
+    }
+
+    event.preventDefault();
+    const summary = disclosure.querySelector("summary");
+
+    window.requestAnimationFrame(() => {
+        disclosure.scrollIntoView({ behavior: "smooth", block: "start" });
+        focusSummary(summary);
+    });
+}
+
+function getMoreMenus() {
+    return Array.from(
+        document.querySelectorAll(".dashboard-more-menu, .mobile-more-menu"),
+    );
+}
+
+function closeMoreMenu(menu, options = {}) {
+    if (!menu || !menu.open) {
+        return;
+    }
+
+    menu.open = false;
+
+    if (options.restoreFocus) {
+        const summary = menu.querySelector("summary");
+        window.requestAnimationFrame(() => focusSummary(summary));
+    }
+}
+
+function closeAllMoreMenus(exceptMenu = null) {
+    getMoreMenus().forEach((menu) => {
+        if (menu !== exceptMenu) {
+            closeMoreMenu(menu);
+        }
+    });
+}
+
+function initializeMoreMenuBehavior() {
+    const menus = getMoreMenus();
+
+    if (
+        menus.length === 0
+        || document.body.dataset.moreMenuBehaviorBound === "true"
+    ) {
+        return;
+    }
+
+    document.body.dataset.moreMenuBehaviorBound = "true";
+
+    menus.forEach((menu) => {
+        const summary = menu.querySelector("summary");
+
+        menu.addEventListener("toggle", () => {
+            if (menu.open) {
+                closeAllMoreMenus(menu);
+            }
+        });
+
+        menu.querySelectorAll("a").forEach((link) => {
+            link.addEventListener("click", () => closeMoreMenu(menu));
+        });
+    });
+
+    document.addEventListener("keydown", (event) => {
+        if (event.key !== "Escape") {
+            return;
+        }
+
+        const openMenu = getMoreMenus().find((menu) => menu.open);
+
+        if (!openMenu) {
+            return;
+        }
+
+        event.preventDefault();
+        closeMoreMenu(openMenu, { restoreFocus: true });
+    });
+
+    document.addEventListener("pointerdown", (event) => {
+        getMoreMenus().forEach((menu) => {
+            if (menu.open && !menu.contains(event.target)) {
+                closeMoreMenu(menu);
+            }
+        });
+    });
+
+    const mobileViewport = window.matchMedia("(max-width: 700px)");
+    const closeForViewportChange = () => closeAllMoreMenus();
+
+    if (typeof mobileViewport.addEventListener === "function") {
+        mobileViewport.addEventListener("change", closeForViewportChange);
+    } else if (typeof mobileViewport.addListener === "function") {
+        mobileViewport.addListener(closeForViewportChange);
+    }
+}
 
 document.addEventListener("DOMContentLoaded", initializeDashboard);

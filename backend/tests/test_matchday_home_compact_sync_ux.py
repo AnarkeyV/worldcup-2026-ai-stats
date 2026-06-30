@@ -35,13 +35,13 @@ def test_matchday_home_reuses_factual_fixture_state_derivation() -> None:
 
     hero_section = get_section(
         dashboard_js,
-        "getMatchdayHeroFixtures = function getMatchdayHeroFixturesV120",
+        "getMatchdayHeroFixtures = function getMatchdayHeroFixturesV121",
         "renderMatchdayScoreCard = function renderMatchdayScoreCardV120",
     )
     card_section = get_section(
         dashboard_js,
         "renderMatchdayScoreCard = function renderMatchdayScoreCardV120",
-        "renderMatchdayHome = function renderMatchdayHomeV120",
+        "renderMatchdayHome = function renderMatchdayHomeV121",
     )
 
     assert 'getFixtureStatusCategory(fixture) === "live"' in hero_section
