@@ -1167,14 +1167,61 @@ function getGroupNameFromScope(scope) {
         : "";
 }
 
+const RECOGNIZED_KNOCKOUT_STAGES = Object.freeze([
+    "Round of 32",
+    "Round of 16",
+    "Quarter-finals",
+    "Semi-finals",
+    "Third-place Playoff",
+    "Final",
+]);
+
+const KNOCKOUT_STAGE_SCOPE_PREFIX = "knockout-stage:";
+const recognizedKnockoutStageByNormalizedLabel = new Map(
+    RECOGNIZED_KNOCKOUT_STAGES.map((stage) => [normalizeKnockoutStageLabel(stage), stage]),
+);
+
+function normalizeKnockoutStageLabel(value) {
+    return String(value || "")
+        .trim()
+        .toLowerCase()
+        .replaceAll("_", " ")
+        .replaceAll("-", " ")
+        .replace(/\s+/g, " ");
+}
+
+function getRecognizedKnockoutStage(fixture) {
+    const normalizedStage = normalizeKnockoutStageLabel(fixture?.stage);
+
+    return recognizedKnockoutStageByNormalizedLabel.get(normalizedStage) || null;
+}
+
 function isKnockoutFixture(fixture) {
-    if (fixture.group_name) {
-        return false;
+    return Boolean(getRecognizedKnockoutStage(fixture));
+}
+
+function getRecognizedKnockoutStages(fixtures) {
+    const presentStages = new Set(
+        (Array.isArray(fixtures) ? fixtures : [])
+            .map(getRecognizedKnockoutStage)
+            .filter(Boolean),
+    );
+
+    return RECOGNIZED_KNOCKOUT_STAGES.filter((stage) => presentStages.has(stage));
+}
+
+function getFixtureScopeFromKnockoutStage(stage) {
+    return `${KNOCKOUT_STAGE_SCOPE_PREFIX}${stage}`;
+}
+
+function getKnockoutStageFromScope(scope) {
+    if (!String(scope || "").startsWith(KNOCKOUT_STAGE_SCOPE_PREFIX)) {
+        return null;
     }
 
-    const stage = String(fixture.stage || "").toLowerCase();
+    const stage = String(scope).slice(KNOCKOUT_STAGE_SCOPE_PREFIX.length);
 
-    return Boolean(stage) && !stage.includes("group");
+    return recognizedKnockoutStageByNormalizedLabel.get(normalizeKnockoutStageLabel(stage)) || null;
 }
 
 function getFixturesForStatus(fixtures, statusScope = state.fixtureStatusScope) {
@@ -1183,6 +1230,13 @@ function getFixturesForStatus(fixtures, statusScope = state.fixtureStatusScope) 
 
 function filterFixturesForScope(fixtures) {
     const statusFixtures = getFixturesForStatus(fixtures);
+    const knockoutStage = getKnockoutStageFromScope(state.fixtureScope);
+
+    if (knockoutStage) {
+        return statusFixtures.filter(
+            (fixture) => getRecognizedKnockoutStage(fixture) === knockoutStage,
+        );
+    }
 
     if (state.fixtureScope === "knockout") {
         return statusFixtures.filter(isKnockoutFixture);
@@ -1225,20 +1279,30 @@ function ensureFixtureBrowserSelection(fixtures) {
 
     const statusFixtures = getFixturesForStatus(fixtures);
     const selectedGroup = getGroupNameFromScope(state.fixtureScope);
+    const selectedKnockoutStage = getKnockoutStageFromScope(state.fixtureScope);
     const availableGroups = getFixtureGroups(statusFixtures);
+    const availableKnockoutStages = getRecognizedKnockoutStages(statusFixtures);
     const hasSelectedGroup = selectedGroup && availableGroups.includes(selectedGroup);
-    const hasKnockoutFixtures = statusFixtures.some(isKnockoutFixture);
+    const hasSelectedKnockoutStage = selectedKnockoutStage
+        && availableKnockoutStages.includes(selectedKnockoutStage);
+    const hasKnockoutFixtures = availableKnockoutStages.length > 0;
 
     if (state.filters.group && availableGroups.includes(state.filters.group)) {
         state.fixtureScope = getFixtureScopeFromGroup(state.filters.group);
         return;
     }
 
-    if (hasSelectedGroup || (state.fixtureScope === "knockout" && hasKnockoutFixtures)) {
+    if (
+        hasSelectedGroup
+        || hasSelectedKnockoutStage
+        || (state.fixtureScope === "knockout" && hasKnockoutFixtures)
+    ) {
         return;
     }
 
-    if (availableGroups.length > 0) {
+    if (availableKnockoutStages.length > 0) {
+        state.fixtureScope = getFixtureScopeFromKnockoutStage(availableKnockoutStages[0]);
+    } else if (availableGroups.length > 0) {
         state.fixtureScope = getFixtureScopeFromGroup(availableGroups[0]);
     } else if (hasKnockoutFixtures) {
         state.fixtureScope = "knockout";
@@ -1305,28 +1369,26 @@ function renderFixtureGroupTabs(fixtures) {
 
     const statusFixtures = getFixturesForStatus(fixtures);
     const groups = getFixtureGroups(statusFixtures);
+    const knockoutStages = getRecognizedKnockoutStages(statusFixtures);
     const tabs = [
         {
             scope: "all",
-            label: "All groups",
+            label: "All fixtures",
             count: statusFixtures.length,
         },
+        ...knockoutStages.map((stage) => ({
+            scope: getFixtureScopeFromKnockoutStage(stage),
+            label: stage,
+            count: statusFixtures.filter(
+                (fixture) => getRecognizedKnockoutStage(fixture) === stage,
+            ).length,
+        })),
         ...groups.map((group) => ({
             scope: getFixtureScopeFromGroup(group),
             label: group,
             count: statusFixtures.filter((fixture) => fixture.group_name === group).length,
         })),
     ];
-
-    const knockoutFixtures = statusFixtures.filter(isKnockoutFixture);
-
-    if (knockoutFixtures.length > 0) {
-        tabs.push({
-            scope: "knockout",
-            label: "Knockout",
-            count: knockoutFixtures.length,
-        });
-    }
 
     if (tabs.length === 1 && statusFixtures.length === 0) {
         elements.fixtureGroupTabs.innerHTML = `
@@ -1361,11 +1423,14 @@ function updateFixtureBrowserMessage(fixtures) {
     const label = state.fixtureStatusScope === "scheduled"
         ? "upcoming"
         : state.fixtureStatusScope;
+    const selectedKnockoutStage = getKnockoutStageFromScope(state.fixtureScope);
     const scopeLabel = state.fixtureScope === "all"
-        ? "all groups"
-        : state.fixtureScope === "knockout"
-            ? "the knockout stage"
-            : getGroupNameFromScope(state.fixtureScope);
+        ? "all fixtures"
+        : selectedKnockoutStage
+            ? selectedKnockoutStage
+            : state.fixtureScope === "knockout"
+                ? "the knockout stage"
+                : getGroupNameFromScope(state.fixtureScope);
 
     elements.fixtureBrowserMessage.textContent =
         `Showing ${fixtures.length} ${label} fixture${fixtures.length === 1 ? "" : "s"} for ${scopeLabel}.`;
@@ -3945,12 +4010,14 @@ function v120IsFutureStoredKickoff(fixture) {
     return Number.isFinite(kickoffTime) && kickoffTime > Date.now();
 }
 
-getMatchdayHeroFixtures = function getMatchdayHeroFixturesV120(fixtures = []) {
+getMatchdayHeroFixtures = function getMatchdayHeroFixturesV121(fixtures = []) {
     const safeFixtures = Array.isArray(fixtures) ? fixtures : [];
-    const sortedByNewest = [...safeFixtures].sort(
+    const knockoutFixtures = safeFixtures.filter(isKnockoutFixture);
+    const preferredFixtures = knockoutFixtures.length > 0 ? knockoutFixtures : safeFixtures;
+    const sortedByNewest = [...preferredFixtures].sort(
         (left, right) => new Date(right?.kickoff_time || 0) - new Date(left?.kickoff_time || 0),
     );
-    const sortedBySoonest = [...safeFixtures].sort(
+    const sortedBySoonest = [...preferredFixtures].sort(
         (left, right) => new Date(left?.kickoff_time || 0) - new Date(right?.kickoff_time || 0),
     );
 
@@ -3964,6 +4031,8 @@ getMatchdayHeroFixtures = function getMatchdayHeroFixturesV120(fixtures = []) {
         nextUpcoming: sortedBySoonest.find(
             (fixture) => getFixtureStatusCategory(fixture) === "scheduled",
         ) || null,
+        knockoutFocused: knockoutFixtures.length > 0,
+        knockoutStages: getRecognizedKnockoutStages(knockoutFixtures),
     };
 };
 
@@ -4014,7 +4083,7 @@ renderMatchdayScoreCard = function renderMatchdayScoreCardV120(fixture, label, t
     `;
 };
 
-renderMatchdayHome = function renderMatchdayHomeV120(fixtures = state.matchdayFixtures) {
+renderMatchdayHome = function renderMatchdayHomeV121(fixtures = state.matchdayFixtures) {
     if (
         !elements.matchdayHomeContent
         || !elements.matchdayHomeMessage
@@ -4027,9 +4096,23 @@ renderMatchdayHome = function renderMatchdayHomeV120(fixtures = state.matchdayFi
     const health = getDataHealthPresentation();
     const heroes = getMatchdayHeroFixtures(safeFixtures);
     const cards = [
-        heroes.live ? renderMatchdayScoreCard(heroes.live, "Now", "live") : "",
-        renderMatchdayScoreCard(heroes.nextUpcoming, "Next", "upcoming"),
-        renderMatchdayScoreCard(heroes.latestCompleted, "Latest", "completed"),
+        heroes.live
+            ? renderMatchdayScoreCard(
+                heroes.live,
+                heroes.knockoutFocused ? "Knockout now" : "Now",
+                "live",
+            )
+            : "",
+        renderMatchdayScoreCard(
+            heroes.nextUpcoming,
+            heroes.knockoutFocused ? "Next confirmed knockout match" : "Next",
+            "upcoming",
+        ),
+        renderMatchdayScoreCard(
+            heroes.latestCompleted,
+            heroes.knockoutFocused ? "Latest knockout result" : "Latest",
+            "completed",
+        ),
     ].filter(Boolean);
 
     elements.dataHealthBadge.className = `data-health-badge ${health.className}`;
@@ -4056,9 +4139,12 @@ renderMatchdayHome = function renderMatchdayHomeV120(fixtures = state.matchdayFi
             ? "A fixture is marked live in the latest stored snapshot."
             : "A fixture was last recorded live, but the provider snapshot is stale.")
         : "Next stored kickoff and latest result are ready.";
+    const knockoutContext = heroes.knockoutFocused
+        ? ` Stored ${heroes.knockoutStages.join(", ")} fixture${heroes.knockoutStages.length === 1 ? " is" : "s are"} prioritised.`
+        : "";
 
     elements.matchdayHomeMessage.textContent =
-        `${liveMessage} ${safeFixtures.length} fixture${safeFixtures.length === 1 ? "" : "s"} in this view.`;
+        `${liveMessage}${knockoutContext} ${safeFixtures.length} fixture${safeFixtures.length === 1 ? "" : "s"} in this view.`;
     elements.matchdayHomeContent.innerHTML = cards.join("");
 };
 
