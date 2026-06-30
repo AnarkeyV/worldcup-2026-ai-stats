@@ -3432,3 +3432,128 @@ summary:focus-visible {
         min-width: 11rem;
     }
 }
+
+/* v1.21.0 checkpoint 2: knockout-stage disclosure and resilient More menus */
+.group-stage-disclosure {
+    margin-block: 1.25rem;
+    border: 1px solid rgba(148, 163, 184, 0.42);
+    border-radius: 1rem;
+    background: var(--panel, #111827);
+    box-shadow: 0 0.75rem 1.5rem rgba(15, 23, 42, 0.12);
+}
+
+.group-stage-disclosure > summary {
+    min-height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.1rem;
+    cursor: pointer;
+    list-style: none;
+}
+
+.group-stage-disclosure > summary::-webkit-details-marker {
+    display: none;
+}
+
+.group-stage-disclosure-heading {
+    min-width: 0;
+    display: grid;
+    gap: 0.2rem;
+}
+
+.group-stage-disclosure-heading .eyebrow {
+    margin: 0;
+}
+
+.group-stage-disclosure-title {
+    display: block;
+    font-size: 1.125rem;
+    font-weight: 800;
+}
+
+.group-stage-disclosure-copy {
+    display: block;
+    color: var(--muted, #94a3b8);
+    font-size: 0.92rem;
+}
+
+.group-stage-disclosure-toggle {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.group-stage-disclosure-toggle::after {
+    content: "⌄";
+    font-size: 1.2rem;
+    line-height: 1;
+    transition: transform 160ms ease;
+}
+
+.group-stage-disclosure[open] .group-stage-disclosure-toggle::after {
+    transform: rotate(180deg);
+}
+
+.group-stage-disclosure[open] .group-stage-disclosure-toggle {
+    font-size: 0;
+}
+
+.group-stage-disclosure[open] .group-stage-disclosure-toggle::before {
+    content: "Hide group data";
+    font-size: 0.95rem;
+}
+
+.group-stage-disclosure:not([open]) .group-stage-disclosure-toggle {
+    font-size: 0;
+}
+
+.group-stage-disclosure:not([open]) .group-stage-disclosure-toggle::before {
+    content: "Show group data";
+    font-size: 0.95rem;
+}
+
+.group-stage-disclosure-content {
+    display: grid;
+    gap: 1.25rem;
+    padding: 0 1.1rem 1.1rem;
+    border-top: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.group-stage-disclosure-content > section {
+    margin-block: 0;
+}
+
+.dashboard-more-menu[open] {
+    z-index: 80;
+}
+
+.dashboard-more-menu[open] .dashboard-more-menu-links {
+    z-index: 81;
+}
+
+@media (min-width: 701px) {
+    #dashboard-section-nav,
+    #dashboard-section-nav .dashboard-section-nav-inner {
+        overflow: visible;
+    }
+}
+
+@media (max-width: 700px) {
+    .group-stage-disclosure > summary {
+        align-items: flex-start;
+        padding: 0.9rem;
+    }
+
+    .group-stage-disclosure-toggle {
+        margin-top: 0.25rem;
+    }
+
+    .group-stage-disclosure-content {
+        padding: 0 0.9rem 0.9rem;
+    }
+}

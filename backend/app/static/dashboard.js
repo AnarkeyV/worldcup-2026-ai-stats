@@ -3692,8 +3692,10 @@ function initializeSectionNavigation() {
     }
 
     links.forEach((link) => {
-        link.addEventListener("click", () => {
-            setActiveSectionNavLink(link.dataset.sectionNavLink);
+        link.addEventListener("click", (event) => {
+            const sectionId = link.dataset.sectionNavLink;
+            revealGroupStageForNavigation(event, sectionId);
+            setActiveSectionNavLink(sectionId);
         });
     });
 
@@ -3870,6 +3872,7 @@ function bindEvents() {
 
 async function initializeDashboard() {
     initializeSectionNavigation();
+    initializeMoreMenuBehavior();
     bindEvents();
     setLoadingState();
     checkAiHealth();
@@ -3886,6 +3889,7 @@ async function initializeDashboard() {
         renderMatchdayHome(state.matchdayFixtures);
         populateFilters(state.allFixtures);
         renderFixtureBrowser(state.allFixtures, { selectFirst: true });
+        syncGroupStageDisclosure(state.allFixtures);
     } else {
         renderFixtureLoadError(
             "Unable to load fixtures.",
@@ -4182,5 +4186,164 @@ document.addEventListener("DOMContentLoaded", () => {
     initializeV120CompactNavigation();
     renderMatchdayDataTrust();
 });
+
+/*
+ * v1.21.0 checkpoint 2: Group Stage progressive disclosure and resilient
+ * desktop/mobile More-menu behavior. Presentation only; fixture state remains
+ * provider-backed and uses the recognised knockout-stage resolver.
+ */
+function getGroupStageDisclosure() {
+    return document.querySelector("#group-stage");
+}
+
+function syncGroupStageDisclosure(fixtures) {
+    const disclosure = getGroupStageDisclosure();
+
+    if (!disclosure || disclosure.dataset.initialized === "true") {
+        return;
+    }
+
+    const recognisedStages = getRecognizedKnockoutStages(fixtures);
+    const knockoutActive = recognisedStages.length > 0;
+    const message = document.querySelector("#group-stage-message");
+
+    disclosure.open = !knockoutActive;
+    disclosure.dataset.initialized = "true";
+    disclosure.dataset.knockoutActive = String(knockoutActive);
+
+    if (message) {
+        message.textContent = knockoutActive
+            ? `${recognisedStages.join(", ")} fixtures are stored. Group standings, Group Race, and group insights remain available here.`
+            : "Group standings, Group Race, and group insights.";
+    }
+}
+
+function focusSummary(summary) {
+    if (!summary || typeof summary.focus !== "function") {
+        return;
+    }
+
+    try {
+        summary.focus({ preventScroll: true });
+    } catch (error) {
+        summary.focus();
+    }
+}
+
+function revealGroupStageForNavigation(event, sectionId) {
+    const disclosure = getGroupStageDisclosure();
+
+    if (!disclosure) {
+        return;
+    }
+
+    const target = document.getElementById(sectionId);
+    const targetIsGroupStage = sectionId === "group-stage";
+    const targetInsideGroupStage = Boolean(target && disclosure.contains(target));
+
+    if (!targetIsGroupStage && !targetInsideGroupStage) {
+        return;
+    }
+
+    disclosure.open = true;
+
+    if (!targetIsGroupStage) {
+        return;
+    }
+
+    event.preventDefault();
+    const summary = disclosure.querySelector("summary");
+
+    window.requestAnimationFrame(() => {
+        disclosure.scrollIntoView({ behavior: "smooth", block: "start" });
+        focusSummary(summary);
+    });
+}
+
+function getMoreMenus() {
+    return Array.from(
+        document.querySelectorAll(".dashboard-more-menu, .mobile-more-menu"),
+    );
+}
+
+function closeMoreMenu(menu, options = {}) {
+    if (!menu || !menu.open) {
+        return;
+    }
+
+    menu.open = false;
+
+    if (options.restoreFocus) {
+        const summary = menu.querySelector("summary");
+        window.requestAnimationFrame(() => focusSummary(summary));
+    }
+}
+
+function closeAllMoreMenus(exceptMenu = null) {
+    getMoreMenus().forEach((menu) => {
+        if (menu !== exceptMenu) {
+            closeMoreMenu(menu);
+        }
+    });
+}
+
+function initializeMoreMenuBehavior() {
+    const menus = getMoreMenus();
+
+    if (
+        menus.length === 0
+        || document.body.dataset.moreMenuBehaviorBound === "true"
+    ) {
+        return;
+    }
+
+    document.body.dataset.moreMenuBehaviorBound = "true";
+
+    menus.forEach((menu) => {
+        const summary = menu.querySelector("summary");
+
+        menu.addEventListener("toggle", () => {
+            if (menu.open) {
+                closeAllMoreMenus(menu);
+            }
+        });
+
+        menu.querySelectorAll("a").forEach((link) => {
+            link.addEventListener("click", () => closeMoreMenu(menu));
+        });
+    });
+
+    document.addEventListener("keydown", (event) => {
+        if (event.key !== "Escape") {
+            return;
+        }
+
+        const openMenu = getMoreMenus().find((menu) => menu.open);
+
+        if (!openMenu) {
+            return;
+        }
+
+        event.preventDefault();
+        closeMoreMenu(openMenu, { restoreFocus: true });
+    });
+
+    document.addEventListener("pointerdown", (event) => {
+        getMoreMenus().forEach((menu) => {
+            if (menu.open && !menu.contains(event.target)) {
+                closeMoreMenu(menu);
+            }
+        });
+    });
+
+    const mobileViewport = window.matchMedia("(max-width: 700px)");
+    const closeForViewportChange = () => closeAllMoreMenus();
+
+    if (typeof mobileViewport.addEventListener === "function") {
+        mobileViewport.addEventListener("change", closeForViewportChange);
+    } else if (typeof mobileViewport.addListener === "function") {
+        mobileViewport.addListener(closeForViewportChange);
+    }
+}
 
 document.addEventListener("DOMContentLoaded", initializeDashboard);
