@@ -12,7 +12,7 @@ from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 
-SOURCE_POLICY_VERSION = "v1.17.0"
+SOURCE_POLICY_VERSION = "v1.21.0"
 
 # This intentionally contains a narrow initial allow-list. In particular,
 # generic YouTube, team, broadcaster, and sports-news links are not accepted.
@@ -40,6 +40,18 @@ _OFFICIAL_SOURCE_POLICY = {
         "default_territory": "global",
         "allowed_content_types": frozenset(
             {"highlights", "full_match", "live", "recap"}
+        ),
+        "youtube": True,
+    },
+    # A direct YouTube /watch URL does not itself identify the uploader. Every
+    # record under this key must therefore be manually checked against the
+    # official @SportsMediacorp channel before a curator stores it locally.
+    "mediacorp_sports_youtube": {
+        "source_name": "Mediacorp Sports on YouTube",
+        "allowed_hosts": frozenset({"youtube.com", "www.youtube.com"}),
+        "default_territory": "region_dependent",
+        "allowed_content_types": frozenset(
+            {"highlights", "full_match", "recap"}
         ),
         "youtube": True,
     },

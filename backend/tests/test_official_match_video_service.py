@@ -120,3 +120,38 @@ def test_official_watch_accepts_only_supported_fifa_youtube_video_urls():
     assert watch["links"][0]["source_key"] == "fifa_youtube"
     assert watch["links"][0]["source_name"] == "FIFA on YouTube"
     assert watch["links"][0]["url"] == "https://www.youtube.com/watch?v=ABcd_123-xy"
+
+
+def test_official_watch_accepts_manually_verified_mediacorp_sports_youtube_video():
+    watch = build_official_watch(
+        [
+            make_video(
+                source_key="mediacorp_sports_youtube",
+                content_type="highlights",
+                title="South Africa vs Canada | Highlights",
+                external_url="https://www.youtube.com/watch?v=ABcd_123-xy",
+                territory="region_dependent",
+            )
+        ]
+    )
+
+    assert watch["state"] == "region_dependent"
+    assert watch["links"][0]["source_key"] == "mediacorp_sports_youtube"
+    assert watch["links"][0]["source_name"] == "Mediacorp Sports on YouTube"
+    assert watch["links"][0]["content_type"] == "highlights"
+    assert watch["links"][0]["territory"] == "Region dependent"
+
+
+def test_official_watch_rejects_mediacorp_sports_youtube_channel_page():
+    watch = build_official_watch(
+        [
+            make_video(
+                source_key="mediacorp_sports_youtube",
+                external_url="https://www.youtube.com/@SportsMediacorp",
+                territory="region_dependent",
+            )
+        ]
+    )
+
+    assert watch["state"] == "not_available_yet"
+    assert watch["links"] == []

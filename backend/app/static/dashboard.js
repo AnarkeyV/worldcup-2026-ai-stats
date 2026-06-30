@@ -2822,22 +2822,79 @@ function isSafeOfficialOutboundUrl(value) {
     }
 }
 
+/*
+ * v1.21.0 checkpoint 3: transparent Official Watch presentation.
+ * Link discovery remains manual and local-record only. This renderer does not
+ * search video sites, fetch external URLs, or create video records.
+ */
+function formatOfficialWatchContentType(value, fallback = false) {
+    if (fallback) {
+        return "Official coverage hub — not match-specific";
+    }
+
+    const normalized = String(value || "")
+        .trim()
+        .toLowerCase()
+        .replaceAll("-", "_")
+        .replaceAll(" ", "_");
+    const labels = {
+        highlights: "Highlights",
+        full_match: "Full-match replay",
+        recap: "Match recap",
+        live: "Live coverage",
+    };
+
+    return labels[normalized] || "Official match video";
+}
+
+function formatOfficialWatchTimestamp(value) {
+    const rawValue = String(value || "").trim();
+
+    if (!rawValue) {
+        return "";
+    }
+
+    const parsed = new Date(rawValue);
+
+    if (Number.isNaN(parsed.getTime())) {
+        return rawValue;
+    }
+
+    return new Intl.DateTimeFormat(undefined, {
+        dateStyle: "medium",
+        timeStyle: "short",
+    }).format(parsed);
+}
+
 function renderOfficialWatchLink(link, fallback = false) {
     if (!isSafeOfficialOutboundUrl(link?.url)) {
         return "";
     }
 
-    const contentLabel = fallback
-        ? "Official coverage hub"
-        : String(link.content_type || "official video").replaceAll("_", " ");
+    const contentLabel = formatOfficialWatchContentType(link?.content_type, fallback);
+    const associationLabel = fallback
+        ? "Not linked to this selected match"
+        : "Verified for this selected match";
+    const publishedAt = !fallback ? formatOfficialWatchTimestamp(link?.published_at) : "";
+    const verifiedAt = !fallback ? formatOfficialWatchTimestamp(link?.verified_at) : "";
+    const publicationDetail = fallback
+        ? ""
+        : publishedAt
+            ? `<small class="official-watch-record">Published: ${escapeHtml(publishedAt)}</small>`
+            : `<small class="official-watch-record">Publication time is not recorded in the verified local record.</small>`;
+    const verificationDetail = !fallback && verifiedAt
+        ? `<small class="official-watch-record">Source and match association checked: ${escapeHtml(verifiedAt)}</small>`
+        : "";
 
     return `
-        <article class="official-watch-card ${fallback ? "is-fallback" : ""}">
+        <article class="official-watch-card ${fallback ? "is-fallback" : "is-match-specific"}">
             <div>
                 <span class="official-watch-source">${escapeHtml(link.source_name || "Official source")}</span>
                 <h5>${escapeHtml(link.title || "Official match video")}</h5>
-                <p>${escapeHtml(contentLabel)} · ${escapeHtml(link.territory || "Availability may vary")}</p>
-                ${link.territory_note ? `<small>${escapeHtml(link.territory_note)}</small>` : ""}
+                <p class="official-watch-meta">${escapeHtml(contentLabel)} · ${escapeHtml(associationLabel)} · ${escapeHtml(link.territory || "Availability may vary")}</p>
+                ${link.territory_note ? `<small class="official-watch-record">${escapeHtml(link.territory_note)}</small>` : ""}
+                ${publicationDetail}
+                ${verificationDetail}
             </div>
             <a
                 class="official-watch-link"
@@ -2851,6 +2908,7 @@ function renderOfficialWatchLink(link, fallback = false) {
     `;
 }
 
+
 function renderOfficialWatch(story, options = {}) {
     if (options.isLoading) {
         return `
@@ -2858,7 +2916,7 @@ function renderOfficialWatch(story, options = {}) {
                 <div class="official-watch-heading">
                     <div>
                         <span class="match-story-eyebrow">Trusted outbound links only</span>
-                        <h4>Official Highlights / Watch</h4>
+                        <h4>Official Match Video</h4>
                     </div>
                     <span class="official-watch-status">Checking</span>
                 </div>
@@ -2875,7 +2933,7 @@ function renderOfficialWatch(story, options = {}) {
                 <div class="official-watch-heading">
                     <div>
                         <span class="match-story-eyebrow">Trusted outbound links only</span>
-                        <h4>Official Highlights / Watch</h4>
+                        <h4>Official Match Video</h4>
                     </div>
                     <span class="official-watch-status">Unavailable</span>
                 </div>
@@ -2897,7 +2955,7 @@ function renderOfficialWatch(story, options = {}) {
             <div class="official-watch-heading">
                 <div>
                     <span class="match-story-eyebrow">Trusted outbound links only</span>
-                    <h4>Official Highlights / Watch</h4>
+                    <h4>Official Match Video</h4>
                 </div>
                 <span class="official-watch-status ${escapeHtml(watch.state || "not_available_yet")}">
                     ${escapeHtml(formatOfficialWatchState(watch.state))}

@@ -3557,3 +3557,21 @@ summary:focus-visible {
         padding: 0 0.9rem 0.9rem;
     }
 }
+
+/* v1.21.0 checkpoint 3: evidence-first Official Watch cards */
+.official-watch-card.is-match-specific {
+    border-inline-start: 0.25rem solid currentColor;
+}
+
+.official-watch-card .official-watch-meta {
+    margin-block: 0.35rem;
+}
+
+.official-watch-card .official-watch-record {
+    display: block;
+    margin-top: 0.2rem;
+}
+
+.official-watch-card.is-fallback .official-watch-meta {
+    font-style: italic;
+}
