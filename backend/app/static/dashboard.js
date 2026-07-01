@@ -21,6 +21,8 @@ const state = {
     selectedFixtureStoryError: false,
     selectedFixtureId: null,
     activeMatchDetailTab: "story",
+    confirmedKnockoutStage: "",
+    knockoutVisitComparison: null,
     filters: {
         team: "",
         group: "",
@@ -90,6 +92,11 @@ const elements = {
     fixtureGroupTabs: document.querySelector("#fixture-group-tabs"),
     fixtureBrowserMessage: document.querySelector("#fixture-browser-message"),
     matchDetailPanel: document.querySelector("#match-detail-panel"),
+    confirmedKnockoutPath: document.querySelector("#confirmed-knockout-path"),
+    confirmedKnockoutPathMessage: document.querySelector("#confirmed-knockout-path-message"),
+    confirmedKnockoutStageTabs: document.querySelector("#confirmed-knockout-stage-tabs"),
+    confirmedKnockoutStageContent: document.querySelector("#confirmed-knockout-stage-content"),
+    matchdayChangesContent: document.querySelector("#matchday-changes-content"),
 };
 
 async function fetchFixtures(filters = {}) {
@@ -3249,6 +3256,231 @@ function renderFixtureDetail(fixture, detail = null, story = null, options = {})
     `;
 }
 
+
+/* v1.22.0 checkpoint 1: stored knockout path and browser-local comparison only. */
+const CONFIRMED_KNOCKOUT_STORAGE_KEY = "wc2026.confirmed-knockout-path.v1";
+const CONFIRMED_KNOCKOUT_STORAGE_VERSION = 1;
+
+function getConfirmedKnockoutFixtureKey(fixture) {
+    const externalId = String(fixture?.external_id || "").trim();
+    const fixtureId = String(fixture?.id || "").trim();
+    return externalId ? `external:${externalId}` : fixtureId ? `fixture:${fixtureId}` : "";
+}
+
+function getConfirmedKnockoutFixtures(fixtures = []) {
+    const safeFixtures = Array.isArray(fixtures) ? fixtures : [];
+    return safeFixtures.filter((fixture) => Boolean(getRecognizedKnockoutStage(fixture)));
+}
+
+function getConfirmedKnockoutSnapshot(fixtures = []) {
+    return getConfirmedKnockoutFixtures(fixtures).map((fixture) => ({
+        key: getConfirmedKnockoutFixtureKey(fixture),
+        stage: getRecognizedKnockoutStage(fixture) || "",
+        status: String(fixture?.status || "").trim(),
+        home_team: String(fixture?.home_team || "").trim(),
+        away_team: String(fixture?.away_team || "").trim(),
+        home_score: fixture?.home_score ?? null,
+        away_score: fixture?.away_score ?? null,
+    })).filter((fixture) => fixture.key);
+}
+
+function getConfirmedKnockoutStorage() {
+    try {
+        return window.localStorage;
+    } catch (error) {
+        console.warn("Browser-local knockout comparison storage is unavailable.", error);
+        return null;
+    }
+}
+
+function readConfirmedKnockoutBaseline() {
+    const storage = getConfirmedKnockoutStorage();
+    if (!storage) return { state: "unavailable" };
+    try {
+        const rawValue = storage.getItem(CONFIRMED_KNOCKOUT_STORAGE_KEY);
+        if (rawValue === null) return { state: "missing" };
+        const parsed = JSON.parse(rawValue);
+        if (!parsed || parsed.version !== CONFIRMED_KNOCKOUT_STORAGE_VERSION || !Array.isArray(parsed.fixtures)) {
+            return { state: "unavailable" };
+        }
+        return { state: "available", snapshot: parsed };
+    } catch (error) {
+        console.warn("Browser-local knockout comparison baseline cannot be read.", error);
+        return { state: "unavailable" };
+    }
+}
+
+function writeConfirmedKnockoutBaseline(fixtures = []) {
+    const storage = getConfirmedKnockoutStorage();
+    if (!storage) return false;
+    try {
+        storage.setItem(CONFIRMED_KNOCKOUT_STORAGE_KEY, JSON.stringify({
+            version: CONFIRMED_KNOCKOUT_STORAGE_VERSION,
+            saved_at: new Date().toISOString(),
+            fixtures: getConfirmedKnockoutSnapshot(fixtures),
+        }));
+        return true;
+    } catch (error) {
+        console.warn("Browser-local knockout comparison baseline cannot be saved.", error);
+        return false;
+    }
+}
+
+function isStoredCompletedKnockoutFixture(fixture) {
+    return COMPLETED_FIXTURE_STATUSES.has(normalizeFixtureStatus(fixture));
+}
+
+function compareConfirmedKnockoutSnapshots(beforeFixtures = [], afterFixtures = []) {
+    const beforeByKey = new Map((Array.isArray(beforeFixtures) ? beforeFixtures : [])
+        .filter((fixture) => fixture?.key).map((fixture) => [fixture.key, fixture]));
+    const changes = [];
+    (Array.isArray(afterFixtures) ? afterFixtures : []).forEach((fixture) => {
+        const before = beforeByKey.get(fixture?.key);
+        if (!before) {
+            changes.push({ type: "new_fixture", fixture });
+            return;
+        }
+        if (!isStoredCompletedKnockoutFixture(before) && isStoredCompletedKnockoutFixture(fixture)) {
+            changes.push({ type: "newly_completed", fixture });
+            return;
+        }
+        if (
+            before.status !== fixture.status
+            || before.home_score !== fixture.home_score
+            || before.away_score !== fixture.away_score
+        ) {
+            changes.push({ type: "score_or_status_changed", fixture });
+        }
+    });
+    return changes;
+}
+
+function getMatchdayChangesComparison(fixtures = []) {
+    if (state.knockoutVisitComparison) return state.knockoutVisitComparison;
+    const currentFixtures = getConfirmedKnockoutSnapshot(fixtures);
+    if (currentFixtures.length === 0) {
+        state.knockoutVisitComparison = { state: "empty", changes: [] };
+        return state.knockoutVisitComparison;
+    }
+    const baseline = readConfirmedKnockoutBaseline();
+    if (baseline.state === "unavailable") {
+        state.knockoutVisitComparison = { state: "unavailable", changes: [] };
+        return state.knockoutVisitComparison;
+    }
+    if (baseline.state === "missing") {
+        state.knockoutVisitComparison = writeConfirmedKnockoutBaseline(fixtures)
+            ? { state: "first_visit", changes: [] }
+            : { state: "unavailable", changes: [] };
+        return state.knockoutVisitComparison;
+    }
+    const changes = compareConfirmedKnockoutSnapshots(baseline.snapshot.fixtures, currentFixtures);
+    state.knockoutVisitComparison = writeConfirmedKnockoutBaseline(fixtures)
+        ? { state: changes.length ? "changed" : "unchanged", changes }
+        : { state: "unavailable", changes: [] };
+    return state.knockoutVisitComparison;
+}
+
+function getConfirmedKnockoutFixtureLabel(fixture) {
+    const home = fixture?.home_team || "Home team";
+    const away = fixture?.away_team || "Away team";
+    const scoreKnown = fixture?.home_score !== null && fixture?.home_score !== undefined
+        && fixture?.away_score !== null && fixture?.away_score !== undefined;
+    return scoreKnown
+        ? `${home} ${formatScore(fixture.home_score)} – ${formatScore(fixture.away_score)} ${away}`
+        : `${home} vs ${away}`;
+}
+
+function renderConfirmedKnockoutFixtureCard(fixture) {
+    const statusPresentation = getFixtureStatusPresentation(fixture);
+    const status = statusPresentation?.label || "Stored status unavailable";
+    const detail = statusPresentation?.detail ? ` · ${statusPresentation.detail}` : "";
+    return `
+        <button type="button" class="confirmed-knockout-fixture-card"
+            data-confirmed-knockout-fixture-id="${escapeHtml(String(fixture?.id || ""))}"
+            aria-label="Open ${escapeHtml(getConfirmedKnockoutFixtureLabel(fixture))}">
+            <span class="confirmed-knockout-fixture-meta">${escapeHtml(getRecognizedKnockoutStage(fixture) || fixture?.stage || "Knockout")}</span>
+            <span class="confirmed-knockout-fixture-team"><strong>${escapeHtml(fixture?.home_team || "Home team")}</strong><span>${escapeHtml(formatScore(fixture?.home_score))}</span></span>
+            <span class="confirmed-knockout-fixture-team"><strong>${escapeHtml(fixture?.away_team || "Away team")}</strong><span>${escapeHtml(formatScore(fixture?.away_score))}</span></span>
+            <span class="confirmed-knockout-fixture-status">${escapeHtml(`${status}${detail}`)}</span>
+            <span class="confirmed-knockout-fixture-kickoff">${escapeHtml(formatDateTime(fixture?.kickoff_time))}</span>
+        </button>`;
+}
+
+function renderConfirmedKnockoutPath(fixtures = state.allFixtures) {
+    if (!elements.confirmedKnockoutPathMessage || !elements.confirmedKnockoutStageTabs || !elements.confirmedKnockoutStageContent) return;
+    const knockoutFixtures = getConfirmedKnockoutFixtures(fixtures);
+    const availableStages = getRecognizedKnockoutStages(knockoutFixtures);
+    if (!availableStages.length) {
+        state.confirmedKnockoutStage = "";
+        elements.confirmedKnockoutPathMessage.textContent = "No stored provider-backed knockout fixtures are available yet.";
+        elements.confirmedKnockoutStageTabs.innerHTML = "";
+        elements.confirmedKnockoutStageContent.innerHTML = '<p class="confirmed-knockout-empty">Later stages are intentionally not shown until stored provider-backed fixtures exist.</p>';
+        return;
+    }
+    if (!availableStages.includes(state.confirmedKnockoutStage)) state.confirmedKnockoutStage = availableStages[0];
+    const stageFixtures = knockoutFixtures.filter((fixture) => getRecognizedKnockoutStage(fixture) === state.confirmedKnockoutStage);
+    elements.confirmedKnockoutPathMessage.textContent = `${stageFixtures.length} stored ${state.confirmedKnockoutStage} fixture${stageFixtures.length === 1 ? "" : "s"} in this snapshot. Later stages appear only when stored; progression is not inferred.`;
+    elements.confirmedKnockoutStageTabs.innerHTML = availableStages.map((stage) => `
+        <button type="button" class="confirmed-knockout-stage-button${stage === state.confirmedKnockoutStage ? " is-active" : ""}"
+            data-confirmed-knockout-stage="${escapeHtml(stage)}" aria-pressed="${stage === state.confirmedKnockoutStage ? "true" : "false"}">${escapeHtml(stage)}</button>`).join("");
+    elements.confirmedKnockoutStageContent.innerHTML = `<div class="confirmed-knockout-fixture-grid">${stageFixtures.map(renderConfirmedKnockoutFixtureCard).join("")}</div>`;
+}
+
+function renderMatchdayChanges(fixtures = state.allFixtures) {
+    if (!elements.matchdayChangesContent) return;
+    const comparison = getMatchdayChangesComparison(fixtures);
+    const content = elements.matchdayChangesContent;
+    if (comparison.state === "first_visit") {
+        content.innerHTML = "<strong>First visit on this browser</strong><span>A local baseline was saved from this stored knockout snapshot. Future visits can compare against it.</span>";
+        return;
+    }
+    if (comparison.state === "unavailable") {
+        content.innerHTML = "<strong>Local comparison unavailable</strong><span>This browser could not safely read or save its local comparison baseline. Stored fixture data is unchanged by this message.</span>";
+        return;
+    }
+    if (comparison.state === "empty") {
+        content.innerHTML = "<strong>No stored knockout fixtures to compare</strong><span>A local comparison will become available after supported provider-backed knockout fixtures are stored.</span>";
+        return;
+    }
+    if (comparison.state === "unchanged") {
+        content.innerHTML = "<strong>No stored knockout changes since your last visit</strong><span>This compares the stored knockout snapshot on this browser. It is not a live or real-time feed.</span>";
+        return;
+    }
+    const shown = comparison.changes.slice(0, 3);
+    const summary = comparison.changes.reduce((counts, change) => ({ ...counts, [change.type]: counts[change.type] + 1 }), { new_fixture: 0, newly_completed: 0, score_or_status_changed: 0 });
+    const headline = [summary.new_fixture ? `${summary.new_fixture} new stored fixture${summary.new_fixture === 1 ? "" : "s"}` : "", summary.newly_completed ? `${summary.newly_completed} newly completed` : "", summary.score_or_status_changed ? `${summary.score_or_status_changed} confirmed score or status update${summary.score_or_status_changed === 1 ? "" : "s"}` : ""].filter(Boolean).join(" · ");
+    content.innerHTML = `<strong>${escapeHtml(headline)}</strong><ul class="matchday-changes-list">${shown.map((change) => {
+        const label = change.type === "new_fixture" ? "New stored fixture" : change.type === "newly_completed" ? "Newly completed" : "Confirmed score or status update";
+        return `<li><span>${escapeHtml(label)}</span> ${escapeHtml(getConfirmedKnockoutFixtureLabel(change.fixture))}</li>`;
+    }).join("")}</ul>`;
+}
+
+function openConfirmedKnockoutFixture(fixtureId) {
+    const fixture = state.allFixtures.find((candidate) => String(candidate?.id) === String(fixtureId));
+    if (!fixture) return;
+    const knockoutStage = getRecognizedKnockoutStage(fixture);
+    if (!knockoutStage) return;
+    const category = getFixtureStatusCategory(fixture);
+    state.fixtureStatusScope = ["completed", "scheduled", "live"].includes(category) ? category : "all";
+    state.fixtureScope = getFixtureScopeFromKnockoutStage(knockoutStage);
+    renderFixtureBrowser();
+    selectFixture(fixture.id, { scroll: true });
+}
+
+function initializeConfirmedKnockoutPathBehavior() {
+    if (!elements.confirmedKnockoutPath) return;
+    elements.confirmedKnockoutPath.addEventListener("click", (event) => {
+        const stageButton = event.target.closest("[data-confirmed-knockout-stage]");
+        if (stageButton?.dataset.confirmedKnockoutStage) {
+            state.confirmedKnockoutStage = stageButton.dataset.confirmedKnockoutStage;
+            renderConfirmedKnockoutPath(state.allFixtures);
+            return;
+        }
+        const fixtureButton = event.target.closest("[data-confirmed-knockout-fixture-id]");
+        if (fixtureButton) openConfirmedKnockoutFixture(fixtureButton.dataset.confirmedKnockoutFixtureId);
+    });
+}
+
 async function selectFixture(fixtureId, options = {}) {
     const fixtureFromState = state.visibleFixtures.find((fixture) => String(fixture.id) === String(fixtureId))
         || state.allFixtures.find((fixture) => String(fixture.id) === String(fixtureId));
@@ -3931,6 +4163,7 @@ function bindEvents() {
 async function initializeDashboard() {
     initializeSectionNavigation();
     initializeMoreMenuBehavior();
+    initializeConfirmedKnockoutPathBehavior();
     bindEvents();
     setLoadingState();
     checkAiHealth();
@@ -4146,6 +4379,8 @@ renderMatchdayScoreCard = function renderMatchdayScoreCardV120(fixture, label, t
 };
 
 renderMatchdayHome = function renderMatchdayHomeV121(fixtures = state.matchdayFixtures) {
+    renderConfirmedKnockoutPath(state.allFixtures);
+    renderMatchdayChanges(state.allFixtures);
     if (
         !elements.matchdayHomeContent
         || !elements.matchdayHomeMessage
