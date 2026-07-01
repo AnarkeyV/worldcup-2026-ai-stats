@@ -6,6 +6,32 @@ The project follows semantic versioning and milestone-based releases.
 
 ---
 
+## [1.22.1] — Matchday Changes Load-Order Hotfix
+
+### Fixed
+
+- Fixes **What changed since your last visit** being incorrectly cached as no knockout fixtures before the normal stored fixture list finishes loading.
+- Loading-time empty data is no longer saved or reused as a browser-local comparison result.
+- The comparison render cache resets after successful or failed fixture loading; fixture-load failure renders a distinct unavailable state without replacing an existing browser-local baseline.
+- Dashboard and Live Match Centre CSS and JavaScript cache-busting values advance to `v1.22.1`.
+
+### Verified
+
+```text
+Focused v1.22.1 dashboard and release verification coverage: 79 passed
+Full regression: 307 passed
+Known warnings: 325 FastAPI/Starlette Python 3.14 deprecation warnings
+```
+
+- Static JavaScript syntax check and `git diff --check` completed without findings.
+
+### Boundaries
+
+- This fix uses the existing loaded stored-fixture lifecycle and browser-local state only. It does not add provider requests, syncs, Telegram delivery, database writes, polling, or background jobs.
+- Stored provider data and the existing conservative fixture-state, freshness, Match Story, Official Match Video, Road to the Final, and runtime safeguards remain unchanged.
+
+---
+
 ## [1.22.0] — Confirmed Knockout Path & Matchday Changes
 
 ### Changed

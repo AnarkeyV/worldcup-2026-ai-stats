@@ -69,3 +69,38 @@ def test_confirmed_path_uses_the_existing_canonical_stage_resolver():
 
 def test_completion_comparison_uses_existing_completed_status_catalogue():
     assert "COMPLETED_FIXTURE_STATUSES.has(normalizeFixtureStatus(fixture))" in DASHBOARD_JS
+
+def test_matchday_changes_wait_for_the_initial_fixture_load_before_caching_empty():
+    assert 'fixtureLoadState: "loading"' in DASHBOARD_JS
+    assert 'if (state.fixtureLoadState === "loading") {' in DASHBOARD_JS
+    assert 'return { state: "loading", changes: [] };' in DASHBOARD_JS
+    assert 'if (state.fixtureLoadState !== "loaded") {' in DASHBOARD_JS
+    assert 'return { state: "fixture_unavailable", changes: [] };' in DASHBOARD_JS
+    assert DASHBOARD_JS.index('if (state.fixtureLoadState === "loading") {') < DASHBOARD_JS.index(
+        'if (currentFixtures.length === 0) {'
+    )
+
+
+def test_initial_fixture_lifecycle_resets_comparison_cache_after_success_or_failure():
+    success_lifecycle = (
+        'state.allFixtures = panels.fixtures;\n'
+        '        state.matchdayFixtures = panels.fixtures;\n'
+        '        state.fixtureLoadState = "loaded";\n'
+        '        state.knockoutVisitComparison = null;\n'
+        '        renderMatchdayHome(state.matchdayFixtures);'
+    )
+    failure_lifecycle = (
+        '} else {\n'
+        '        state.fixtureLoadState = "unavailable";\n'
+        '        state.knockoutVisitComparison = null;\n'
+        '        renderMatchdayHome(state.matchdayFixtures);\n'
+        '        renderFixtureLoadError('
+    )
+    assert success_lifecycle in DASHBOARD_JS
+    assert failure_lifecycle in DASHBOARD_JS
+
+
+def test_matchday_changes_has_distinct_loading_and_fixture_unavailable_copy():
+    assert "Checking stored knockout fixtures" in DASHBOARD_JS
+    assert "Stored knockout comparison unavailable" in DASHBOARD_JS
+    assert "did not read or replace its local comparison baseline" in DASHBOARD_JS

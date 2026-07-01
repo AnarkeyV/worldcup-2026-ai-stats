@@ -1,6 +1,6 @@
 # World Cup 2026 AI Stats
 
-![Version](https://img.shields.io/badge/version-v1.22.0-purple)
+![Version](https://img.shields.io/badge/version-v1.22.1-purple)
 ![Backend](https://img.shields.io/badge/backend-FastAPI-009688)
 ![Database](https://img.shields.io/badge/database-PostgreSQL-336791)
 ![AI](https://img.shields.io/badge/AI-Ollama%20%2B%20Local%20Llama-green)
@@ -18,13 +18,13 @@ https://wc2026.khairulrizal.qzz.io/dashboard
 **Current release**
 
 ```text
-v1.22.0 — Confirmed Knockout Path & Matchday Changes
+v1.22.1 — Matchday Changes Load-Order Hotfix
 ```
 
 **Release verification**
 
 ```text
-304 automated tests passed
+307 automated tests passed
 325 known FastAPI/Starlette Python 3.14 deprecation warnings
 ```
 
@@ -33,6 +33,30 @@ v1.22.0 — Confirmed Knockout Path & Matchday Changes
 World Cup 2026 AI Stats is a local-first football analytics project built as a practical DevOps, backend, automation, observability, and AI portfolio system.
 
 It aims to be useful on matchday without pretending the available provider data is richer or fresher than it is. The dashboard distinguishes stored facts from unavailable or delayed data instead of filling gaps with guessed events, invented player details, fake timelines, or unverified live claims.
+
+## v1.22.1: Matchday Changes Load-Order Hotfix
+
+v1.22.1 fixes a browser-local Matchday lifecycle defect in **What changed since your last visit**. The panel now waits for the normal fixture load to finish before deciding whether stored knockout fixtures are available for comparison.
+
+### What changed
+
+- Prevents an initial empty in-memory fixture list from being cached as a genuine no-knockout-fixture comparison result.
+- Resets the browser-local comparison render cache after successful fixture loading, so an existing valid baseline can produce the unchanged-state message when stored knockout data has not changed.
+- Renders a distinct unavailable state after fixture loading fails and does not read, replace, or discard an existing browser-local baseline in that situation.
+- Keeps the existing first-visit, newly stored fixture, newly completed fixture, confirmed score/status update, unchanged, and true-empty comparison states separate.
+
+### Preserved boundaries
+
+- The browser-local panel still compares only the dashboard's already loaded stored fixture data; it does not make provider requests, trigger syncs, send Telegram, write the database, poll, or start a background job.
+- Road to the Final remains stored-data-only. No future pairing, winner, advancement, penalty, extra-time, aggregate, or live-state inference is added.
+- Provider schedule, freshness thresholds, Telegram, Cloudflared, Ollama, Docker, database data, active runtime `.env`, Official Match Video policy, and the Windows host remain unchanged.
+
+### Validation
+
+- Focused v1.22.1 dashboard and release verification coverage: **79 passed**.
+- Full regression: **307 passed**.
+- Known warnings: **325** FastAPI/Starlette Python 3.14 deprecation warnings.
+- Static JavaScript syntax check and `git diff --check` completed without findings.
 
 ## v1.22.0: Confirmed Knockout Path & Matchday Changes
 
@@ -365,6 +389,13 @@ Run the full suite from `backend`:
 python -m pytest -q
 ```
 
+v1.22.1 source verification:
+
+- Focused v1.22.1 dashboard and release verification coverage: 79 passed.
+- 307 full regression tests passed.
+- 325 known FastAPI/Starlette Python 3.14 deprecation warnings.
+- Static JavaScript syntax check and `git diff --check` completed without findings.
+
 v1.22.0 source verification:
 
 - Focused confirmed-knockout, knockout UX, Group Stage disclosure, and dashboard coverage: 66 passed.
@@ -427,6 +458,7 @@ Then:
 - [Roadmap](docs/roadmap.md)
 - [Demo Walkthrough](docs/demo-walkthrough.md)
 - [Portfolio Release Summary](docs/portfolio-release.md)
+- [v1.22.1 Matchday Changes Load-Order Hotfix](docs/v1.22.1-matchday-changes-load-order-hotfix.md)
 - [v1.22.0 Confirmed Knockout Path & Matchday Changes](docs/v1.22.0-confirmed-knockout-path-and-matchday-changes.md)
 - [v1.21.0 Knockout Stage UX & Official Match Video Links](docs/v1.21.0-knockout-stage-ux-official-video-links.md)
 - [Official Match Video Curation Guide](docs/official-match-video-curation.md)
@@ -460,6 +492,7 @@ Then:
 | v1.16.0 | Fixed-time scheduled sync and Telegram digest | Completed |
 | v1.17.0 | Provider-backed Match Story and Official Watch | Completed |
 | v1.17.1 | Runtime reliability safeguards and read-only Windows status checker | Completed |
+| v1.22.1 | Matchday Changes load-order hotfix | Completed |
 | v1.22.0 | Confirmed Knockout Path and browser-local Matchday changes | Completed |
 | v1.21.0 | Knockout Stage UX and official match video trust signals | Completed |
 

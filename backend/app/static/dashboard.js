@@ -1,5 +1,6 @@
 const state = {
     allFixtures: [],
+    fixtureLoadState: "loading",
     visibleFixtures: [],
     standings: [],
     insights: null,
@@ -3356,7 +3357,17 @@ function compareConfirmedKnockoutSnapshots(beforeFixtures = [], afterFixtures = 
 }
 
 function getMatchdayChangesComparison(fixtures = []) {
+    // Independent dashboard panels can re-render Matchday before fixtures finish loading.
+    // Do not cache a temporary empty state or write a browser-local baseline until the
+    // full stored fixture list is known to be available.
+    if (state.fixtureLoadState === "loading") {
+        return { state: "loading", changes: [] };
+    }
+    if (state.fixtureLoadState !== "loaded") {
+        return { state: "fixture_unavailable", changes: [] };
+    }
     if (state.knockoutVisitComparison) return state.knockoutVisitComparison;
+
     const currentFixtures = getConfirmedKnockoutSnapshot(fixtures);
     if (currentFixtures.length === 0) {
         state.knockoutVisitComparison = { state: "empty", changes: [] };
@@ -3430,6 +3441,14 @@ function renderMatchdayChanges(fixtures = state.allFixtures) {
     if (!elements.matchdayChangesContent) return;
     const comparison = getMatchdayChangesComparison(fixtures);
     const content = elements.matchdayChangesContent;
+    if (comparison.state === "loading") {
+        content.innerHTML = "<strong>Checking stored knockout fixtures</strong><span>This browser will compare knockout changes after the stored fixture list finishes loading.</span>";
+        return;
+    }
+    if (comparison.state === "fixture_unavailable") {
+        content.innerHTML = "<strong>Stored knockout comparison unavailable</strong><span>The fixture list did not load, so this browser did not read or replace its local comparison baseline.</span>";
+        return;
+    }
     if (comparison.state === "first_visit") {
         content.innerHTML = "<strong>First visit on this browser</strong><span>A local baseline was saved from this stored knockout snapshot. Future visits can compare against it.</span>";
         return;
@@ -4172,16 +4191,23 @@ async function initializeDashboard() {
     void refreshLatestCompletedSummary();
     void refreshProviderLeaders();
 
+    state.fixtureLoadState = "loading";
+    state.knockoutVisitComparison = null;
     const panels = await loadDashboardPanelsIndependently();
 
     if (panels.fixtures !== null) {
         state.allFixtures = panels.fixtures;
         state.matchdayFixtures = panels.fixtures;
+        state.fixtureLoadState = "loaded";
+        state.knockoutVisitComparison = null;
         renderMatchdayHome(state.matchdayFixtures);
         populateFilters(state.allFixtures);
         renderFixtureBrowser(state.allFixtures, { selectFirst: true });
         syncGroupStageDisclosure(state.allFixtures);
     } else {
+        state.fixtureLoadState = "unavailable";
+        state.knockoutVisitComparison = null;
+        renderMatchdayHome(state.matchdayFixtures);
         renderFixtureLoadError(
             "Unable to load fixtures.",
             "The fixture browser could not load match data.",
