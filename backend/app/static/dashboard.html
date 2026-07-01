@@ -5,8 +5,8 @@
     <title>World Cup 2026 AI Stats Dashboard</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <link rel="stylesheet" href="/static/dashboard.css?v=v1.21.0">
-  <link rel="stylesheet" href="/static/live_match_centre.css?v=v1.21.0">
+    <link rel="stylesheet" href="/static/dashboard.css?v=v1.22.0">
+  <link rel="stylesheet" href="/static/live_match_centre.css?v=v1.22.0">
 </head>
 <body id="dashboard-top">
     <header class="app-header">
@@ -88,6 +88,34 @@
                 <div class="matchday-home-loading">
                     Building your visual matchday snapshot from stored fixtures.
                 </div>
+            </div>
+        </section>
+
+        <section id="confirmed-knockout-path" class="confirmed-knockout-path" aria-labelledby="confirmed-knockout-path-title">
+            <div class="confirmed-knockout-path-heading">
+                <div>
+                    <p class="eyebrow">Stored tournament path</p>
+                    <h2 id="confirmed-knockout-path-title">Road to the Final</h2>
+                    <p id="confirmed-knockout-path-message" class="confirmed-knockout-path-message">Reading stored provider-backed knockout fixtures.</p>
+                </div>
+                <p class="confirmed-knockout-path-note">Later stages appear only when stored. Progression is not inferred.</p>
+            </div>
+            <div id="confirmed-knockout-stage-tabs" class="confirmed-knockout-stage-tabs" aria-label="Browse stored knockout stages"></div>
+            <div id="confirmed-knockout-stage-content" class="confirmed-knockout-stage-content" aria-live="polite">
+                <p class="confirmed-knockout-empty">Stored knockout fixtures will appear here when available.</p>
+            </div>
+        </section>
+
+        <section id="matchday-changes" class="matchday-changes" aria-labelledby="matchday-changes-title">
+            <div class="matchday-changes-heading">
+                <div>
+                    <p class="eyebrow">Browser-local comparison</p>
+                    <h2 id="matchday-changes-title">What changed since your last visit</h2>
+                </div>
+                <p class="matchday-changes-note">Compares stored knockout data saved by this browser. Not a live feed.</p>
+            </div>
+            <div id="matchday-changes-content" class="matchday-changes-content" role="status" aria-live="polite">
+                Reading the stored knockout comparison baseline.
             </div>
         </section>
 
@@ -553,7 +581,7 @@
         </p>
     </footer>
 
-    <script src="/static/dashboard.js?v=v1.21.0"></script>
-  <script src="/static/live_match_centre.js?v=v1.21.0"></script>
+    <script src="/static/dashboard.js?v=v1.22.0"></script>
+  <script src="/static/live_match_centre.js?v=v1.22.0"></script>
 </body>
 </html>

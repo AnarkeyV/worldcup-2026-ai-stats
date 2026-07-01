@@ -3575,3 +3575,42 @@ summary:focus-visible {
 .official-watch-card.is-fallback .official-watch-meta {
     font-style: italic;
 }
+
+
+/* v1.22.0 checkpoint 1: confirmed knockout path and local matchday changes */
+.confirmed-knockout-path,
+.matchday-changes {
+    margin-top: 1.25rem;
+    padding: clamp(1rem, 2vw, 1.5rem);
+    border: 1px solid rgba(59, 188, 245, 0.56);
+    border-radius: 1.25rem;
+    background: linear-gradient(135deg, rgba(16, 80, 117, 0.28), rgba(8, 20, 43, 0.9)), var(--panel-background, #101a2d);
+}
+.matchday-changes { border-color: rgba(94, 224, 166, 0.46); background: linear-gradient(135deg, rgba(29, 113, 87, 0.22), rgba(8, 20, 43, 0.9)), var(--panel-background, #101a2d); }
+.confirmed-knockout-path-heading, .matchday-changes-heading { display: flex; gap: 1rem; align-items: flex-start; justify-content: space-between; }
+.confirmed-knockout-path-heading h2, .matchday-changes-heading h2 { margin: 0.2rem 0 0; }
+.confirmed-knockout-path-message, .confirmed-knockout-path-note, .matchday-changes-note { margin: 0.6rem 0 0; color: var(--muted-text, #b8c4d9); }
+.confirmed-knockout-path-note, .matchday-changes-note { max-width: 28rem; font-size: 0.92rem; }
+.confirmed-knockout-stage-tabs { display: flex; gap: 0.65rem; overflow-x: auto; margin: 1.1rem 0; padding-bottom: 0.25rem; }
+.confirmed-knockout-stage-button { min-height: 44px; flex: 0 0 auto; padding: 0.6rem 0.95rem; border: 1px solid rgba(175, 201, 235, 0.4); border-radius: 999px; color: inherit; background: rgba(5, 14, 31, 0.72); font: inherit; font-weight: 700; cursor: pointer; }
+.confirmed-knockout-stage-button.is-active { border-color: #39bcf5; background: rgba(57, 188, 245, 0.18); }
+.confirmed-knockout-fixture-grid { display: grid; gap: 0.8rem; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); }
+.confirmed-knockout-fixture-card { display: grid; min-height: 44px; gap: 0.45rem; width: 100%; padding: 1rem; border: 1px solid rgba(175, 201, 235, 0.35); border-radius: 1rem; color: inherit; background: rgba(3, 11, 27, 0.62); text-align: left; font: inherit; cursor: pointer; }
+.confirmed-knockout-fixture-card:hover { border-color: rgba(57, 188, 245, 0.95); }
+.confirmed-knockout-fixture-meta, .confirmed-knockout-fixture-status, .confirmed-knockout-fixture-kickoff { color: var(--muted-text, #b8c4d9); font-size: 0.86rem; }
+.confirmed-knockout-fixture-team { display: grid; grid-template-columns: 1fr auto; gap: 0.8rem; align-items: center; }
+.confirmed-knockout-fixture-team strong { overflow-wrap: anywhere; }
+.confirmed-knockout-fixture-team span { min-width: 1.75rem; font-size: 1.08rem; font-weight: 800; text-align: right; }
+.confirmed-knockout-empty { margin: 0; padding: 1rem; border: 1px dashed rgba(175, 201, 235, 0.42); border-radius: 0.9rem; color: var(--muted-text, #b8c4d9); }
+.matchday-changes-content { display: grid; gap: 0.65rem; margin-top: 1rem; padding: 1rem; border: 1px solid rgba(94, 224, 166, 0.38); border-radius: 0.9rem; background: rgba(3, 11, 27, 0.52); }
+.matchday-changes-content strong { font-size: 1.05rem; }
+.matchday-changes-content > span, .matchday-changes-list { margin: 0; color: var(--muted-text, #b8c4d9); }
+.matchday-changes-list { display: grid; gap: 0.35rem; padding-left: 1.2rem; }
+.matchday-changes-list li::marker { color: #5ee0a6; }
+.matchday-changes-list span { color: inherit; font-weight: 800; }
+.confirmed-knockout-stage-button:focus-visible, .confirmed-knockout-fixture-card:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+@media (max-width: 700px) {
+    .confirmed-knockout-path-heading, .matchday-changes-heading { display: grid; }
+    .confirmed-knockout-path-note, .matchday-changes-note { max-width: none; }
+    .confirmed-knockout-fixture-grid { grid-template-columns: minmax(0, 1fr); }
+}
