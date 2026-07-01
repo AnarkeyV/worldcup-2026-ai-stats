@@ -1,25 +1,25 @@
 # Roadmap
 
-## Current release: v1.21.0 — Knockout Stage UX & Official Match Video Links
+## Current release: v1.22.0 — Confirmed Knockout Path & Matchday Changes
 
-v1.21.0 is complete in source form.
+v1.22.0 is complete in source form.
 
-It shifts the live dashboard toward recognised provider-backed knockout fixtures, moves group-era information behind accessible progressive disclosure, repairs desktop More navigation behavior, and strengthens transparent official-video presentation.
+It adds a compact stored-data-only Road to the Final and a browser-local summary of confirmed knockout changes, while preserving knockout-first Matchday, Group Stage progressive disclosure, Match Story, detailed match data, freshness boundaries, and Official Match Video trust signals.
 
-### Completed in v1.21.0
+### Completed in v1.22.0
 
-- [x] Matchday prioritises recognised stored knockout fixtures without fabricating later-stage pairings, outcomes, or live state.
-- [x] Fixture browsing offers stage-specific scopes for recognised Round of 32 through Final labels when supplied by stored provider data.
-- [x] Group Standings, Group Race, and Group Insights are available in a semantic Group Stage disclosure that collapses only when recognised knockout fixtures exist.
-- [x] Desktop and mobile More menus support destination close, Escape-to-close, click-away close, focus restoration, and viewport-change close behavior.
-- [x] Desktop More navigation is released from the overflow/stacking context that clipped the opened panel.
-- [x] Official Match Video presentation distinguishes verified match-specific videos, official coverage hubs, and unavailable records.
-- [x] `mediacorp_sports_youtube` is limited to curator-verified direct `@SportsMediacorp` video URLs; no API key, discovery polling, scraping, or automatic import is added.
-- [x] Full regression passes: 296 passed, 325 known warnings.
-- [x] No provider schedule, threshold, active Windows `.env`, Docker, database, Telegram, Cloudflared, Ollama, provider-request, sync-trigger, or data-write behavior changes.
+- [x] Road to the Final lists only recognised stored provider-backed stages and fixtures in the fixed Round of 32 through Final order.
+- [x] Later stages appear only after matching stored fixtures exist; no empty future brackets, placeholder pairings, assumed winners, or fabricated advancement paths are shown.
+- [x] A completed draw does not identify an advancing team, and the dashboard does not infer penalties, extra time, aggregate results, winners, or progression.
+- [x] Existing fixture selection, Match Story, timeline, statistics, lineups, AI summary, player leaders, freshness, and Official Watch states remain available from the confirmed-path experience.
+- [x] What changed since your last visit compares only already loaded stored knockout fixture data with a versioned browser-local snapshot.
+- [x] Local comparison distinguishes first visit, newly stored fixtures, newly completed fixtures, confirmed score/status changes, unchanged state, and unavailable comparison state without claiming live delivery.
+- [x] Full regression passes: 304 passed, 325 known warnings.
+- [x] No provider schedule, threshold, active Windows `.env`, Docker, database, Telegram, Cloudflared, Ollama, provider-request, sync-trigger, server-side data-write, or background-job behavior changes.
 
-### Retained v1.20.1 / v1.20.0 / v1.19.1 / v1.19.0 / v1.18.1 / v1.18.0 capabilities
+### Retained v1.21.0 / v1.20.1 / v1.20.0 / v1.19.1 / v1.19.0 / v1.18.1 / v1.18.0 capabilities
 
+- [x] Knockout-first Matchday, Group Stage progressive disclosure, resilient More navigation, and evidence-first Official Match Video presentation.
 - [x] Fixed daily scheduler wording: **Fixed daily: 03:45 · 09:45 · 12:45 (Singapore time)**.
 - [x] Additive, read-only freshness context and conservative stored fixture-state presentation.
 - [x] Local-only Live Match Centre with factual sync-change and stored-detail coverage evidence.
@@ -28,13 +28,15 @@ It shifts the live dashboard toward recognised provider-backed knockout fixtures
 
 ## Deliberately deferred
 
-These remain deliberately outside v1.21.0:
+These remain deliberately outside v1.22.0:
 
 - Any provider schedule, threshold, Windows `.env`, Docker, database, Telegram, Cloudflared, or Ollama configuration change.
 - Automatic or browser-triggered provider polling.
 - YouTube Data API credentials, automated YouTube discovery, scraping, automated video imports, or production video-record writes.
 - Treating a future stored kickoff as provider-confirmed scheduling or using time to infer a live match.
 - Fabricated later-round knockout pairings or outcomes when provider stage data is absent.
+- Inferring advancement from a completed or drawn fixture without explicit stored provider evidence.
+- Treating browser-local comparison as real-time delivery, provider freshness, or Live Match Centre evidence.
 - Historical reconstruction of sync deltas before v1.18 change capture.
 - Full event-version history or provider event identifiers.
 - New provider assumptions, backfill work, or fabricated live timelines.

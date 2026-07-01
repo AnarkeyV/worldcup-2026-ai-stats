@@ -1,6 +1,6 @@
 # World Cup 2026 AI Stats
 
-![Version](https://img.shields.io/badge/version-v1.21.0-purple)
+![Version](https://img.shields.io/badge/version-v1.22.0-purple)
 ![Backend](https://img.shields.io/badge/backend-FastAPI-009688)
 ![Database](https://img.shields.io/badge/database-PostgreSQL-336791)
 ![AI](https://img.shields.io/badge/AI-Ollama%20%2B%20Local%20Llama-green)
@@ -18,13 +18,13 @@ https://wc2026.khairulrizal.qzz.io/dashboard
 **Current release**
 
 ```text
-v1.21.0 — Knockout Stage UX & Official Match Video Links
+v1.22.0 — Confirmed Knockout Path & Matchday Changes
 ```
 
 **Release verification**
 
 ```text
-296 automated tests passed
+304 automated tests passed
 325 known FastAPI/Starlette Python 3.14 deprecation warnings
 ```
 
@@ -33,6 +33,32 @@ v1.21.0 — Knockout Stage UX & Official Match Video Links
 World Cup 2026 AI Stats is a local-first football analytics project built as a practical DevOps, backend, automation, observability, and AI portfolio system.
 
 It aims to be useful on matchday without pretending the available provider data is richer or fresher than it is. The dashboard distinguishes stored facts from unavailable or delayed data instead of filling gaps with guessed events, invented player details, fake timelines, or unverified live claims.
+
+## v1.22.0: Confirmed Knockout Path & Matchday Changes
+
+v1.22.0 adds a compact, evidence-led Road to the Final and a browser-local summary of stored knockout changes while preserving the existing knockout-first Matchday hierarchy and factual provider boundaries.
+
+### What changed
+
+- **Road to the Final** shows only recognised stored provider-backed knockout stages and fixtures in tournament order: **Round of 32**, **Round of 16**, **Quarter-finals**, **Semi-finals**, **Third-place Playoff**, then **Final**.
+- Future stages appear only after matching stored fixtures exist. The dashboard does not create empty bracket slots, placeholder pairings, assumed winners, or fabricated advancement paths.
+- Stored fixture cards reuse the existing conservative status presentation and existing selected-match detail, Match Story, timeline, statistics, lineups, AI summary, player-leader, freshness, and Official Watch experiences.
+- **What changed since your last visit** compares a small versioned browser-local snapshot of already loaded stored knockout fixtures. It can report a first visit, newly stored fixture, newly completed fixture, confirmed score/status update, unchanged state, or unavailable local comparison state.
+- The local comparison stays separate from provider-snapshot freshness, stored-detail coverage, and Live Match Centre sync-change evidence.
+
+### Preserved boundaries
+
+- Stored provider data remains the source of truth. Time never infers that a match is live.
+- A completed draw does not identify an advancing team unless stored provider data explicitly supplies that outcome; this release does not infer penalties, extra time, aggregate results, winners, or progression.
+- Browser-local comparison does not call a provider, trigger sync, send Telegram, write the database, poll, or start a background job.
+- Provider schedule, freshness thresholds, Telegram, Cloudflared, Ollama, Docker, database data, active runtime `.env`, Official Match Video policy, and the Windows host remain unchanged.
+
+### Validation
+
+- Focused confirmed-knockout, knockout UX, Group Stage disclosure, and dashboard coverage: **66 passed**.
+- Full regression: **304 passed**.
+- Known warnings: **325** FastAPI/Starlette Python 3.14 deprecation warnings.
+- Static JavaScript syntax check and `git diff --check` completed without findings.
 
 ## v1.21.0: Knockout Stage UX & Official Match Video Links
 
@@ -339,6 +365,13 @@ Run the full suite from `backend`:
 python -m pytest -q
 ```
 
+v1.22.0 source verification:
+
+- Focused confirmed-knockout, knockout UX, Group Stage disclosure, and dashboard coverage: 66 passed.
+- 304 full regression tests passed.
+- 325 known FastAPI/Starlette Python 3.14 deprecation warnings.
+- Static JavaScript syntax check and `git diff --check` completed without findings.
+
 v1.21.0 source verification:
 
 - Focused knockout UX, disclosure, navigation, Official Watch, route, and presentation coverage passed.
@@ -394,6 +427,7 @@ Then:
 - [Roadmap](docs/roadmap.md)
 - [Demo Walkthrough](docs/demo-walkthrough.md)
 - [Portfolio Release Summary](docs/portfolio-release.md)
+- [v1.22.0 Confirmed Knockout Path & Matchday Changes](docs/v1.22.0-confirmed-knockout-path-and-matchday-changes.md)
 - [v1.21.0 Knockout Stage UX & Official Match Video Links](docs/v1.21.0-knockout-stage-ux-official-video-links.md)
 - [Official Match Video Curation Guide](docs/official-match-video-curation.md)
 
@@ -426,6 +460,7 @@ Then:
 | v1.16.0 | Fixed-time scheduled sync and Telegram digest | Completed |
 | v1.17.0 | Provider-backed Match Story and Official Watch | Completed |
 | v1.17.1 | Runtime reliability safeguards and read-only Windows status checker | Completed |
+| v1.22.0 | Confirmed Knockout Path and browser-local Matchday changes | Completed |
 | v1.21.0 | Knockout Stage UX and official match video trust signals | Completed |
 
 | v1.20.1 | Standings and dashboard resilience hotfix | Completed |

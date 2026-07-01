@@ -6,6 +6,34 @@ The project follows semantic versioning and milestone-based releases.
 
 ---
 
+## [1.22.0] — Confirmed Knockout Path & Matchday Changes
+
+### Changed
+
+- Adds **Road to the Final**, a compact stage-led knockout view that renders only recognised, stored provider-backed Round of 32 through Final fixtures that actually exist.
+- Later stages remain absent until stored fixtures for those stages are available; there are no empty bracket columns, placeholders, fabricated pairings, assumed winners, or inferred advancement.
+- Existing fixture cards retain the established conservative status presentation and route into the existing selected-match detail, Match Story, timeline, statistics, lineups, AI summary, player-leader, freshness, and Official Watch experiences.
+- Adds **What changed since your last visit**, a browser-local comparison of already loaded stored knockout data. It distinguishes first visit, newly stored fixtures, newly completed fixtures, confirmed score/status changes, unchanged data, and unavailable local comparison state.
+- Dashboard and Live Match Centre CSS and JavaScript cache-busting values advance to `v1.22.0`.
+
+### Verified
+
+```text
+Focused confirmed-knockout, knockout UX, Group Stage disclosure, and dashboard coverage: 66 passed
+Full regression: 304 passed
+Known warnings: 325 FastAPI/Starlette Python 3.14 deprecation warnings
+```
+
+- Static JavaScript syntax check and `git diff --check` completed without findings.
+
+### Boundaries
+
+- The feature uses already loaded stored application data plus browser-local state only; it does not make provider requests, trigger syncs, send Telegram, write the database, poll, or start a background job.
+- A completed draw never identifies an advancing team unless stored provider data explicitly supplies the advancement outcome. Penalties, extra time, aggregate results, winners, and progression are not inferred.
+- Stored provider data, existing fixture-state rules, provider schedule, freshness thresholds, Official Match Video policy, Cloudflared, Ollama, Docker, database data, Windows runtime, and active `.env` behavior remain unchanged.
+
+---
+
 ## [1.21.0] — Knockout Stage UX & Official Match Video Links
 
 ### Changed
