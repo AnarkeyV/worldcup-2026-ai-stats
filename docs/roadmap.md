@@ -1,23 +1,23 @@
 # Roadmap
 
-## Current release: v1.22.0 — Confirmed Knockout Path & Matchday Changes
+## Current release: v1.22.1 — Matchday Changes Load-Order Hotfix
 
-v1.22.0 is complete in source form.
+v1.22.1 is complete in source form.
 
-It adds a compact stored-data-only Road to the Final and a browser-local summary of confirmed knockout changes, while preserving knockout-first Matchday, Group Stage progressive disclosure, Match Story, detailed match data, freshness boundaries, and Official Match Video trust signals.
+It fixes the browser-local Matchday comparison lifecycle so the dashboard does not treat temporary loading-time fixture state as a genuine empty knockout dataset. It preserves the stored-data-only Road to the Final, conservative fixture presentation, and every v1.22.0 factual boundary.
 
-### Completed in v1.22.0
+### Completed in v1.22.1
 
-- [x] Road to the Final lists only recognised stored provider-backed stages and fixtures in the fixed Round of 32 through Final order.
-- [x] Later stages appear only after matching stored fixtures exist; no empty future brackets, placeholder pairings, assumed winners, or fabricated advancement paths are shown.
-- [x] A completed draw does not identify an advancing team, and the dashboard does not infer penalties, extra time, aggregate results, winners, or progression.
-- [x] Existing fixture selection, Match Story, timeline, statistics, lineups, AI summary, player leaders, freshness, and Official Watch states remain available from the confirmed-path experience.
-- [x] What changed since your last visit compares only already loaded stored knockout fixture data with a versioned browser-local snapshot.
-- [x] Local comparison distinguishes first visit, newly stored fixtures, newly completed fixtures, confirmed score/status changes, unchanged state, and unavailable comparison state without claiming live delivery.
-- [x] Full regression passes: 304 passed, 325 known warnings.
+- [x] The local comparison panel stays in a loading state until the normal stored fixture list has completed loading.
+- [x] A temporary empty fixture list cannot be cached as a genuine no-knockout-fixtures result.
+- [x] Successful fixture loading resets stale comparison render state, allowing a valid saved baseline to report unchanged stored knockout data when appropriate.
+- [x] Failed fixture loading renders an unavailable comparison state without reading, replacing, or discarding the existing browser-local baseline.
+- [x] Full regression passes: 307 passed, 325 known warnings.
 - [x] No provider schedule, threshold, active Windows `.env`, Docker, database, Telegram, Cloudflared, Ollama, provider-request, sync-trigger, server-side data-write, or background-job behavior changes.
 
-### Retained v1.21.0 / v1.20.1 / v1.20.0 / v1.19.1 / v1.19.0 / v1.18.1 / v1.18.0 capabilities
+### Retained v1.22.0 / v1.21.0 / v1.20.1 / v1.20.0 / v1.19.1 / v1.19.0 / v1.18.1 / v1.18.0 capabilities
+
+- [x] Stored-data-only Road to the Final and browser-local Matchday changes remain separate from provider freshness and Live Match Centre sync-change evidence.
 
 - [x] Knockout-first Matchday, Group Stage progressive disclosure, resilient More navigation, and evidence-first Official Match Video presentation.
 - [x] Fixed daily scheduler wording: **Fixed daily: 03:45 · 09:45 · 12:45 (Singapore time)**.
@@ -28,7 +28,7 @@ It adds a compact stored-data-only Road to the Final and a browser-local summary
 
 ## Deliberately deferred
 
-These remain deliberately outside v1.22.0:
+These remain deliberately outside v1.22.1:
 
 - Any provider schedule, threshold, Windows `.env`, Docker, database, Telegram, Cloudflared, or Ollama configuration change.
 - Automatic or browser-triggered provider polling.
