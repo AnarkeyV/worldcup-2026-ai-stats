@@ -5,8 +5,8 @@
     <title>World Cup 2026 AI Stats Dashboard</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <link rel="stylesheet" href="/static/dashboard.css?v=v1.22.1">
-  <link rel="stylesheet" href="/static/live_match_centre.css?v=v1.22.1">
+    <link rel="stylesheet" href="/static/dashboard.css?v=v1.23.0">
+  <link rel="stylesheet" href="/static/live_match_centre.css?v=v1.23.0">
 </head>
 <body id="dashboard-top">
     <header class="app-header">
@@ -53,10 +53,10 @@
         >
             <div class="matchday-home-heading">
                 <div>
-                    <p class="eyebrow">Matchday at a glance</p>
-                    <h2>Matchday</h2>
+                    <p class="eyebrow">Stored tournament state</p>
+                    <h2>Matchday Pulse</h2>
                     <p id="matchday-home-message">
-                        Loading the latest result, live status, and next fixture.
+                        Loading the latest confirmed result, next stored kickoff, and data-trust state.
                     </p>
                 </div>
 
@@ -89,121 +89,246 @@
                     Building your visual matchday snapshot from stored fixtures.
                 </div>
             </div>
-        </section>
 
-        <section id="confirmed-knockout-path" class="confirmed-knockout-path" aria-labelledby="confirmed-knockout-path-title">
-            <div class="confirmed-knockout-path-heading">
-                <div>
-                    <p class="eyebrow">Stored tournament path</p>
-                    <h2 id="confirmed-knockout-path-title">Road to the Final</h2>
-                    <p id="confirmed-knockout-path-message" class="confirmed-knockout-path-message">Reading stored provider-backed knockout fixtures.</p>
-                </div>
-                <p class="confirmed-knockout-path-note">Later stages appear only when stored. Progression is not inferred.</p>
-            </div>
-            <div id="confirmed-knockout-stage-tabs" class="confirmed-knockout-stage-tabs" aria-label="Browse stored knockout stages"></div>
-            <div id="confirmed-knockout-stage-content" class="confirmed-knockout-stage-content" aria-live="polite">
-                <p class="confirmed-knockout-empty">Stored knockout fixtures will appear here when available.</p>
-            </div>
-        </section>
+            <div id="matchday-pulse-context" class="matchday-pulse-context" aria-label="Stored tournament context">
+                <a
+                    class="matchday-pulse-context-card"
+                    href="#confirmed-knockout-path"
+                    data-progressive-disclosure-link="confirmed-knockout-path"
+                >
+                    <span>Road to the Final</span>
+                    <strong id="matchday-road-summary">Reading stored knockout-path context.</strong>
+                    <small>Stored fixtures only. Progression is not inferred.</small>
+                </a>
 
-        <section id="matchday-changes" class="matchday-changes" aria-labelledby="matchday-changes-title">
-            <div class="matchday-changes-heading">
-                <div>
-                    <p class="eyebrow">Browser-local comparison</p>
-                    <h2 id="matchday-changes-title">What changed since your last visit</h2>
-                </div>
-                <p class="matchday-changes-note">Compares stored knockout data saved by this browser. Not a live feed.</p>
-            </div>
-            <div id="matchday-changes-content" class="matchday-changes-content" role="status" aria-live="polite">
-                Reading the stored knockout comparison baseline.
+                <a
+                    class="matchday-pulse-context-card"
+                    href="#matchday-changes"
+                    data-progressive-disclosure-link="matchday-changes"
+                >
+                    <span>Since your last visit</span>
+                    <strong id="matchday-pulse-changes-summary">Reading this browser’s local comparison.</strong>
+                    <small>Browser-local stored-data comparison. Not a live feed.</small>
+                </a>
             </div>
         </section>
 
-        <section
-    id="live-match-centre"
-    class="live-match-centre-panel"
-    data-dashboard-section
-    aria-label="Live Match Centre"
-  >
-    <div class="live-match-centre-heading">
-      <div>
-        <p class="eyebrow">Stored provider snapshot</p>
-        <h2>Live Match Centre</h2>
-        <p id="live-match-centre-message">
-          Reading the latest stored live-match snapshot…
-        </p>
-      </div>
-      <div
-        id="live-match-centre-freshness"
-        class="live-match-centre-freshness checking"
-        aria-live="polite"
-      >
-        Checking stored freshness
-      </div>
-      <button id="refresh-live-match-centre" type="button">
-        Refresh stored live state
-      </button>
-    </div>
-    <p class="live-match-centre-note">
-      This panel reads stored application data only. No provider request is made by this panel.
-    </p>
-    <div
-      id="live-match-centre-matches"
-      class="live-match-centre-matches"
-      aria-live="polite"
-    >
-      <div class="live-match-centre-empty">
-        Reading stored live-match data. No provider request is made by this panel.
-      </div>
-    </div>
-  </section>
-  <section id="dashboard-overview" class="summary-grid" data-dashboard-section aria-label="Dashboard overview">
-            <article class="summary-card">
-                <span class="summary-label">Total Fixtures</span>
-                <strong id="total-fixtures">-</strong>
-            </article>
+        <details
+            id="confirmed-knockout-path"
+            class="dashboard-disclosure confirmed-knockout-path"
+            data-dashboard-section
+            data-progressive-disclosure
+            aria-labelledby="confirmed-knockout-path-title"
+        >
+            <summary
+                class="dashboard-disclosure-summary"
+                data-disclosure-toggle
+                aria-controls="confirmed-knockout-path-content"
+                aria-expanded="false"
+            >
+                <span class="dashboard-disclosure-heading">
+                    <span class="eyebrow">Stored tournament path</span>
+                    <span>
+                        <span id="confirmed-knockout-path-title" class="dashboard-disclosure-title">Road to the Final</span>
+                        <span id="confirmed-knockout-path-summary" class="dashboard-disclosure-copy">
+                            Reading stored provider-backed knockout fixtures.
+                        </span>
+                    </span>
+                </span>
+                <span class="dashboard-disclosure-toggle" aria-hidden="true">Show road</span>
+            </summary>
 
-            <article class="summary-card">
-                <span class="summary-label">Completed</span>
-                <strong id="completed-fixtures">-</strong>
-            </article>
-
-            <article class="summary-card">
-                <span class="summary-label">Upcoming</span>
-                <strong id="scheduled-fixtures">-</strong>
-            </article>
-
-            <article class="summary-card">
-                <span class="summary-label">Visible Results</span>
-                <strong id="visible-fixtures">-</strong>
-            </article>
-        </section>
-
-        <section id="sync-runtime" class="sync-runtime-panel" data-dashboard-section aria-label="Provider sync runtime status">
-            <div class="sync-runtime-heading">
-                <div>
-                    <p class="eyebrow">Runtime Observability</p>
-                    <h2>Provider Sync Runtime</h2>
-                    <p id="provider-sync-message">
-                        Checking latest fixture sync status...
+            <div id="confirmed-knockout-path-content" class="dashboard-disclosure-content">
+                <div class="confirmed-knockout-path-heading">
+                    <div>
+                        <p id="confirmed-knockout-path-message" class="confirmed-knockout-path-message">
+                            Reading stored provider-backed knockout fixtures.
+                        </p>
+                    </div>
+                    <p class="confirmed-knockout-path-note">
+                        Later stages appear only when stored. Progression is not inferred.
                     </p>
                 </div>
+                <div id="confirmed-knockout-stage-tabs" class="confirmed-knockout-stage-tabs" aria-label="Browse stored knockout stages"></div>
+                <div id="confirmed-knockout-stage-content" class="confirmed-knockout-stage-content" aria-live="polite">
+                    <p class="confirmed-knockout-empty">Stored knockout fixtures will appear here when available.</p>
+                </div>
+            </div>
+        </details>
 
+        <details
+            id="matchday-changes"
+            class="dashboard-disclosure matchday-changes"
+            data-progressive-disclosure
+            aria-labelledby="matchday-changes-title"
+        >
+            <summary
+                class="dashboard-disclosure-summary"
+                data-disclosure-toggle
+                aria-controls="matchday-changes-content"
+                aria-expanded="false"
+            >
+                <span class="dashboard-disclosure-heading">
+                    <span class="eyebrow">Browser-local comparison</span>
+                    <span>
+                        <span id="matchday-changes-title" class="dashboard-disclosure-title">What changed since your last visit</span>
+                        <span id="matchday-changes-summary" class="dashboard-disclosure-copy">
+                            Reading this browser’s stored knockout comparison.
+                        </span>
+                    </span>
+                </span>
+                <span class="dashboard-disclosure-toggle" aria-hidden="true">Show changes</span>
+            </summary>
+
+            <div class="dashboard-disclosure-content">
+                <p class="matchday-changes-note">
+                    Compares stored knockout data saved by this browser. Not a live feed.
+                </p>
+                <div id="matchday-changes-content" class="matchday-changes-content" role="status" aria-live="polite">
+                    Reading the stored knockout comparison baseline.
+                </div>
+            </div>
+        </details>
+
+        <details
+            id="live-match-centre"
+            class="dashboard-disclosure live-match-centre-panel"
+            data-dashboard-section
+            data-progressive-disclosure
+            aria-labelledby="live-match-centre-title"
+        >
+            <summary
+                class="dashboard-disclosure-summary"
+                data-disclosure-toggle
+                aria-controls="live-match-centre-content"
+                aria-expanded="false"
+            >
+                <span class="dashboard-disclosure-heading">
+                    <span class="eyebrow">Stored provider snapshot</span>
+                    <span>
+                        <span id="live-match-centre-title" class="dashboard-disclosure-title">Live Match Centre</span>
+                        <span id="live-match-centre-summary" class="dashboard-disclosure-copy">
+                            Reading the latest stored live-match snapshot.
+                        </span>
+                    </span>
+                </span>
+                <span id="live-match-centre-freshness" class="live-match-centre-freshness checking" aria-live="polite">
+                    Checking stored freshness
+                </span>
+                <span class="dashboard-disclosure-toggle" aria-hidden="true">Show live state</span>
+            </summary>
+
+            <div id="live-match-centre-content" class="dashboard-disclosure-content">
+                <div class="live-match-centre-heading">
+                    <div>
+                        <p id="live-match-centre-message">
+                            Reading the latest stored live-match snapshot…
+                        </p>
+                    </div>
+                    <button id="refresh-live-match-centre" type="button">
+                        Refresh stored live state
+                    </button>
+                </div>
+                <p class="live-match-centre-note">
+                    This panel reads stored application data only. No provider request is made by this panel.
+                </p>
+                <div
+                    id="live-match-centre-matches"
+                    class="live-match-centre-matches"
+                    aria-live="polite"
+                >
+                    <div class="live-match-centre-empty">
+                        Reading stored live-match data. No provider request is made by this panel.
+                    </div>
+                </div>
+            </div>
+        </details>
+
+        <details
+            id="dashboard-overview"
+            class="dashboard-disclosure dashboard-overview-panel"
+            data-dashboard-section
+            data-progressive-disclosure
+            aria-labelledby="dashboard-overview-title"
+        >
+            <summary
+                class="dashboard-disclosure-summary"
+                data-disclosure-toggle
+                aria-controls="dashboard-overview-content"
+                aria-expanded="false"
+            >
+                <span class="dashboard-disclosure-heading">
+                    <span class="eyebrow">Stored tournament totals</span>
+                    <span>
+                        <span id="dashboard-overview-title" class="dashboard-disclosure-title">Tournament Overview</span>
+                        <span id="dashboard-overview-summary" class="dashboard-disclosure-copy">
+                            Reading stored fixture totals.
+                        </span>
+                    </span>
+                </span>
+                <span class="dashboard-disclosure-toggle" aria-hidden="true">Show overview</span>
+            </summary>
+
+            <div id="dashboard-overview-content" class="dashboard-disclosure-content">
+                <div class="summary-grid">
+                    <article class="summary-card">
+                        <span class="summary-label">Total Fixtures</span>
+                        <strong id="total-fixtures">-</strong>
+                    </article>
+
+                    <article class="summary-card">
+                        <span class="summary-label">Completed</span>
+                        <strong id="completed-fixtures">-</strong>
+                    </article>
+
+                    <article class="summary-card">
+                        <span class="summary-label">Upcoming</span>
+                        <strong id="scheduled-fixtures">-</strong>
+                    </article>
+
+                    <article class="summary-card">
+                        <span class="summary-label">Visible Results</span>
+                        <strong id="visible-fixtures">-</strong>
+                    </article>
+                </div>
+            </div>
+        </details>
+
+        <details
+            id="sync-runtime"
+            class="dashboard-disclosure sync-runtime-panel"
+            data-dashboard-section
+            data-progressive-disclosure
+            aria-labelledby="sync-runtime-title"
+        >
+            <summary
+                class="dashboard-disclosure-summary"
+                data-disclosure-toggle
+                aria-controls="sync-runtime-content"
+                aria-expanded="false"
+            >
+                <span class="dashboard-disclosure-heading">
+                    <span class="eyebrow">Runtime Observability</span>
+                    <span>
+                        <span id="sync-runtime-title" class="dashboard-disclosure-title">Provider Sync Runtime</span>
+                        <span id="provider-sync-message" class="dashboard-disclosure-copy">
+                            Checking latest fixture sync status...
+                        </span>
+                    </span>
+                </span>
+                <span class="dashboard-disclosure-statuses">
+                    <span id="sync-status-badge" class="sync-status-badge not-started">Not Started</span>
+                    <span id="sync-freshness-badge" class="sync-freshness-badge not-started">Data: No Sync Yet</span>
+                </span>
+                <span class="dashboard-disclosure-toggle" aria-hidden="true">Show sync detail</span>
+            </summary>
+
+            <div id="sync-runtime-content" class="dashboard-disclosure-content">
                 <div class="sync-runtime-actions">
-                    <span id="sync-status-badge" class="sync-status-badge not-started">
-                        Not Started
-                    </span>
-
-                    <span id="sync-freshness-badge" class="sync-freshness-badge not-started">
-                        Data: No Sync Yet
-                    </span>
-
                     <button id="refresh-sync-status" type="button">
                         Refresh Sync Status
                     </button>
                 </div>
-            </div>
-
             <div id="fixture-sync-status-container" class="sync-runtime-grid" aria-live="polite">
                 <article class="sync-runtime-card">
                     <span class="sync-runtime-label">Provider</span>
@@ -267,31 +392,40 @@
             <div id="sync-error-message" class="sync-error-message">
                 No sync errors recorded.
             </div>
-        </section>
+            </div>
+        </details>
 
 
 
-        <section id="ai-summary" class="ai-summary-panel" data-dashboard-section aria-label="AI fixture summary">
-            <div class="ai-summary-content">
-                <div class="ai-summary-heading">
-                    <div>
-                        <p class="eyebrow">Local Llama Agent</p>
-                        <h2>AI Fixture Summary</h2>
-                    </div>
+        <details
+            id="ai-summary"
+            class="dashboard-disclosure ai-summary-panel"
+            data-dashboard-section
+            data-progressive-disclosure
+            aria-labelledby="ai-summary-title"
+        >
+            <summary
+                class="dashboard-disclosure-summary"
+                data-disclosure-toggle
+                aria-controls="ai-summary-content"
+                aria-expanded="false"
+            >
+                <span class="dashboard-disclosure-heading">
+                    <span class="eyebrow">Local Llama Agent</span>
+                    <span>
+                        <span id="ai-summary-title" class="dashboard-disclosure-title">AI Fixture Summary</span>
+                        <span id="ai-summary-message" class="dashboard-disclosure-copy">
+                            Generate a short tournament-wide summary using deterministic rules and local AI health checks.
+                        </span>
+                    </span>
+                </span>
+                <span id="ai-health-badge" class="ai-health-badge checking" aria-live="polite">
+                    Checking AI...
+                </span>
+                <span class="dashboard-disclosure-toggle" aria-hidden="true">Show AI summary</span>
+            </summary>
 
-                    <div
-                        id="ai-health-badge"
-                        class="ai-health-badge checking"
-                        aria-live="polite"
-                    >
-                        Checking AI...
-                    </div>
-                </div>
-
-                <p id="ai-summary-message">
-                    Generate a short tournament-wide summary using deterministic rules and local AI health checks.
-                </p>
-
+            <div id="ai-summary-content" class="dashboard-disclosure-content">
                 <p id="ai-health-details" class="ai-health-details">
                     Local AI status will appear here after the dashboard checks Ollama.
                 </p>
@@ -310,203 +444,324 @@
                         Loading the latest provider-backed completed match...
                     </span>
                 </section>
+                <div class="ai-summary-actions">
+                    <button id="generate-ai-summary" type="button">
+                        Generate AI Summary
+                    </button>
+                </div>
             </div>
+        </details>
 
-            <button id="generate-ai-summary" type="button">
-                Generate AI Summary
-            </button>
-        </section>
-
-                        <details
+        <details
             id="group-stage"
-            class="group-stage-disclosure"
+            class="dashboard-disclosure group-stage-disclosure"
             data-dashboard-section
+            data-progressive-disclosure
             aria-label="Group Stage"
-            open
         >
-            <summary>
-                <span class="group-stage-disclosure-heading">
+            <summary
+                class="dashboard-disclosure-summary"
+                data-disclosure-toggle
+                aria-controls="group-stage-content"
+                aria-expanded="false"
+            >
+                <span class="dashboard-disclosure-heading">
                     <span class="eyebrow">Tournament context</span>
                     <span>
-                        <span class="group-stage-disclosure-title">Group Stage</span>
-                        <span id="group-stage-message" class="group-stage-disclosure-copy">
-                            Group standings, Group Race, and group insights.
+                        <span class="dashboard-disclosure-title">Group Stage</span>
+                        <span id="group-stage-message" class="dashboard-disclosure-copy">
+                            Reading stored group-stage fixture context.
                         </span>
                     </span>
                 </span>
-                <span class="group-stage-disclosure-toggle" aria-hidden="true">Hide group data</span>
+                <span class="dashboard-disclosure-toggle" aria-hidden="true">Show group data</span>
             </summary>
 
-            <div class="group-stage-disclosure-content">
-                <section id="ai-insights" class="ai-insights-panel" data-dashboard-section aria-label="Structured AI insights">
-                            <div class="ai-insights-heading">
-                                <div>
-                                    <p class="eyebrow">AI Insights Upgrade</p>
-                                    <h2>Structured AI Insights</h2>
-                                    <p id="ai-insights-message">
-                                        Loading structured fixture, standings, and sync insights...
-                                    </p>
-                                </div>
+            <div id="group-stage-content" class="dashboard-disclosure-content group-stage-disclosure-content">
+                <details
+                    id="ai-insights"
+                    class="dashboard-subdisclosure ai-insights-panel"
+                    data-dashboard-section
+                    data-progressive-disclosure
+                    aria-labelledby="ai-insights-title"
+                >
+                    <summary
+                        class="dashboard-subdisclosure-summary"
+                        data-disclosure-toggle
+                        aria-controls="ai-insights-content"
+                        aria-expanded="false"
+                    >
+                        <span class="dashboard-subdisclosure-heading">
+                            <span class="eyebrow">Stored analysis</span>
+                            <span>
+                                <span id="ai-insights-title" class="dashboard-subdisclosure-title">Structured AI Insights</span>
+                                <span id="ai-insights-message" class="dashboard-subdisclosure-copy">
+                                    Loading structured fixture, standings, and sync insights...
+                                </span>
+                            </span>
+                        </span>
+                        <span class="dashboard-subdisclosure-toggle" aria-hidden="true">Show insights</span>
+                    </summary>
 
-                                <button id="refresh-ai-insights" type="button">
-                                    Refresh AI Insights
-                                </button>
-                            </div>
+                    <div id="ai-insights-content" class="dashboard-subdisclosure-content">
+                        <div class="ai-insights-actions">
+                            <button id="refresh-ai-insights" type="button">
+                                Refresh AI Insights
+                            </button>
+                        </div>
 
-                            <div id="ai-insights-summary" class="ai-insights-summary">
-                                AI insights will appear after the dashboard checks fixture data.
-                            </div>
+                        <div id="ai-insights-summary" class="ai-insights-summary">
+                            AI insights will appear after the dashboard checks fixture data.
+                        </div>
 
-                            <section class="group-race-board" aria-label="Top two teams in each group">
-                                <div class="group-race-heading">
-                                    <div>
-                                        <p class="eyebrow">Standings Snapshot</p>
-                                        <h3>Group Race</h3>
-                                        <p id="group-race-message">
-                                            Loading the current top two teams in each group.
-                                        </p>
-                                    </div>
+                        <details
+                            id="group-race"
+                            class="dashboard-subdisclosure dashboard-subdisclosure-nested group-race-board"
+                            data-progressive-disclosure
+                            aria-labelledby="group-race-title"
+                        >
+                            <summary
+                                class="dashboard-subdisclosure-summary"
+                                data-disclosure-toggle
+                                aria-controls="group-race-content"
+                                aria-expanded="false"
+                            >
+                                <span class="dashboard-subdisclosure-heading">
+                                    <span class="eyebrow">Standings snapshot</span>
+                                    <span>
+                                        <span id="group-race-title" class="dashboard-subdisclosure-title">Group Race</span>
+                                        <span id="group-race-message" class="dashboard-subdisclosure-copy">
+                                            Top two teams in each group load from confirmed completed fixtures.
+                                        </span>
+                                    </span>
+                                </span>
+                                <span class="group-race-badge">Top 2</span>
+                                <span class="dashboard-subdisclosure-toggle" aria-hidden="true">Show race</span>
+                            </summary>
 
-                                    <span class="group-race-badge">Top 2</span>
-                                </div>
-
+                            <div id="group-race-content" class="dashboard-subdisclosure-content">
                                 <div id="group-race-container" class="group-race-grid" aria-live="polite">
                                     <div class="group-race-empty">
                                         Group race positions will appear after completed fixtures are available.
                                     </div>
                                 </div>
-                            </section>
-
-                            <div id="ai-insights-container" class="ai-insights-grid" aria-live="polite"></div>
-                        </section>
-
-                <section id="group-insights" class="insights-section" data-dashboard-section aria-label="Group insights">
-                            <div class="section-heading">
-                                <div>
-                                    <h2>Group Insights</h2>
-                                    <p id="insights-message">Loading insights...</p>
-                                </div>
                             </div>
+                        </details>
 
-                            <div id="insights-container" class="insights-grid" aria-live="polite"></div>
-                        </section>
+                        <div id="ai-insights-container" class="ai-insights-grid" aria-live="polite"></div>
+                    </div>
+                </details>
 
-                <section id="group-standings" class="standings-section" data-dashboard-section aria-label="Group standings">
-                            <div class="section-heading">
-                                <div>
-                                    <h2>Group Standings</h2>
-                                    <p id="standings-message">Loading standings...</p>
-                                </div>
-                            </div>
+                <details
+                    id="group-insights"
+                    class="dashboard-subdisclosure insights-section"
+                    data-dashboard-section
+                    data-progressive-disclosure
+                    aria-labelledby="group-insights-title"
+                >
+                    <summary
+                        class="dashboard-subdisclosure-summary"
+                        data-disclosure-toggle
+                        aria-controls="group-insights-content"
+                        aria-expanded="false"
+                    >
+                        <span class="dashboard-subdisclosure-heading">
+                            <span class="eyebrow">Stored group analysis</span>
+                            <span>
+                                <span id="group-insights-title" class="dashboard-subdisclosure-title">Group Insights</span>
+                                <span id="insights-message" class="dashboard-subdisclosure-copy">Loading insights...</span>
+                            </span>
+                        </span>
+                        <span class="dashboard-subdisclosure-toggle" aria-hidden="true">Show group insights</span>
+                    </summary>
 
-                            <div id="standings-container" class="standings-container" aria-live="polite"></div>
-                        </section>
+                    <div id="group-insights-content" class="dashboard-subdisclosure-content">
+                        <div id="insights-container" class="insights-grid" aria-live="polite"></div>
+                    </div>
+                </details>
+
+                <details
+                    id="group-standings"
+                    class="dashboard-subdisclosure standings-section"
+                    data-dashboard-section
+                    data-progressive-disclosure
+                    aria-labelledby="group-standings-title"
+                >
+                    <summary
+                        class="dashboard-subdisclosure-summary"
+                        data-disclosure-toggle
+                        aria-controls="group-standings-content"
+                        aria-expanded="false"
+                    >
+                        <span class="dashboard-subdisclosure-heading">
+                            <span class="eyebrow">Stored standings</span>
+                            <span>
+                                <span id="group-standings-title" class="dashboard-subdisclosure-title">Group Standings</span>
+                                <span id="standings-message" class="dashboard-subdisclosure-copy">Loading standings...</span>
+                            </span>
+                        </span>
+                        <span class="dashboard-subdisclosure-toggle" aria-hidden="true">Show standings</span>
+                    </summary>
+
+                    <div id="group-standings-content" class="dashboard-subdisclosure-content">
+                        <div id="standings-container" class="standings-container" aria-live="polite"></div>
+                    </div>
+                </details>
             </div>
         </details>
 
-
-
-        <section class="controls-panel" aria-label="Dashboard filters">
-            <div class="control-group">
-                <label for="team-search">Search team</label>
-                <input
-                    id="team-search"
-                    type="search"
-                    placeholder="Example: Mexico, South Africa, USA"
-                >
-            </div>
-
-            <div class="control-group">
-                <label for="group-filter">Group</label>
-                <select id="group-filter">
-                    <option value="">All groups</option>
-                </select>
-            </div>
-
-            <div class="control-group">
-                <label for="status-filter">Status</label>
-                <select id="status-filter">
-                    <option value="">All statuses</option>
-                </select>
-            </div>
-
-            <button id="reset-filters" type="button">
-                Reset Filters
-            </button>
-        </section>
-
-
-
-        <section id="player-statistics" class="player-stats-section" data-dashboard-section aria-label="Provider-backed player leaders">
-            <div class="section-heading">
-                <div>
-                    <p class="eyebrow">Provider-backed match detail</p>
-                    <h2>Player Leaders</h2>
-                    <p id="player-stats-message">Loading provider-backed scorer and card leaderboards...</p>
-                </div>
-            </div>
-
-            <div id="player-stats-container" class="player-stats-grid" aria-live="polite"></div>
-        </section>
-
-        <section
-            id="match-data-quality"
-            class="match-data-quality-panel"
+        <details
+            id="player-statistics"
+            class="dashboard-disclosure player-stats-section"
             data-dashboard-section
-            aria-label="Stored match data coverage"
+            data-progressive-disclosure
+            aria-labelledby="player-statistics-title"
         >
-            <div class="match-data-quality-heading">
-                <div>
-                    <p class="eyebrow">Read-only stored data</p>
-                    <h2>Match Data Coverage</h2>
-                    <p id="match-data-quality-message">
-                        Checking stored match-detail coverage for completed fixtures...
+            <summary
+                class="dashboard-disclosure-summary"
+                data-disclosure-toggle
+                aria-controls="player-statistics-content"
+                aria-expanded="false"
+            >
+                <span class="dashboard-disclosure-heading">
+                    <span class="eyebrow">Provider-backed match detail</span>
+                    <span>
+                        <span id="player-statistics-title" class="dashboard-disclosure-title">Player Leaders</span>
+                        <span id="player-stats-message" class="dashboard-disclosure-copy">
+                            Loading provider-backed scorer and card leaderboards...
+                        </span>
+                    </span>
+                </span>
+                <span class="dashboard-disclosure-toggle" aria-hidden="true">Show player leaders</span>
+            </summary>
+
+            <div id="player-statistics-content" class="dashboard-disclosure-content">
+                <div id="player-stats-container" class="player-stats-grid" aria-live="polite"></div>
+            </div>
+        </details>
+
+        <details
+            id="match-data-quality"
+            class="dashboard-disclosure match-data-quality-panel"
+            data-dashboard-section
+            data-progressive-disclosure
+            aria-labelledby="match-data-quality-title"
+        >
+            <summary
+                class="dashboard-disclosure-summary"
+                data-disclosure-toggle
+                aria-controls="match-data-quality-content"
+                aria-expanded="false"
+            >
+                <span class="dashboard-disclosure-heading">
+                    <span class="eyebrow">Read-only stored data</span>
+                    <span>
+                        <span id="match-data-quality-title" class="dashboard-disclosure-title">Match Data Coverage</span>
+                        <span id="match-data-quality-message" class="dashboard-disclosure-copy">
+                            Checking stored match-detail coverage for completed fixtures...
+                        </span>
+                    </span>
+                </span>
+                <span class="dashboard-disclosure-toggle" aria-hidden="true">Show coverage detail</span>
+            </summary>
+
+            <div id="match-data-quality-content" class="dashboard-disclosure-content">
+                <div class="match-data-quality-heading">
+                    <button id="refresh-match-data-quality" type="button">
+                        Refresh Coverage
+                    </button>
+                </div>
+
+                <div
+                    id="match-data-quality-summary"
+                    class="match-data-quality-grid"
+                    aria-live="polite"
+                >
+                    <div class="match-data-quality-loading">
+                        Checking stored match-detail coverage...
+                    </div>
+                </div>
+
+                <div
+                    id="match-data-quality-events"
+                    class="match-data-quality-events"
+                    aria-live="polite"
+                ></div>
+
+                <section
+                    id="missing-detail-fixtures"
+                    class="missing-detail-fixtures"
+                    aria-label="Completed fixtures without stored detail"
+                    aria-live="polite"
+                >
+                    <p>
+                        Completed fixtures without stored detail will appear here.
+                        No provider request was made by this panel.
                     </p>
-                </div>
-
-                <button id="refresh-match-data-quality" type="button">
-                    Refresh Coverage
-                </button>
+                </section>
             </div>
+        </details>
 
-            <div
-                id="match-data-quality-summary"
-                class="match-data-quality-grid"
-                aria-live="polite"
+        <details
+            id="fixtures"
+            class="dashboard-disclosure fixtures-section"
+            data-dashboard-section
+            data-progressive-disclosure
+            aria-labelledby="fixtures-title"
+        >
+            <summary
+                class="dashboard-disclosure-summary"
+                data-disclosure-toggle
+                aria-controls="fixtures-content"
+                aria-expanded="false"
             >
-                <div class="match-data-quality-loading">
-                    Checking stored match-detail coverage...
+                <span class="dashboard-disclosure-heading">
+                    <span class="eyebrow">Stored fixture browser</span>
+                    <span>
+                        <span id="fixtures-title" class="dashboard-disclosure-title">Fixtures</span>
+                        <span id="fixtures-summary" class="dashboard-disclosure-copy">
+                            Loading stored fixture counts and match categories.
+                        </span>
+                    </span>
+                </span>
+                <span class="dashboard-disclosure-toggle" aria-hidden="true">Browse matches</span>
+            </summary>
+
+            <div id="fixtures-content" class="dashboard-disclosure-content">
+                <section class="controls-panel" aria-label="Dashboard filters">
+                    <div class="control-group">
+                        <label for="team-search">Search team</label>
+                        <input
+                            id="team-search"
+                            type="search"
+                            placeholder="Example: Mexico, South Africa, USA"
+                        >
+                    </div>
+
+                    <div class="control-group">
+                        <label for="group-filter">Group</label>
+                        <select id="group-filter">
+                            <option value="">All groups</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="status-filter">Status</label>
+                        <select id="status-filter">
+                            <option value="">All statuses</option>
+                        </select>
+                    </div>
+
+                    <button id="reset-filters" type="button">
+                        Reset Filters
+                    </button>
+                </section>
+
+                <div class="fixture-browser-heading">
+                    <div>
+                        <p id="dashboard-message">Loading fixtures...</p>
+                    </div>
                 </div>
-            </div>
-
-            <div
-                id="match-data-quality-events"
-                class="match-data-quality-events"
-                aria-live="polite"
-            ></div>
-
-            <section
-                id="missing-detail-fixtures"
-                class="missing-detail-fixtures"
-                aria-label="Completed fixtures without stored detail"
-                aria-live="polite"
-            >
-                <p>
-                    Completed fixtures without stored detail will appear here.
-                    No provider request was made by this panel.
-                </p>
-            </section>
-        </section>
-
-
-
-        <section id="fixtures" class="fixtures-section" data-dashboard-section aria-label="Fixture browser">
-            <div class="section-heading fixture-browser-heading">
-                <div>
-                    <h2>Fixtures</h2>
-                    <p id="dashboard-message">Loading fixtures...</p>
-                </div>
-            </div>
 
             <div
                 id="fixture-status-tabs"
@@ -554,7 +809,8 @@
 
                 <div id="fixtures-container" class="fixtures-grid" aria-live="polite"></div>
             </div>
-        </section>
+            </div>
+        </details>
     </main>
 
 
@@ -581,7 +837,7 @@
         </p>
     </footer>
 
-    <script src="/static/dashboard.js?v=v1.22.1"></script>
-  <script src="/static/live_match_centre.js?v=v1.22.1"></script>
+    <script src="/static/dashboard.js?v=v1.23.0"></script>
+  <script src="/static/live_match_centre.js?v=v1.23.0"></script>
 </body>
 </html>

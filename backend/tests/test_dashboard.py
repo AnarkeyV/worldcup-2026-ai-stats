@@ -297,9 +297,9 @@ def test_dashboard_page_includes_fixture_group_tabs():
     assert 'id="fixture-group-tabs"' in response.text
     assert "Browse fixtures by group" in response.text
     assert "Provider-backed Rich Match Dashboard" in response.text
-    assert "dashboard.js?v=v1.22.1" in response.text
-    assert "dashboard.css?v=v1.22.1" in response.text
-    assert "dashboard.css?v=v1.22.1" in response.text
+    assert "dashboard.js?v=v1.23.0" in response.text
+    assert "dashboard.css?v=v1.23.0" in response.text
+    assert "dashboard.css?v=v1.23.0" in response.text
 
 def test_dashboard_page_includes_fixture_status_browser_controls():
     response = client.get("/dashboard")

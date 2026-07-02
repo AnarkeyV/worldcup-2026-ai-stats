@@ -8,19 +8,22 @@ def read_static_asset(name: str) -> str:
     return (STATIC_DIR / name).read_text(encoding="utf-8")
 
 
-def test_group_stage_uses_native_disclosure_and_contains_group_content() -> None:
+def test_group_stage_uses_native_nested_disclosure_and_contains_group_content() -> None:
     dashboard_html = read_static_asset("dashboard.html")
 
-    start = dashboard_html.index('<details\n            id="group-stage"')
-    end = dashboard_html.index("</details>", start)
+    start = dashboard_html.index('id="group-stage"')
+    end = dashboard_html.index("</main>", start)
     disclosure = dashboard_html[start:end]
 
-    assert 'data-dashboard-section' in disclosure
-    assert "<summary>" in disclosure
+    assert '<details' in dashboard_html[:start]
+    assert 'data-progressive-disclosure' in disclosure
+    assert 'data-disclosure-toggle' in disclosure
     assert 'id="group-stage-message"' in disclosure
     assert 'id="group-standings"' in disclosure
     assert 'id="ai-insights"' in disclosure
     assert 'id="group-insights"' in disclosure
+    assert 'id="group-race"' in disclosure
+    assert "open" not in dashboard_html[dashboard_html.rfind("<details", 0, start):start]
 
 
 def test_group_navigation_targets_the_group_stage_disclosure() -> None:
@@ -46,9 +49,10 @@ def test_more_menus_expose_controls_for_accessible_behavior() -> None:
 def test_group_stage_and_more_menu_runtime_contracts_are_present() -> None:
     dashboard_js = read_static_asset("dashboard.js")
 
-    assert "function syncGroupStageDisclosure(fixtures)" in dashboard_js
+    assert "syncGroupStageDisclosure = function syncGroupStageDisclosureV123" in dashboard_js
     assert "getRecognizedKnockoutStages(fixtures)" in dashboard_js
-    assert "function revealGroupStageForNavigation(event, sectionId)" in dashboard_js
+    assert "revealGroupStageForNavigation = function revealGroupStageForNavigationV123" in dashboard_js
+    assert "function initializeV123ProgressiveDisclosure()" in dashboard_js
     assert 'event.key !== "Escape"' in dashboard_js
     assert 'document.addEventListener("pointerdown"' in dashboard_js
     assert 'mobileViewport.addEventListener("change", closeForViewportChange)' in dashboard_js
@@ -59,7 +63,7 @@ def test_group_stage_and_desktop_more_menu_styles_are_present() -> None:
     dashboard_css = read_static_asset("dashboard.css")
 
     assert ".group-stage-disclosure" in dashboard_css
-    assert ".group-stage-disclosure-content" in dashboard_css
+    assert ".dashboard-subdisclosure" in dashboard_css
     assert "#dashboard-section-nav .dashboard-section-nav-inner" in dashboard_css
     assert "overflow: visible;" in dashboard_css
     assert ".dashboard-more-menu[open]" in dashboard_css
