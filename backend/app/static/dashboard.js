@@ -4666,3 +4666,439 @@ function initializeMoreMenuBehavior() {
 }
 
 document.addEventListener("DOMContentLoaded", initializeDashboard);
+
+
+/*
+ * v1.23.0 Confirmed Knockout Matchday Pulse & Progressive Disclosure UX
+ *
+ * Presentation only: this layer reuses already-loaded stored fixtures, sync
+ * status, browser-local comparison data, and read-only dashboard endpoints.
+ * It does not add polling, provider requests, sync triggers, or writes.
+ */
+const V123_PROGRESSIVE_DISCLOSURE_IDS = Object.freeze([
+    "confirmed-knockout-path",
+    "matchday-changes",
+    "live-match-centre",
+    "dashboard-overview",
+    "sync-runtime",
+    "ai-summary",
+    "group-stage",
+    "ai-insights",
+    "group-race",
+    "group-insights",
+    "group-standings",
+    "player-statistics",
+    "match-data-quality",
+    "fixtures",
+]);
+
+function getV123ProgressiveDisclosure(disclosureId) {
+    const disclosure = document.getElementById(disclosureId);
+
+    return disclosure instanceof HTMLDetailsElement
+        && disclosure.matches("[data-progressive-disclosure]")
+        ? disclosure
+        : null;
+}
+
+function syncV123DisclosureExpandedState(disclosure) {
+    if (!disclosure) {
+        return;
+    }
+
+    const summary = disclosure.querySelector(":scope > summary[data-disclosure-toggle]");
+
+    if (summary) {
+        summary.setAttribute("aria-expanded", String(disclosure.open));
+    }
+}
+
+function setV123DisclosureOpen(disclosure, open) {
+    if (!disclosure) {
+        return;
+    }
+
+    disclosure.open = Boolean(open);
+    syncV123DisclosureExpandedState(disclosure);
+}
+
+function getV123DisclosureAncestors(target) {
+    const disclosures = [];
+    let current = target instanceof Element ? target : null;
+
+    while (current) {
+        if (
+            current instanceof HTMLDetailsElement
+            && current.matches("[data-progressive-disclosure]")
+        ) {
+            disclosures.unshift(current);
+        }
+
+        current = current.parentElement;
+    }
+
+    return disclosures;
+}
+
+function revealV123DisclosureForNavigation(event, sectionId) {
+    const target = document.getElementById(sectionId);
+
+    if (!target) {
+        return false;
+    }
+
+    const disclosures = getV123DisclosureAncestors(target);
+
+    if (disclosures.length === 0) {
+        return false;
+    }
+
+    event?.preventDefault?.();
+    disclosures.forEach((disclosure) => setV123DisclosureOpen(disclosure, true));
+
+    window.requestAnimationFrame(() => {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+
+        const focusTarget = target instanceof HTMLDetailsElement
+            ? target.querySelector(":scope > summary[data-disclosure-toggle]")
+            : null;
+
+        if (focusTarget) {
+            focusSummary(focusTarget);
+        }
+    });
+
+    return true;
+}
+
+function initializeV123ProgressiveDisclosure() {
+    document.querySelectorAll("details[data-progressive-disclosure]").forEach((disclosure) => {
+        if (disclosure.dataset.v123DisclosureBound === "true") {
+            syncV123DisclosureExpandedState(disclosure);
+            return;
+        }
+
+        disclosure.dataset.v123DisclosureBound = "true";
+        syncV123DisclosureExpandedState(disclosure);
+
+        disclosure.addEventListener("toggle", () => {
+            syncV123DisclosureExpandedState(disclosure);
+        });
+    });
+
+    document.querySelectorAll("[data-progressive-disclosure-link]").forEach((link) => {
+        if (link.dataset.v123DisclosureLinkBound === "true") {
+            return;
+        }
+
+        link.dataset.v123DisclosureLinkBound = "true";
+        link.addEventListener("click", (event) => {
+            revealV123DisclosureForNavigation(
+                event,
+                link.dataset.progressiveDisclosureLink,
+            );
+        });
+    });
+}
+
+function v123Pluralise(count, singular, plural = `${singular}s`) {
+    return `${count} ${count === 1 ? singular : plural}`;
+}
+
+function v123SetText(selector, value) {
+    const element = document.querySelector(selector);
+
+    if (element) {
+        element.textContent = value;
+    }
+}
+
+function v123GetRoadToFinalSummary(fixtures = state.allFixtures) {
+    if (state.fixtureLoadState === "loading") {
+        return "Reading stored knockout fixtures.";
+    }
+
+    if (state.fixtureLoadState !== "loaded") {
+        return "Stored knockout path unavailable because fixtures did not load.";
+    }
+
+    const knockoutFixtures = getConfirmedKnockoutFixtures(fixtures);
+
+    if (knockoutFixtures.length === 0) {
+        return "No stored confirmed knockout fixtures. Later stages stay hidden until stored.";
+    }
+
+    const statusCounts = getFixtureStatusCounts(knockoutFixtures);
+    const stageCount = getRecognizedKnockoutStages(knockoutFixtures).length;
+    const parts = [
+        `${v123Pluralise(knockoutFixtures.length, "stored knockout fixture")}`,
+        `${v123Pluralise(stageCount, "stored stage")}`,
+        `${v123Pluralise(statusCounts.completed, "completed")}`,
+    ];
+
+    if (statusCounts.scheduled > 0) {
+        parts.push(`${v123Pluralise(statusCounts.scheduled, "upcoming")} from stored status or kickoff`);
+    }
+
+    if (statusCounts.live > 0) {
+        parts.push(`${v123Pluralise(statusCounts.live, "recorded live")}`);
+    }
+
+    return parts.join(" · ");
+}
+
+function v123GetChangesSummary(comparison = state.knockoutVisitComparison) {
+    if (!comparison || comparison.state === "loading") {
+        return "Checking this browser’s stored knockout comparison.";
+    }
+
+    if (comparison.state === "fixture_unavailable") {
+        return "Stored fixtures unavailable; no local baseline was replaced.";
+    }
+
+    if (comparison.state === "first_visit") {
+        return "First visit on this browser; a local stored-data baseline was saved.";
+    }
+
+    if (comparison.state === "unavailable") {
+        return "Local comparison unavailable; stored fixture data was not changed.";
+    }
+
+    if (comparison.state === "empty") {
+        return "No stored knockout fixtures are available to compare yet.";
+    }
+
+    if (comparison.state === "unchanged") {
+        return "No stored knockout changes since your last visit.";
+    }
+
+    if (comparison.state === "changed") {
+        return `${v123Pluralise(comparison.changes.length, "stored knockout change")} since your last visit.`;
+    }
+
+    return "Stored knockout comparison is not available yet.";
+}
+
+function v123UpdateFixtureDisclosureSummaries(fixtures = state.allFixtures) {
+    if (state.fixtureLoadState === "loading") {
+        v123SetText("#fixtures-summary", "Reading stored fixture counts and match categories.");
+        v123SetText("#dashboard-overview-summary", "Reading stored fixture totals.");
+        return;
+    }
+
+    if (state.fixtureLoadState !== "loaded") {
+        v123SetText("#fixtures-summary", "Stored fixture browser unavailable because fixtures did not load.");
+        v123SetText("#dashboard-overview-summary", "Stored fixture totals unavailable because fixtures did not load.");
+        return;
+    }
+
+    const safeFixtures = Array.isArray(fixtures) ? fixtures : [];
+    const statusCounts = getFixtureStatusCounts(safeFixtures);
+    const summary = [
+        `${v123Pluralise(safeFixtures.length, "stored fixture")}`,
+        `${v123Pluralise(statusCounts.completed, "completed")}`,
+        `${v123Pluralise(statusCounts.scheduled, "upcoming")} from stored status or kickoff`,
+    ].join(" · ");
+
+    v123SetText("#fixtures-summary", summary);
+    v123SetText(
+        "#dashboard-overview-summary",
+        `${v123Pluralise(safeFixtures.length, "stored fixture")} · ${v123Pluralise(statusCounts.completed, "completed")} · ${v123Pluralise(statusCounts.scheduled, "upcoming")}.`,
+    );
+}
+
+function v123UpdateRoadAndChangesSummaries(fixtures = state.allFixtures) {
+    const roadSummary = v123GetRoadToFinalSummary(fixtures);
+    const changesSummary = v123GetChangesSummary();
+
+    v123SetText("#confirmed-knockout-path-summary", roadSummary);
+    v123SetText("#matchday-road-summary", roadSummary);
+    v123SetText("#matchday-changes-summary", changesSummary);
+    v123SetText("#matchday-pulse-changes-summary", changesSummary);
+}
+
+function v123UpdateGroupStageSummary(fixtures = state.allFixtures) {
+    const groupStageMessage = document.querySelector("#group-stage-message");
+
+    if (!groupStageMessage) {
+        return;
+    }
+
+    if (state.fixtureLoadState === "loading") {
+        groupStageMessage.textContent = "Reading stored group-stage fixture context.";
+        return;
+    }
+
+    if (state.fixtureLoadState !== "loaded") {
+        groupStageMessage.textContent =
+            "Stored fixture data is unavailable, so group-stage context cannot be confirmed.";
+        return;
+    }
+
+    const safeFixtures = Array.isArray(fixtures) ? fixtures : [];
+    const groupFixtures = safeFixtures.filter((fixture) => (
+        !isKnockoutFixture(fixture)
+        && Boolean(String(fixture?.group_name || "").trim())
+    ));
+    const groups = getFixtureGroups(groupFixtures);
+    const statusCounts = getFixtureStatusCounts(groupFixtures);
+
+    if (groupFixtures.length === 0) {
+        groupStageMessage.textContent =
+            "No stored group-stage fixtures are available. Standings and group insights remain read-only when stored.";
+        return;
+    }
+
+    groupStageMessage.textContent = [
+        `${v123Pluralise(groups.length, "stored group")}`,
+        `${v123Pluralise(groupFixtures.length, "stored group-stage fixture")}`,
+        `${v123Pluralise(statusCounts.completed, "completed")}`,
+        `${v123Pluralise(statusCounts.scheduled, "upcoming")} from stored status or kickoff`,
+    ].join(" · ");
+}
+
+function v123UpdateSyncRuntimeSummary(data = state.fixtureSyncStatus) {
+    const message = document.querySelector("#provider-sync-message");
+
+    if (!message) {
+        return;
+    }
+
+    if (!data) {
+        message.textContent = "Checking latest stored fixture sync status.";
+        return;
+    }
+
+    const freshness = String(data?.freshness?.state || "unavailable");
+    const provider = String(data?.provider || "provider").replaceAll("_", " ");
+    const lastSuccess = data?.last_success_at
+        ? `Last success ${formatDateTime(data.last_success_at)}.`
+        : "No successful provider refresh is recorded.";
+
+    message.textContent =
+        `${provider} · ${formatSyncFreshness(freshness)}. ${lastSuccess} Current match status is not inferred.`;
+}
+
+function v123SyncLiveMatchCentreSummary() {
+    const message = document.querySelector("#live-match-centre-message")?.textContent?.trim();
+    const freshness = document.querySelector("#live-match-centre-freshness")?.textContent?.trim();
+    const summary = [freshness, message].filter(Boolean).join(" · ");
+
+    if (summary) {
+        v123SetText("#live-match-centre-summary", summary);
+    }
+}
+
+function initializeV123LiveMatchCentreSummaryObserver() {
+    const liveMessage = document.querySelector("#live-match-centre-message");
+    const liveFreshness = document.querySelector("#live-match-centre-freshness");
+
+    if (!liveMessage || !liveFreshness || document.body.dataset.v123LiveSummaryObserved === "true") {
+        v123SyncLiveMatchCentreSummary();
+        return;
+    }
+
+    document.body.dataset.v123LiveSummaryObserved = "true";
+    const observer = new MutationObserver(v123SyncLiveMatchCentreSummary);
+    const options = { childList: true, characterData: true, subtree: true };
+
+    observer.observe(liveMessage, options);
+    observer.observe(liveFreshness, options);
+    v123SyncLiveMatchCentreSummary();
+}
+
+const v123RenderConfirmedKnockoutPath = renderConfirmedKnockoutPath;
+renderConfirmedKnockoutPath = function renderConfirmedKnockoutPathV123(fixtures = state.allFixtures) {
+    v123RenderConfirmedKnockoutPath(fixtures);
+    v123UpdateRoadAndChangesSummaries(fixtures);
+};
+
+const v123RenderMatchdayChanges = renderMatchdayChanges;
+renderMatchdayChanges = function renderMatchdayChangesV123(fixtures = state.allFixtures) {
+    v123RenderMatchdayChanges(fixtures);
+    v123UpdateRoadAndChangesSummaries(fixtures);
+};
+
+const v123RenderMatchdayHome = renderMatchdayHome;
+renderMatchdayHome = function renderMatchdayHomeV123(fixtures = state.matchdayFixtures) {
+    v123RenderMatchdayHome(fixtures);
+    v123UpdateFixtureDisclosureSummaries(state.allFixtures);
+    v123UpdateRoadAndChangesSummaries(state.allFixtures);
+    v123UpdateGroupStageSummary(state.allFixtures);
+};
+
+const v123UpdateSummary = updateSummary;
+updateSummary = function updateSummaryWithProgressiveDisclosure(allFixtures, visibleFixtures) {
+    v123UpdateSummary(allFixtures, visibleFixtures);
+    v123UpdateFixtureDisclosureSummaries(allFixtures);
+};
+
+const v123RenderFixtureSyncStatus = renderFixtureSyncStatus;
+renderFixtureSyncStatus = function renderFixtureSyncStatusWithDisclosureSummary(data) {
+    v123RenderFixtureSyncStatus(data);
+    v123UpdateSyncRuntimeSummary(data);
+};
+
+const v123SetSyncStatusLoading = setSyncStatusLoading;
+setSyncStatusLoading = function setSyncStatusLoadingWithDisclosureSummary() {
+    v123SetSyncStatusLoading();
+    v123UpdateSyncRuntimeSummary(null);
+};
+
+const v123SetSyncStatusError = setSyncStatusError;
+setSyncStatusError = function setSyncStatusErrorWithDisclosureSummary(message) {
+    v123SetSyncStatusError(message);
+    v123SetText(
+        "#provider-sync-message",
+        "Stored sync status unavailable. Current match status is not inferred.",
+    );
+};
+
+syncGroupStageDisclosure = function syncGroupStageDisclosureV123(fixtures = state.allFixtures) {
+    const disclosure = getGroupStageDisclosure();
+
+    if (!disclosure) {
+        return;
+    }
+
+    if (disclosure.dataset.v123InitialDisclosureState !== "set") {
+        setV123DisclosureOpen(disclosure, false);
+        disclosure.dataset.v123InitialDisclosureState = "set";
+    }
+
+    v123UpdateGroupStageSummary(fixtures);
+};
+
+revealGroupStageForNavigation = function revealGroupStageForNavigationV123(event, sectionId) {
+    return revealV123DisclosureForNavigation(event, sectionId);
+};
+
+const v123RenderFixtureBrowser = renderFixtureBrowser;
+renderFixtureBrowser = function renderFixtureBrowserWithFocusedDisclosure(fixtures, options = {}) {
+    state.v123AutomaticFixtureSelection = options.selectFirst !== false;
+
+    try {
+        return v123RenderFixtureBrowser(fixtures, options);
+    } finally {
+        state.v123AutomaticFixtureSelection = false;
+    }
+};
+
+const v123SelectFixture = selectFixture;
+selectFixture = async function selectFixtureWithFocusedDisclosure(fixtureId, options = {}) {
+    if (!state.v123AutomaticFixtureSelection && options.revealFixtureBrowser !== false) {
+        const fixtureDisclosure = getV123ProgressiveDisclosure("fixtures");
+        setV123DisclosureOpen(fixtureDisclosure, true);
+    }
+
+    return v123SelectFixture(fixtureId, options);
+};
+
+document.addEventListener("DOMContentLoaded", () => {
+    initializeV123ProgressiveDisclosure();
+    v123UpdateFixtureDisclosureSummaries(state.allFixtures);
+    v123UpdateRoadAndChangesSummaries(state.allFixtures);
+    v123UpdateGroupStageSummary(state.allFixtures);
+    v123UpdateSyncRuntimeSummary(state.fixtureSyncStatus);
+    initializeV123LiveMatchCentreSummaryObserver();
+});

@@ -3614,3 +3614,369 @@ summary:focus-visible {
     .confirmed-knockout-path-note, .matchday-changes-note { max-width: none; }
     .confirmed-knockout-fixture-grid { grid-template-columns: minmax(0, 1fr); }
 }
+
+
+/* v1.23.0: compact Matchday Pulse and modern progressive disclosure. */
+.dashboard-disclosure,
+.dashboard-subdisclosure {
+    min-width: 0;
+}
+
+.dashboard-disclosure {
+    margin-top: 1.25rem;
+    padding: 0;
+    overflow: clip;
+    border: 1px solid rgba(148, 163, 184, 0.42);
+    border-radius: 1.15rem;
+    background: var(--panel, #111827);
+    box-shadow: 0 0.75rem 1.5rem rgba(15, 23, 42, 0.12);
+}
+
+.dashboard-disclosure.confirmed-knockout-path,
+.dashboard-disclosure.matchday-changes {
+    padding: 0;
+}
+
+.dashboard-disclosure > summary,
+.dashboard-subdisclosure > summary {
+    min-height: 72px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.8rem;
+    align-items: center;
+    padding: 1rem 1.1rem;
+    cursor: pointer;
+    list-style: none;
+}
+
+.dashboard-disclosure > summary::-webkit-details-marker,
+.dashboard-subdisclosure > summary::-webkit-details-marker {
+    display: none;
+}
+
+.dashboard-disclosure > summary:hover,
+.dashboard-subdisclosure > summary:hover {
+    background: rgba(56, 189, 248, 0.06);
+}
+
+.dashboard-disclosure-heading,
+.dashboard-subdisclosure-heading {
+    min-width: 0;
+    display: grid;
+    gap: 0.24rem;
+}
+
+.dashboard-disclosure-heading .eyebrow,
+.dashboard-subdisclosure-heading .eyebrow {
+    margin: 0;
+}
+
+.dashboard-disclosure-title,
+.dashboard-subdisclosure-title {
+    display: block;
+    color: var(--text, #f9fafb);
+    font-size: 1.08rem;
+    font-weight: 850;
+    line-height: 1.25;
+}
+
+.dashboard-disclosure-copy,
+.dashboard-subdisclosure-copy {
+    display: block;
+    margin-top: 0.15rem;
+    color: var(--muted, #9ca3af);
+    font-size: 0.9rem;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+
+.dashboard-disclosure-toggle,
+.dashboard-subdisclosure-toggle {
+    flex: 0 0 auto;
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    gap: 0.35rem;
+    color: #dbeafe;
+    font-size: 0.86rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.dashboard-disclosure-toggle::after,
+.dashboard-subdisclosure-toggle::after {
+    content: "⌄";
+    font-size: 1.18rem;
+    line-height: 1;
+    transition: transform 160ms ease;
+}
+
+.dashboard-disclosure[open] > summary .dashboard-disclosure-toggle::after,
+.dashboard-subdisclosure[open] > summary .dashboard-subdisclosure-toggle::after {
+    transform: rotate(180deg);
+}
+
+.dashboard-disclosure[open] > summary .dashboard-disclosure-toggle {
+    font-size: 0;
+}
+
+.dashboard-disclosure[open] > summary .dashboard-disclosure-toggle::before {
+    content: "Hide details";
+    font-size: 0.86rem;
+}
+
+.dashboard-subdisclosure[open] > summary .dashboard-subdisclosure-toggle {
+    font-size: 0;
+}
+
+.dashboard-subdisclosure[open] > summary .dashboard-subdisclosure-toggle::before {
+    content: "Hide details";
+    font-size: 0.86rem;
+}
+
+.dashboard-disclosure-content {
+    min-width: 0;
+    padding: 0 clamp(0.95rem, 2vw, 1.35rem) clamp(0.95rem, 2vw, 1.35rem);
+    border-top: 1px solid rgba(148, 163, 184, 0.24);
+}
+
+.dashboard-subdisclosure {
+    margin: 0;
+    overflow: clip;
+    border: 1px solid rgba(148, 163, 184, 0.32);
+    border-radius: 0.95rem;
+    background: rgba(2, 6, 23, 0.34);
+}
+
+.dashboard-subdisclosure + .dashboard-subdisclosure {
+    margin-top: 0.8rem;
+}
+
+.dashboard-subdisclosure > summary {
+    min-height: 64px;
+    padding: 0.85rem 0.95rem;
+}
+
+.dashboard-subdisclosure-content {
+    min-width: 0;
+    padding: 0.9rem;
+    border-top: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.dashboard-subdisclosure-nested {
+    margin-top: 0.9rem;
+}
+
+.dashboard-disclosure-statuses {
+    display: inline-flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.4rem;
+    max-width: 24rem;
+}
+
+.dashboard-disclosure .sync-status-badge,
+.dashboard-disclosure .sync-freshness-badge,
+.dashboard-disclosure .ai-health-badge,
+.dashboard-disclosure .live-match-centre-freshness {
+    min-height: 36px;
+}
+
+.matchday-pulse-context {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin-top: 0.8rem;
+}
+
+.matchday-pulse-context-card {
+    display: grid;
+    min-width: 0;
+    min-height: 44px;
+    gap: 0.22rem;
+    padding: 0.85rem 0.95rem;
+    border: 1px solid rgba(148, 163, 184, 0.32);
+    border-radius: 0.95rem;
+    background: rgba(2, 6, 23, 0.28);
+    color: inherit;
+    text-decoration: none;
+}
+
+.matchday-pulse-context-card:hover {
+    border-color: rgba(56, 189, 248, 0.8);
+    background: rgba(14, 165, 233, 0.1);
+}
+
+.matchday-pulse-context-card > span {
+    color: var(--accent, #38bdf8);
+    font-size: 0.76rem;
+    font-weight: 850;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.matchday-pulse-context-card strong {
+    overflow-wrap: anywhere;
+    font-size: 0.95rem;
+    line-height: 1.35;
+}
+
+.matchday-pulse-context-card small {
+    color: var(--muted, #9ca3af);
+    line-height: 1.4;
+}
+
+.confirmed-knockout-path .dashboard-disclosure-content,
+.matchday-changes .dashboard-disclosure-content {
+    padding-top: 1rem;
+}
+
+.matchday-changes .matchday-changes-note {
+    margin-top: 0;
+}
+
+.live-match-centre-panel .dashboard-disclosure-summary,
+.sync-runtime-panel .dashboard-disclosure-summary,
+.ai-summary-panel .dashboard-disclosure-summary,
+.group-race-board > .dashboard-subdisclosure-summary {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.live-match-centre-panel .live-match-centre-freshness {
+    max-width: 18rem;
+    overflow-wrap: anywhere;
+}
+
+.sync-runtime-panel .dashboard-disclosure-content .sync-runtime-actions,
+.ai-summary-panel .ai-summary-actions,
+.ai-insights-panel .ai-insights-actions,
+.match-data-quality-panel .match-data-quality-heading {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 0.9rem;
+}
+
+.ai-summary-panel .ai-summary-output {
+    margin-top: 0;
+}
+
+.group-stage-disclosure > summary,
+.group-stage-disclosure > .dashboard-disclosure-content {
+    border-color: inherit;
+}
+
+.group-stage-disclosure-content {
+    gap: 0.8rem;
+}
+
+.group-stage-disclosure-content > section {
+    margin-block: 0;
+}
+
+.group-race-board {
+    margin-top: 0.9rem;
+}
+
+.fixtures-section .controls-panel {
+    margin-top: 0;
+}
+
+.fixtures-section .fixture-browser-heading {
+    margin-top: 1rem;
+}
+
+.fixtures-section .fixture-browser-layout,
+.fixtures-section .fixtures-grid,
+.fixtures-section .match-detail-panel {
+    min-width: 0;
+}
+
+.dashboard-layout,
+.dashboard-disclosure-content,
+.dashboard-subdisclosure-content,
+.matchday-pulse-context-card {
+    overflow-wrap: anywhere;
+}
+
+.dashboard-disclosure > summary:focus-visible,
+.dashboard-subdisclosure > summary:focus-visible,
+.matchday-pulse-context-card:focus-visible {
+    outline: 3px solid #ffffff;
+    outline-offset: 3px;
+}
+
+@media (max-width: 900px) {
+    .dashboard-disclosure > summary,
+    .dashboard-subdisclosure > summary,
+    .live-match-centre-panel .dashboard-disclosure-summary,
+    .sync-runtime-panel .dashboard-disclosure-summary,
+    .ai-summary-panel .dashboard-disclosure-summary,
+    .group-race-board > .dashboard-subdisclosure-summary {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .dashboard-disclosure-statuses {
+        grid-column: 1 / -1;
+        justify-content: flex-start;
+        max-width: none;
+    }
+
+    .live-match-centre-panel .live-match-centre-freshness {
+        max-width: 12rem;
+    }
+}
+
+@media (max-width: 700px) {
+    .dashboard-disclosure {
+        border-radius: 1rem;
+    }
+
+    .dashboard-disclosure > summary,
+    .dashboard-subdisclosure > summary {
+        min-height: 64px;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: start;
+        padding: 0.9rem;
+    }
+
+    .dashboard-disclosure-toggle,
+    .dashboard-subdisclosure-toggle {
+        margin-top: 0.12rem;
+    }
+
+    .dashboard-disclosure-copy,
+    .dashboard-subdisclosure-copy {
+        font-size: 0.86rem;
+    }
+
+    .dashboard-disclosure-content {
+        padding: 0 0.9rem 0.9rem;
+    }
+
+    .dashboard-subdisclosure-content {
+        padding: 0.8rem;
+    }
+
+    .matchday-pulse-context {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .live-match-centre-panel .live-match-centre-freshness {
+        grid-column: 1 / -1;
+        max-width: none;
+    }
+
+    .live-match-centre-panel .dashboard-disclosure-toggle {
+        grid-column: 2;
+    }
+
+    .dashboard-disclosure-statuses {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .dashboard-disclosure .sync-status-badge,
+    .dashboard-disclosure .sync-freshness-badge {
+        width: 100%;
+    }
+}
